@@ -1,0 +1,234 @@
+= Git Basics for Developers
+
+== 1. What is Git (one sentence)
+
+Git is a version control tool:
+it keeps the history of the code and allows multiple people to work together without overwriting each other’s work, thanks to branches.
+
+== 2. Getting the repository
+
+=== Connect to GIT in SSH
+
+Install Git on your PC from this URL : 
+
+[source,bash]
+https://git-scm.com/install/
+
+If you want zero hassle in the future, do this 👇
+
+==== a. Check if you already have an SSH key
+In a terminal:
+
+[source,bash]
+ls ~/.ssh
+
+If you see id_ed25519.pub → you’re good 👍
+
+==== b. Otherwise, create a new SSH key
+
+[source,bash]
+ssh-keygen -t ed25519
+
+Press Enter for all questions (default values are fine).
+
+==== c. Add the SSH key to GitLab
+
+Display the public key:
+
+[source,bash]
+cat ~/.ssh/id_ed25519.pub
+
+Then in GitLab, go to your profile:
+
+`Edit Profile` → `SSH Keys` → `Add a new key`
+ 
+→ In `Key` copy the result of the cat command, previously done.
+→ Click on `Add Key`
+
+=== git clone (only once)
+
+Used to copy the remote repository to your computer.
+
+[source,bash]
+git clone git@gitlab.com:lumen-juris-group/lumen-juris.git
+
+Done only once
+
+Creates a local folder with:
+** the full project
+** the complete Git history
+
+=== git pull (often)
+
+Used to update your local code with the latest changes from the remote repository.
+
+[source,bash]
+git pull
+
+Run before starting to work
+
+Run regularly
+
+Retrieves new commits from other developers
+
+== 3. Branch organization (golden rule)
+
+=== main
+
+Stable branch
+
+Contains production code
+
+❌ forbidden for interns
+
+=== develop
+
+Branch for the current development version
+
+Shared working base
+
+Interns never work directly on this branch
+
+=== Developer branch *(one per task)*
+
+Mandatory naming format:
+
+[source,text]
+LUMEN-XYZ_my_development_task
+
+Examples:
+
+LUMEN-123_add_login_form
+
+LUMEN-245_fix_header_bug
+
+Each intern works only on their own branch.
+
+XYZ = The task number written in the Trello URL
+
+== 4. Creating your branch
+
+From develop:
+
+[source,bash]
+git checkout develop
+git pull
+git checkout -b LUMEN-XYZ_my_development_task
+
+Result:
+
+You are now on your own branch
+
+It is based on the latest version of develop
+
+== 5. Switching branches (checkout)
+
+To see which branch you are on:
+
+[source,bash]
+git status
+
+To switch branches:
+
+[source,bash]
+git checkout branch_name
+
+Examples:
+
+[source,bash]
+git checkout develop
+git checkout LUMEN-123_add_login_form
+
+== 6. Checking work status: git status (very important)
+
+[source,bash]
+git status
+
+Shows:
+
+* modified files
+* added files
+* what is ready to be committed
+* what is not
+
+Use it all the time — it is your Git dashboard.
+
+== 7. Adding / removing files
+
+=== Add a file to the commit
+
+[source,bash]
+git add file.txt
+
+Add everything:
+
+[source,bash]
+git add .
+
+=== Remove a file
+
+[source,bash]
+git rm file.txt
+
+If the file was deleted manually, run:
+
+[source,bash]
+git add .
+
+== 8. Creating a commit
+
+A commit is a clear and logical save. If you don't push a commit, it's store only on your local computer.
+
+[source,bash]
+git commit -m "LUMEN-XYZ: clear description of what was done"
+
+Use this commit message format to link a commit to a Trello Task.
+
+Examples:
+
+LUMEN-123: add login form
+
+LUMEN-245: fix header bug
+
+Important rules:
+
+One commit = one idea / one action
+
+Message must be clear and readable
+
+No messages like test, fix, wip
+
+❌ Never commit generated files, like build result files contains in __pycache__
+
+Put in .gitignore file, the files or folders that we don't want to commit.
+
+== 9. Sending your work to the repository: git push
+
+After committed code, the push commande permite to share your code to other developers. 
+
+First push on the branch:
+
+[source,bash]
+git push -u origin LUMEN-XYZ_my_development_task
+
+Next pushes:
+
+[source,bash]
+git push
+
+The code is now:
+* on the remote repository
+* visible to the team lead
+* ready for review / merge
+
+== 10. Ultra-short summary (print and stick on the wall 🧠)
+
+* git clone → once
+* git pull → before working
+* create a branch from develop
+* Then you can code
+* git status
+* git add
+* git commit
+* git push
+* ❌ never commit on main or develop

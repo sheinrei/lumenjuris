@@ -1,0 +1,13 @@
+*.DS_Store
+
+#backend python
+back/__pycache__
+back/app/__pycache__
+back/services/__pycache__
+back/.env
+back/services/gen-lang-client-0501326750-4f358317bac6.json
+
+#front
+front/node_modules/
+
+#front proxy

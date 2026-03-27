@@ -1,0 +1,11 @@
+= List of extension to use in VSCODE
+
+Extension for doc:
+
+* AsciiDoc
+
+Extension for GIT:
+
+* Git Graph
+* Git History
+$ GitLens

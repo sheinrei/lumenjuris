@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-dotenv
+requests
+openai
+PyMuPDF
+pdfplumber
+google-cloud-vision
+python-multipart

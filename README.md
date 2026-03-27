@@ -1,0 +1,2 @@
+- Get the project from GIT: read doc/README_GIT.adoc (use the VSCODE extension: AsciiDoc to read the file)
+- Launch the project: read start.txt

@@ -1,0 +1,338 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Utilitaires line-clamp pour la sidebar */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Amélioration des scrollbars */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+  border: 2px solid #f1f5f9;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Animation pour le scroll fluide */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Amélioration du focus pour l'accessibilité */
+.focus-ring:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.viewer {
+  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  font-size: 15px;
+  color: #1f2937; /* gris foncé */
+  padding: 2rem 1.25rem;
+  max-width: 740px;
+  margin: 0 auto;
+}
+
+.viewer mark {
+  background: #fde047; /* jaune */
+  padding: 0 0.15em;
+  border-radius: 2px;
+}
+
+/* 🎯 SYSTÈME DE SURLIGNEMENT ULTRA-ROBUSTE */
+
+/* Classes de base pour les highlights */
+.ultra-highlight {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin: 2px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid;
+  backdrop-filter: blur(1px);
+}
+
+/* Animation d'apparition */
+.ultra-highlight.animate-in {
+  animation: highlightFadeIn 0.6s ease-out;
+}
+
+@keyframes highlightFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-2px) scale(0.98);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateY(1px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Niveaux de risque avec garde-fous visuels */
+.ultra-highlight.risk-1,
+.ultra-highlight.risk-2 {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-left-color: #22c55e;
+  color: #166534;
+}
+
+.ultra-highlight.risk-1:hover,
+.ultra-highlight.risk-2:hover {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+}
+
+.ultra-highlight.risk-3 {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-left-color: #f59e0b;
+  color: #92400e;
+}
+
+.ultra-highlight.risk-3:hover {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+}
+
+.ultra-highlight.risk-4,
+.ultra-highlight.risk-5 {
+  background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
+  border-left-color: #ef4444;
+  color: #991b1b;
+}
+
+.ultra-highlight.risk-4:hover,
+.ultra-highlight.risk-5:hover {
+  background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+
+/* Badge de confiance */
+.ultra-highlight::before {
+  content: attr(data-confidence) '%';
+  position: absolute;
+  top: -8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.ultra-highlight:hover::before {
+  opacity: 1;
+}
+
+/* Indicateur de stratégie utilisée */
+.ultra-highlight::after {
+  content: attr(data-strategy);
+  position: absolute;
+  bottom: -8px;
+  left: 8px;
+  background: rgba(59, 130, 246, 0.9);
+  color: white;
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 8px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ultra-highlight:hover::after {
+  opacity: 1;
+}
+
+/* États spéciaux */
+.ultra-highlight.validation-failed {
+  border-style: dashed;
+  opacity: 0.7;
+  filter: grayscale(0.3);
+}
+
+.ultra-highlight.high-confidence {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.ultra-highlight.low-confidence {
+  opacity: 0.8;
+  border-style: dotted;
+}
+
+/* Garde-fous pour éviter les conflits */
+.ultra-highlight * {
+  pointer-events: none;
+}
+
+.ultra-highlight {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* Protection contre les highlights imbriqués */
+.ultra-highlight .ultra-highlight {
+  all: unset;
+  display: inline;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ultra-highlight {
+    padding: 4px 6px;
+    margin: 1px 0;
+    border-radius: 4px;
+  }
+  
+  .ultra-highlight::before,
+  .ultra-highlight::after {
+    display: none;
+  }
+}
+
+/* 🎯 SYSTÈME DE SURLIGNEMENT MODERNE - API CSS CUSTOM HIGHLIGHT */
+
+/* Styles pour l'API CSS Custom Highlight (navigateurs modernes) */
+::highlight(clause-highlight) {
+  background-color: rgba(255, 235, 59, 0.4);
+  color: #1a1a1a;
+  border-radius: 3px;
+  padding: 2px 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 193, 7, 0.8);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+/* Styles par niveau de risque pour Custom Highlight API */
+::highlight(clause-risk-1) {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #2e7d32;
+  text-decoration-color: #4caf50;
+}
+
+::highlight(clause-risk-2) {
+  background-color: rgba(139, 195, 74, 0.25);
+  color: #388e3c;
+  text-decoration-color: #66bb6a;
+}
+
+::highlight(clause-risk-3) {
+  background-color: rgba(255, 152, 0, 0.25);
+  color: #e65100;
+  text-decoration-color: #ff9800;
+}
+
+::highlight(clause-risk-4) {
+  background-color: rgba(244, 67, 54, 0.25);
+  color: #c62828;
+  text-decoration-color: #f44336;
+  font-weight: 600;
+}
+
+::highlight(clause-risk-5) {
+  background-color: rgba(211, 47, 47, 0.3);
+  color: #b71c1c;
+  text-decoration-color: #d32f2f;
+  font-weight: 700;
+  text-decoration-thickness: 3px;
+}
+
+/* Mode sombre pour Custom Highlight API */
+@media (prefers-color-scheme: dark) {
+  ::highlight(clause-highlight) {
+    background-color: rgba(255, 235, 59, 0.3);
+    color: #ffd54f;
+  }
+  
+  ::highlight(clause-risk-1),
+  ::highlight(clause-risk-2) {
+    background-color: rgba(76, 175, 80, 0.15);
+    color: #81c784;
+  }
+  
+  ::highlight(clause-risk-3) {
+    background-color: rgba(255, 152, 0, 0.2);
+    color: #ffb74d;
+  }
+  
+  ::highlight(clause-risk-4),
+  ::highlight(clause-risk-5) {
+    background-color: rgba(244, 67, 54, 0.2);
+    color: #ef5350;
+  }
+  
+  /* Ancien système - Mode sombre */
+  .ultra-highlight.risk-1,
+  .ultra-highlight.risk-2 {
+    background: linear-gradient(135deg, #0f1f0f 0%, #1a2e1a 100%);
+    color: #86efac;
+  }
+  
+  .ultra-highlight.risk-3 {
+    background: linear-gradient(135deg, #1f1a0f 0%, #2e251a 100%);
+    color: #fcd34d;
+  }
+  
+  .ultra-highlight.risk-4,
+  .ultra-highlight.risk-5 {
+    background: linear-gradient(135deg, #1f0f0f 0%, #2e1a1a 100%);
+    color: #fca5a5;
+  }
+}
+
+/* Animation de suppression */
+.ultra-highlight.removing {
+  animation: highlightFadeOut 0.3s ease-in forwards;
+}
+
+@keyframes highlightFadeOut {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
