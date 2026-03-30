@@ -1,4 +1,5 @@
 *.DS_Store
+CLAUDE.md
 
 #backend python
 back/__pycache__
