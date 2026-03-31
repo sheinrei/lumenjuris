@@ -20,11 +20,11 @@ const navItems = [
 ];
 
 const kpiCards = [
-  { icon: FileText,     iconBg: "bg-blue-50 text-blue-600",   value: "48", label: "Nombre de contrats",    sub: "Total actifs",                     badge: null },
+  { icon: FileText,     iconBg: "bg-slate-100 text-black-500", value: "48", label: "Nombre de contrats",    sub: "Total actifs",                     badge: null },
   { icon: FileCheck,    iconBg: "bg-green-50 text-green-600", value: "32", label: "Contrats signés",        sub: null,                               badge: "+5 ce mois" },
   { icon: Clock,        iconBg: "bg-yellow-50 text-yellow-600", value: "12", label: "Contrats en cours",   sub: "En attente de signature",          badge: null },
-  { icon: CalendarClock,iconBg: "bg-blue-50 text-blue-600",   value: "4",  label: "Arrivées bientôt",      sub: "Dans les 30 prochains jours",      badge: null },
-  { icon: ShieldCheck,  iconBg: "bg-blue-50 text-blue-600",   value: "5",  label: "Procédures en cours",   sub: "2 échéances cette semaine",        badge: null },
+  { icon: CalendarClock,iconBg: "bg-slate-100 text-black-500", value: "4",  label: "Arrivées bientôt",      sub: "Dans les 30 prochains jours",      badge: null },
+  { icon: ShieldCheck,  iconBg: "bg-slate-100 text-black-500", value: "5",  label: "Procédures en cours",   sub: "2 échéances cette semaine",        badge: null },
   { icon: AlertTriangle,iconBg: "bg-red-50 text-red-500",     value: "3",  label: "Alertes juridiques",    sub: "2 prioritaires",                   badge: null },
 ];
 
@@ -70,7 +70,7 @@ export function Dashboard() {
         <aside className="hidden md:flex flex-col fixed inset-y-0 left-0 w-64 bg-[#1a1d23] z-20">
           <div className="p-4 pb-2">
             <Link to="/dashboard" className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#354F99]">
                 <Scale className="h-5 w-5 text-white" />
               </div>
               <div className="flex flex-col">
@@ -199,8 +199,8 @@ export function Dashboard() {
                 <div
                   className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center mb-4 transition-colors cursor-pointer ${
                     dragOver
-                      ? "border-blue-400 bg-blue-50/60"
-                      : "border-gray-200 hover:border-blue-300 hover:bg-blue-50/30"
+                      ? "border-[#354F99] bg-[#354F99]/5"
+                      : "border-gray-200 hover:border-[#354F99] hover:bg-[#354F99]/5"
                   }`}
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
@@ -218,7 +218,7 @@ export function Dashboard() {
                   <p className="text-sm font-medium text-gray-700">Glissez-déposez votre document ici</p>
                   <p className="text-xs text-gray-400 mt-1">PDF, DOCX – Contrats, avenants, procédures</p>
                 </div>
-                <Link to="/analyzer" className="inline-flex items-center gap-2 text-sm font-medium text-green-600 hover:text-green-500 transition-colors">
+                <Link to="/analyzer" className="inline-flex items-center gap-2 text-sm font-medium text-[#354F99] hover:text-[#4A65B0] transition-colors">
                   Analyser un document <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -236,17 +236,17 @@ export function Dashboard() {
                   {docTypes.map((item) => (
                     <button
                       key={item.label}
-                      className="flex flex-col items-start gap-1 p-3 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50/30 transition-all text-left group"
+                      className="flex flex-col items-start gap-1 p-3 rounded-lg border border-gray-200 hover:border-[#354F99] hover:bg-[#354F99]/5 transition-all text-left group"
                     >
                       <div className="flex items-center gap-2">
-                        <item.icon className="h-4 w-4 text-gray-400 group-hover:text-green-600 transition-colors" />
+                        <item.icon className="h-4 w-4 text-gray-400 group-hover:text-[#354F99] transition-colors" />
                         <span className="text-sm font-medium text-gray-800">{item.label}</span>
                       </div>
                       <span className="text-[11px] text-gray-400 leading-tight">{item.sub}</span>
                     </button>
                   ))}
                 </div>
-                <Link to="/generateur" className="inline-flex items-center gap-2 text-sm font-medium text-green-600 hover:text-green-500 transition-colors">
+                <Link to="/generateur" className="inline-flex items-center gap-2 text-sm font-medium text-[#354F99] hover:text-[#4A65B0] transition-colors">
                   Créer un document <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -262,8 +262,8 @@ export function Dashboard() {
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4 mb-4">
                   <div className="flex items-start gap-3">
-                    <div className="h-7 w-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
-                      <MessageSquare className="h-3.5 w-3.5 text-blue-600" />
+                    <div className="h-7 w-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0 mt-0.5">
+                      <MessageSquare className="h-3.5 w-3.5 text-slate-500" />
                     </div>
                     <div>
                       <p className="text-sm text-gray-800">"Quelles sont les obligations lors d'un licenciement pour faute grave ?"</p>
@@ -271,7 +271,7 @@ export function Dashboard() {
                     </div>
                   </div>
                 </div>
-                <Link to="/chat" className="inline-flex items-center gap-2 text-sm font-medium text-green-600 hover:text-green-500 transition-colors">
+                <Link to="/chat" className="inline-flex items-center gap-2 text-sm font-medium text-[#354F99] hover:text-[#4A65B0] transition-colors">
                   Poser une question <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -304,7 +304,7 @@ export function Dashboard() {
                     <span className="text-lg font-bold text-green-600">6 400 €</span>
                   </div>
                 </div>
-                <Link to="/calculateur" className="inline-flex items-center gap-2 text-sm font-medium text-green-600 hover:text-green-500 transition-colors">
+                <Link to="/calculateur" className="inline-flex items-center gap-2 text-sm font-medium text-[#354F99] hover:text-[#4A65B0] transition-colors">
                   Calculer une indemnité <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -323,18 +323,18 @@ export function Dashboard() {
                 {veilleItems.map((item, i) => (
                   <div
                     key={i}
-                    className="p-4 rounded-lg border border-gray-200 hover:border-green-300 transition-colors cursor-pointer group"
+                    className="p-4 rounded-lg border border-gray-200 hover:border-[#354F99] transition-colors cursor-pointer group"
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <Tag className="h-3 w-3 text-gray-400" />
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${item.tagClass}`}>{item.tag}</span>
                     </div>
-                    <p className="text-sm font-medium text-gray-800 leading-snug group-hover:text-green-600 transition-colors">{item.title}</p>
+                    <p className="text-sm font-medium text-gray-800 leading-snug group-hover:text-[#354F99] transition-colors">{item.title}</p>
                     <p className="text-xs text-gray-400 mt-2">{item.date}</p>
                   </div>
                 ))}
               </div>
-              <Link to="/veille" className="inline-flex items-center gap-2 text-sm font-medium text-green-600 hover:text-green-500 transition-colors">
+              <Link to="/veille" className="inline-flex items-center gap-2 text-sm font-medium text-[#354F99] hover:text-[#4A65B0] transition-colors">
                 Voir toutes les actualités <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
