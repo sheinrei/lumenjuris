@@ -230,6 +230,28 @@
       "total_tokens": 6443,
       "status": "completed",
       "error": null
+    },
+    {
+      "timestamp": "2026-03-31T12:44:37.643846Z",
+      "model": "gpt-5.2-2025-12-11",
+      "reasoning": "none",
+      "verbosity": "low",
+      "input_tokens": 3379,
+      "output_tokens": 1687,
+      "total_tokens": 5066,
+      "status": "completed",
+      "error": null
+    },
+    {
+      "timestamp": "2026-03-31T12:44:57.690877Z",
+      "model": "gpt-5.2-2025-12-11",
+      "reasoning": "none",
+      "verbosity": "low",
+      "input_tokens": 3229,
+      "output_tokens": 3463,
+      "total_tokens": 6692,
+      "status": "completed",
+      "error": null
     }
   ]
 }
