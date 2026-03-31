@@ -1,0 +1,64 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+
+// Tables liées aux utilisateurs
+model User { 
+  id    Int     @id @default(autoincrement()) 
+  email String  @unique
+  first_name  String?
+  last_name String?
+  Siren Int?
+  
+} 
+
+
+
+
+model Token {
+  id Int @id @default(autoincrement())
+
+}
+
+// Evenement des utilisateurs
+model Event {
+  id Int @id @default(autoincrement())
+
+}
+
+
+// definitation des coùt d'un model LLM
+model LlmModel {
+  id Int @default(autoincrement())
+  model String 
+
+}
+
+//Usage token des models LLM
+model LlmCost {
+  id Int @default(autoincrement())
+
+}
+
+// Facturation des utilisateurs
+model Factures {
+  id Int @id @default(autoincrement())
+  
+}
+
+// Current crédit des utilisateurs
+model Credit {
+  id Int @id @default(autoincrement())
+
+}

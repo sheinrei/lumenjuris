@@ -1,8 +1,14 @@
+import { Navigation } from "../components/Navigation"
+
+export function Dashboard() {
 
 
+    return (
+        
+    <div>
+        < Navigation />
 
-export function Dashboard(){
-
-
-    return (<div>Dashboard</div>)
+        <p>Dashboard</p>
+    </div>
+    )
 }

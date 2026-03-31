@@ -8,6 +8,9 @@ import path from 'path';
 dotenv.config({ path: path.resolve(process.cwd(), 'server/.env') });
 dotenv.config();
 
+
+
+
 const app = express();
 
 /* app.use(cors({
@@ -25,6 +28,7 @@ app.use(cors({
   ],
   credentials: true,
 }));
+
 
 app.use(express.json({ limit: '1mb' }));
 
@@ -48,6 +52,8 @@ let cachedToken: { access_token: string; expiresAt: number } | null = null;
 
 const now = () => Date.now();
 
+
+/*
 async function getPisteAccessToken(): Promise<{ access_token: string; expires_in: number }> {
   if (cachedToken && cachedToken.expiresAt - now() > 30_000) {
     const expires_in = Math.floor((cachedToken.expiresAt - now()) / 1000);
@@ -196,11 +202,14 @@ function plainText(x: any): string {
   return '';
 }
 
+
+
 function countOccurrences(hay: string, needle: string): number {
   if (!hay || !needle) return 0;
   const re = new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
   return (hay.match(re) || []).length;
 }
+
 
 async function summarizeWithOpenAI(fullSummary: string, title: string): Promise<{ vulgarise: string; tags: string[] } | null> {
   const prompt = `Tu es un juriste français. \nRésumé source (complet):\n"""${fullSummary.slice(0, 6000)}"""\n\nTâches:\n1) Vulgarise en 3 à 5 phrases claires, grand public.\n2) Propose 5 à 12 mots-clés courts (tags), séparés par des virgules.\n\nRéponds en JSON strict:\n{ "resumeVulgarise": "...", "motsCles": ["tag1","tag2",...] }`;
@@ -345,6 +354,11 @@ app.post('/api/legi-search', async (req: Request, res: Response) => {
   }
 });
 
+
+
+
+
+
 // Route RAW passthrough: envoie le JSON fourni tel quel à /search (debug avancé)
 app.post('/api/legi-search-raw', async (req: Request, res: Response) => {
   const start = Date.now();
@@ -373,6 +387,12 @@ app.post('/api/legi-search-raw', async (req: Request, res: Response) => {
   }
 });
 
+
+
+
+
+
+
 // Consultation texte intégral
 app.post('/api/legi-consult-juri', async (req: Request, res: Response) => {
   try {
@@ -400,6 +420,11 @@ app.post('/api/legi-consult-juri', async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'proxy_exception', detail: String(e?.message || e) });
   }
 });
+
+
+
+
+
 
 // Helpers to extract decision date from title when explicit fields are missing
 function parseDateFromTitle(title: string): { dateIso?: string; year?: number } {
@@ -431,6 +456,9 @@ function parseDateFromTitle(title: string): { dateIso?: string; year?: number } 
   return {};
 }
 
+
+
+
 function computeDecisionDate(hit: any): { dateIso?: string; year?: number } {
   const tryStr = (s: any) => (typeof s === 'string' && s) ? s : '';
   const ds = tryStr(hit?.dateDecision) || tryStr(hit?.datePrononcee) || tryStr(hit?.datePublication);
@@ -444,6 +472,7 @@ function computeDecisionDate(hit: any): { dateIso?: string; year?: number } {
   const title = tryStr(hit?.titre) || tryStr(hit?.title) || '';
   return parseDateFromTitle(title);
 }
+
 
 
 
@@ -567,6 +596,7 @@ app.post('/api/legi-top3', async (req: Request, res: Response) => {
 
 
 
+
 // === Route Chat IA simple ===
 app.post('/api/chat', async (req: Request, res: Response) => {
   const { message, context } = req.body || {};
@@ -616,3 +646,4 @@ app.listen(PORT, () => {
   console.log(`🚀 Proxy prêt: http://localhost:${PORT}`);
   console.log(`PISTE_CLIENT_ID: ${PISTE_CLIENT_ID ? '✔' : '✖'}  PISTE_CLIENT_SECRET: ${PISTE_CLIENT_SECRET ? '✔' : '✖'}`);
 });
+ */
