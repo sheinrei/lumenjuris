@@ -29,6 +29,7 @@ export function App() {
       <Route path="/sandbox" element={<Sandbox />} />
       <Route path="/inscription" element={<Inscription />} />
       <Route path="/mon-compte" element={<ParamCompte />} />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }
