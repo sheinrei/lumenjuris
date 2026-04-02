@@ -104,7 +104,7 @@ export function Dashboard() {
                   fieldDescriptionClassName="text-xs text-gray-400 mb-0"
                   fileTypeClassName="hidden"
                 />
-                <Link to="/analyzer" className="inline-flex items-center gap-2 text-sm font-medium text-[#354F99] hover:text-[#4A65B0] transition-colors">
+                <Link to="/conformite" className="inline-flex items-center gap-2 text-sm font-medium text-[#354F99] hover:text-[#4A65B0] transition-colors">
                   Analyser un document <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>

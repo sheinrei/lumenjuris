@@ -8,6 +8,7 @@ import { Signature } from "./components/dashboardComponents/Signature";
 import { ChatJuridique } from "./components/dashboardComponents/ChatJuridique";
 import { Calculateur } from "./components/dashboardComponents/Calculateur";
 import { Veille } from "./components/dashboardComponents/Veille";
+import { Conformite } from "./components/dashboardComponents/Conformite";
 
 import { Inscription } from "./page/Inscription";
 import { Sandbox } from "./page/Sandbox";
@@ -23,6 +24,7 @@ export function App() {
         <Route path="/chatjuridique" element={<ChatJuridique />} />
         <Route path="/calculateur" element={<Calculateur />} />
         <Route path="/veille" element={<Veille />} />
+        <Route path="/conformite" element={<Conformite />} />
       </Route>
 
       <Route path="/analyzer" element={<ContractAnalysis />} />

@@ -10,7 +10,7 @@ const navItems = [
   { icon: LayoutDashboard, label: "Tableau de bord",       path: "/dashboard" },
   { icon: FileText,        label: "Générateur de modèles", path: "/generateur" },
   { icon: PenTool,         label: "Signature",             path: "/signature" },
-  { icon: ShieldCheck,     label: "Analyse de conformité", path: "/analyzer" },
+  { icon: ShieldCheck,     label: "Analyse de conformité", path: "/conformite" },
   { icon: MessageSquare,   label: "Chat juridique RH",     path: "/chatjuridique" },
   { icon: Calculator,      label: "Calculateur juridique", path: "/calculateur" },
   { icon: Newspaper,       label: "Veille information",    path: "/veille" },
