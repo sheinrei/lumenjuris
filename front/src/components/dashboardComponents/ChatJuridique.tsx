@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { MessageSquare, Send, Download, Clock, Plus, Trash2, Loader2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 type Message = { role: "user" | "bot" | "error"; text: string };
 type Conversation = { id: string; title: string; createdAt: string; messages: Message[] };
@@ -96,7 +97,7 @@ export function ChatJuridique() {
     setInput("");
     setIsSending(true);
 
-    // Snapshot des messages avant la mise à jour (sans le message qu'on vient d'ajouter)
+    // Ajout du contexte et de l'historique des messages précédents
     const previousMessages = conversations.find((c) => c.id === convId)?.messages ?? [];
 
     try {
@@ -264,8 +265,8 @@ export function ChatJuridique() {
                       {m.text}
                     </div>
                   ) : (
-                    <div className="max-w-[80%] bg-white border border-gray-200 text-sm text-gray-800 rounded-2xl px-6 py-5 shadow-sm leading-relaxed whitespace-pre-wrap">
-                      {m.text}
+                    <div className="max-w-[80%] bg-white border border-gray-200 text-sm text-gray-800 rounded-2xl px-6 py-5 shadow-sm leading-relaxed [&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:text-sm [&_h3]:font-medium [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1 [&_li]:leading-relaxed [&_strong]:font-semibold [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_p]:mb-2 [&_p:last-child]:mb-0 [&_a]:text-[#354F99] [&_a]:underline">
+                      <ReactMarkdown>{m.text}</ReactMarkdown>
                     </div>
                   )}
                 </div>
