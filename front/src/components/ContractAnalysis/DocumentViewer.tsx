@@ -209,7 +209,8 @@ export const DocumentViewer = forwardRef<
               📄 {fileName}
             </h2>
             <div className="flex items-center gap-4 text-xs">
-              {/* <button
+              {/* Ancienne version avec le mode Edition
+              <button
                 onClick={() => setQuillActiv(!quillActiv)}
                 className="px-2 py-1 rounded-full border text-xs font-semibold bg-blue-500 text-white
                             shadow-md hover:shadow-lg transition-all duration-200"
