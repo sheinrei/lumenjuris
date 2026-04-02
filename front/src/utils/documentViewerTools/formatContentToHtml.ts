@@ -36,14 +36,14 @@ export const formatContentToHtml = ({
 
   const processTextFragment = (fragment: string) => {
     const paragraphs = fragment
-      .split(/(?=(?:Article|Objet))/)
+      .split(/(?=(?:Article|Objet))|(?=\*\*)|(?=[A-ZÀÂÄÉÈÊËÎÏÔÖÙÛÜ][.)\-:;])/)
       .filter((paragraph) => paragraph.trim());
     for (const paragraph of paragraphs) {
       const trimmed = paragraph.trim();
       if (!trimmed) continue;
       const escaped = escapeHtml(trimmed).replace(/\n\n/g, "<br/>");
       htmlParts.push(
-        `<p style="margin-bottom:1rem;line-height:1.625;color:#1f2937;">${escaped}</p>`,
+        `<p style="padding-bottom:1rem;line-height:1.625;color:#1f2937;">${escaped}</p>`,
       );
     }
   };
