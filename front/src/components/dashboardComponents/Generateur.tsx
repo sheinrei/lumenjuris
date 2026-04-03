@@ -74,13 +74,13 @@ export function Generateur() {
                 className="flex items-center gap-2 shrink-0"
               >
                 <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors ${
-                  i < step  ? "bg-[#354F99] text-white"
-                  : i === step ? "bg-[#354F99] text-white ring-4 ring-[#354F99]/20"
+                  i < step  ? "bg-lumenjuris text-white"
+                  : i === step ? "bg-lumenjuris text-white ring-4 ring-lumenjuris/20"
                   : "bg-gray-100 text-gray-400"
                 }`}>
                   {i + 1}
                 </span>
-                <span className={`text-sm font-medium hidden sm:block ${i === step ? "text-[#354F99]" : i < step ? "text-gray-700" : "text-gray-400"}`}>
+                <span className={`text-sm font-medium hidden sm:block ${i === step ? "text-lumenjuris" : i < step ? "text-gray-700" : "text-gray-400"}`}>
                   {s}
                 </span>
               </button>
@@ -105,12 +105,12 @@ export function Generateur() {
                 onClick={() => setSelectedDoc(dt.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border text-left transition-all ${
                   selectedDoc === dt.id
-                    ? "border-[#354F99] bg-[#354F99]/5"
+                    ? "border-lumenjuris bg-lumenjuris/5"
                     : "border-gray-200 hover:border-gray-300"
                 }`}
               >
-                <dt.icon className={`h-4 w-4 shrink-0 ${selectedDoc === dt.id ? "text-[#354F99]" : "text-gray-400"}`} />
-                <span className={`text-sm font-medium ${selectedDoc === dt.id ? "text-[#354F99]" : "text-gray-700"}`}>
+                <dt.icon className={`h-4 w-4 shrink-0 ${selectedDoc === dt.id ? "text-lumenjuris" : "text-gray-400"}`} />
+                <span className={`text-sm font-medium ${selectedDoc === dt.id ? "text-lumenjuris" : "text-gray-700"}`}>
                   {dt.label}
                 </span>
               </button>
@@ -123,9 +123,9 @@ export function Generateur() {
               <input
                 value={cc}
                 onChange={(e) => setCc(e.target.value)}
-                className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#354F99] transition-colors"
+                className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-lumenjuris transition-colors"
               />
-              <button className="text-sm text-[#354F99] font-medium hover:text-[#2d4387] transition-colors shrink-0">
+              <button className="text-sm text-lumenjuris font-medium hover:text-lumenjuris-dark transition-colors shrink-0">
                 Changer
               </button>
             </div>
@@ -133,7 +133,7 @@ export function Generateur() {
 
           <button
             onClick={() => setStep(Math.min(step + 1, STEPS.length - 1))}
-            className="w-full flex items-center justify-center gap-2 bg-[#354F99] text-white text-sm font-semibold py-3 rounded-lg hover:bg-[#2d4387] transition-colors"
+            className="w-full flex items-center justify-center gap-2 bg-lumenjuris text-white text-sm font-semibold py-3 rounded-lg hover:bg-lumenjuris-dark transition-colors"
           >
             Continuer <ChevronRight className="h-4 w-4" />
           </button>

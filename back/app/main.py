@@ -18,6 +18,7 @@ from back.services.pdf_processing import (
     corriger_espaces,
     extract_clauses_ia_robuste,
     _extract_text_from_pdf_content,
+    _extract_html_from_pdf_dict,
     _extract_keywords_basic,
     _sanitize_query_text,
     _legifrance_search,
@@ -42,7 +43,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["*"] ,
+    allow_methods=["*"],
     allow_headers=["*"],
 ) 
 
@@ -108,7 +109,9 @@ async def extract_pdf_text(file: UploadFile = File(...), scan: bool = Form(False
 
 
     content = await file.read()
-    texte_brut = _extract_text_from_pdf_content(content, scan)
+    html_formatte = _extract_html_from_pdf_dict(content)
+    print(html_formatte[:1000])
+    texte_brut = _extract_text_from_pdf_content(content, scan) #  remplcé par html_formatte
     texte_corrige = corriger_espaces(texte_brut)
     clauses_detectees = extract_clauses_ia_robuste(texte_corrige)
     texte_des_clauses = " ".join(c.get("text", "") for c in clauses_detectees)
@@ -117,6 +120,7 @@ async def extract_pdf_text(file: UploadFile = File(...), scan: bool = Form(False
     return {
         "success": True,
         "text": texte_corrige,
+        "html": html_formatte,
         "clauses": clauses_detectees,
         "keywords": keywords or [],
         "filename": file.filename,

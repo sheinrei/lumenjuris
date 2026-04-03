@@ -19,7 +19,7 @@ export function Signature() {
       <div className="grid grid-cols-3 gap-4">
         {[
           { icon: Clock,        label: "En attente",      value: "4",  iconClass: "bg-yellow-50 text-yellow-600" },
-          { icon: CheckCircle,  label: "Signés",          value: "28", iconClass: "text-[#354F99] bg-[#354F99]/10" },
+          { icon: CheckCircle,  label: "Signés",          value: "28", iconClass: "text-lumenjuris bg-lumenjuris/10" },
           { icon: Send,         label: "Envoyés ce mois", value: "6",  iconClass: "text-gray-400 bg-slate-100" },
         ].map((k) => (
           <div key={k.label} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm flex items-center gap-4">
@@ -57,14 +57,14 @@ export function Signature() {
 
       {/* Faire signer */}
       <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm flex flex-col items-center text-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#354F99]/10">
-          <PenTool className="h-6 w-6 text-[#354F99]" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-lumenjuris/10">
+          <PenTool className="h-6 w-6 text-lumenjuris" />
         </div>
         <div>
           <p className="text-sm font-semibold text-gray-900">Envoyer un contrat à la signature</p>
           <p className="text-xs text-gray-400 mt-1">Sélectionnez un document généré ou importez-en un</p>
         </div>
-        <button className="bg-[#354F99] text-white text-sm font-semibold px-6 py-2.5 rounded-lg hover:bg-[#2d4387] transition-colors">
+        <button className="bg-lumenjuris text-white text-sm font-semibold px-6 py-2.5 rounded-lg hover:bg-lumenjuris-dark transition-colors">
           Nouveau envoi
         </button>
       </div>

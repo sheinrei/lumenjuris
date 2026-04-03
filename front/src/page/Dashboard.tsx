@@ -98,13 +98,13 @@ export function Dashboard() {
                   fieldTitle="Cliquez ici ou glissez-déposez votre fichier PDF"
                   fieldDescription="Contrats, avenants, procédures"
                   supportedFileType="PDF"
-                  fieldClassName="mb-4 p-6 border-gray-200 hover:border-[#354F99] hover:bg-[#354F99]/5"
+                  fieldClassName="mb-4 p-6 border-gray-200 hover:border-lumenjuris hover:bg-lumenjuris/5"
                   iconClassName="w-10 h-10 bg-slate-100 text-gray-300"
                   fieldTitleClassName="text-sm font-medium text-gray-700 mb-0"
                   fieldDescriptionClassName="text-xs text-gray-400 mb-0"
                   fileTypeClassName="hidden"
                 />
-                <Link to="/analyzer" className="inline-flex items-center gap-2 text-sm font-medium text-[#354F99] hover:text-[#4A65B0] transition-colors">
+                <Link to="/conformite" className="inline-flex items-center gap-2 text-sm font-medium text-lumenjuris hover:text-lumenjuris transition-colors">
                   Analyser un document <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -122,17 +122,17 @@ export function Dashboard() {
                   {docTypes.map((item) => (
                     <button
                       key={item.label}
-                      className="flex flex-col items-start gap-1 p-3 rounded-lg border border-gray-200 hover:border-[#354F99] hover:bg-[#354F99]/5 transition-all text-left group"
+                      className="flex flex-col items-start gap-1 p-3 rounded-lg border border-gray-200 hover:border-lumenjuris hover:bg-lumenjuris/5 transition-all text-left group"
                     >
                       <div className="flex items-center gap-2">
-                        <item.icon className="h-4 w-4 text-gray-400 group-hover:text-[#354F99] transition-colors" />
+                        <item.icon className="h-4 w-4 text-gray-400 group-hover:text-lumenjuris transition-colors" />
                         <span className="text-sm font-medium text-gray-800">{item.label}</span>
                       </div>
                       <span className="text-[11px] text-gray-400 leading-tight">{item.sub}</span>
                     </button>
                   ))}
                 </div>
-                <Link to="/generateur" className="inline-flex items-center gap-2 text-sm font-medium text-[#354F99] hover:text-[#4A65B0] transition-colors">
+                <Link to="/generateur" className="inline-flex items-center gap-2 text-sm font-medium text-lumenjuris hover:text-lumenjuris transition-colors">
                   Créer un document <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -157,7 +157,7 @@ export function Dashboard() {
                     </div>
                   </div>
                 </div>
-                <Link to="/chatjuridique" className="inline-flex items-center gap-2 text-sm font-medium text-[#354F99] hover:text-[#4A65B0] transition-colors">
+                <Link to="/chatjuridique" className="inline-flex items-center gap-2 text-sm font-medium text-lumenjuris hover:text-lumenjuris transition-colors">
                   Poser une question <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -187,10 +187,10 @@ export function Dashboard() {
                   </div>
                   <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
                     <span className="text-xs font-medium text-gray-400">Estimation</span>
-                    <span className="text-lg font-bold text-[#354F99]">6 400 €</span>
+                    <span className="text-lg font-bold text-lumenjuris">6 400 €</span>
                   </div>
                 </div>
-                <Link to="/calculateur" className="inline-flex items-center gap-2 text-sm font-medium text-[#354F99] hover:text-[#4A65B0] transition-colors">
+                <Link to="/calculateur" className="inline-flex items-center gap-2 text-sm font-medium text-lumenjuris hover:text-lumenjuris transition-colors">
                   Calculer une indemnité <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -209,18 +209,18 @@ export function Dashboard() {
                 {veilleItems.map((item, i) => (
                   <div
                     key={i}
-                    className="p-4 rounded-lg border border-gray-200 hover:border-[#354F99] transition-colors cursor-pointer group"
+                    className="p-4 rounded-lg border border-gray-200 hover:border-lumenjuris transition-colors cursor-pointer group"
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <Tag className="h-3 w-3 text-gray-400" />
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${item.tagClass}`}>{item.tag}</span>
                     </div>
-                    <p className="text-sm font-medium text-gray-800 leading-snug group-hover:text-[#354F99] transition-colors">{item.title}</p>
+                    <p className="text-sm font-medium text-gray-800 leading-snug group-hover:text-lumenjuris transition-colors">{item.title}</p>
                     <p className="text-xs text-gray-400 mt-2">{item.date}</p>
                   </div>
                 ))}
               </div>
-              <Link to="/veille" className="inline-flex items-center gap-2 text-sm font-medium text-[#354F99] hover:text-[#4A65B0] transition-colors">
+              <Link to="/veille" className="inline-flex items-center gap-2 text-sm font-medium text-lumenjuris hover:text-lumenjuris transition-colors">
                 Voir toutes les actualités <ArrowRight className="h-4 w-4" />
               </Link>
             </div>

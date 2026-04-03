@@ -10,7 +10,7 @@ const navItems = [
   { icon: LayoutDashboard, label: "Tableau de bord",       path: "/dashboard" },
   { icon: FileText,        label: "Générateur de modèles", path: "/generateur" },
   { icon: PenTool,         label: "Signature",             path: "/signature" },
-  { icon: ShieldCheck,     label: "Analyse de conformité", path: "/analyzer" },
+  { icon: ShieldCheck,     label: "Analyse de conformité", path: "/conformite" },
   { icon: MessageSquare,   label: "Chat juridique RH",     path: "/chatjuridique" },
   { icon: Calculator,      label: "Calculateur juridique", path: "/calculateur" },
   { icon: Newspaper,       label: "Veille information",    path: "/veille" },
@@ -24,10 +24,10 @@ export function MainLayout() {
 
       {/* ── Sidebar ── */}
       {sidebarOpen && (
-        <aside className="hidden md:flex flex-col fixed inset-y-0 left-0 w-64 bg-[#1a1d23] z-20">
+        <aside className="hidden md:flex flex-col fixed inset-y-0 left-0 w-64 bg-lumenjuris-sidebar z-20">
           <div className="p-4 pb-2">
             <Link to="/dashboard" className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#354F99]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-lumenjuris">
                 <Scale className="h-5 w-5 text-white" />
               </div>
               <div className="flex flex-col">
@@ -97,7 +97,7 @@ export function MainLayout() {
               <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-green-500" />
             </button>
             <div className="flex items-center gap-2 pl-3 border-l border-gray-200">
-              <div className="h-8 w-8 rounded-full bg-[#354F99] flex items-center justify-center text-white text-xs font-medium">
+              <div className="h-8 w-8 rounded-full bg-lumenjuris flex items-center justify-center text-white text-xs font-medium">
                 ML
               </div>
               <div className="hidden md:flex items-center gap-1 cursor-pointer">

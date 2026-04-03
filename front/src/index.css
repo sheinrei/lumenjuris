@@ -47,7 +47,7 @@ html {
 }
 
 .viewer {
-  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
   line-height: 1.6;
   font-size: 15px;
   color: #1f2937; /* gris foncé */
@@ -136,7 +136,7 @@ html {
 
 /* Badge de confiance */
 .ultra-highlight::before {
-  content: attr(data-confidence) '%';
+  content: attr(data-confidence) "%";
   position: absolute;
   top: -8px;
   right: 8px;
@@ -222,7 +222,7 @@ html {
     margin: 1px 0;
     border-radius: 4px;
   }
-  
+
   .ultra-highlight::before,
   .ultra-highlight::after {
     display: none;
@@ -284,36 +284,36 @@ html {
     background-color: rgba(255, 235, 59, 0.3);
     color: #ffd54f;
   }
-  
+
   ::highlight(clause-risk-1),
   ::highlight(clause-risk-2) {
     background-color: rgba(76, 175, 80, 0.15);
     color: #81c784;
   }
-  
+
   ::highlight(clause-risk-3) {
     background-color: rgba(255, 152, 0, 0.2);
     color: #ffb74d;
   }
-  
+
   ::highlight(clause-risk-4),
   ::highlight(clause-risk-5) {
     background-color: rgba(244, 67, 54, 0.2);
     color: #ef5350;
   }
-  
+
   /* Ancien système - Mode sombre */
   .ultra-highlight.risk-1,
   .ultra-highlight.risk-2 {
     background: linear-gradient(135deg, #0f1f0f 0%, #1a2e1a 100%);
     color: #86efac;
   }
-  
+
   .ultra-highlight.risk-3 {
     background: linear-gradient(135deg, #1f1a0f 0%, #2e251a 100%);
     color: #fcd34d;
   }
-  
+
   .ultra-highlight.risk-4,
   .ultra-highlight.risk-5 {
     background: linear-gradient(135deg, #1f0f0f 0%, #2e1a1a 100%);
@@ -335,4 +335,68 @@ html {
     opacity: 0;
     transform: scale(0.95);
   }
+}
+
+/* Styles ciblant le contenu réel du Quill (.ql-editor) */
+.ql-editor {
+  font-size: 16px;
+  line-height: 1.625;
+  color: #1f2937;
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.ql-editor span:hover {
+  cursor: pointer;
+}
+
+/* Styles de base pour l'éditeur TipTap (.ProseMirror) */
+
+.ProseMirror {
+  outline: none;
+  min-height: 200px;
+  line-height: 1.7;
+  color: #1f2937;
+  font-size: 0.9375rem;
+}
+
+.ProseMirror > * + * {
+  margin-top: 0.75em;
+}
+
+.ProseMirror h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+.ProseMirror h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-top: 1.25em;
+  margin-bottom: 0.4em;
+  line-height: 1.35;
+}
+
+.ProseMirror p {
+  margin-bottom: 0.75em;
+  line-height: 1.7;
+}
+
+.ProseMirror strong {
+  font-weight: 600;
+}
+
+.ProseMirror em {
+  font-style: italic;
+}
+
+/* Curseur de sélection normal (pas de couleur bleue Quill) */
+.ProseMirror ::selection {
+  background: #bfdbfe;
 }

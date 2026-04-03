@@ -101,7 +101,7 @@ export function Veille() {
             onClick={() => setActiveTag(tag)}
             className={`text-sm px-4 py-1.5 rounded-full border font-medium transition-colors ${
               activeTag === tag
-                ? "bg-[#354F99] text-white border-[#354F99]"
+                ? "bg-lumenjuris text-white border-lumenjuris"
                 : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
             }`}
           >
@@ -131,9 +131,9 @@ export function Veille() {
                 <p className="text-sm text-gray-500 leading-relaxed">{article.summary}</p>
 
                 {/* Impact banner */}
-                <div className="bg-[#354F99]/5 border border-[#354F99]/15 rounded-lg px-3 py-2">
-                  <span className="text-xs font-semibold text-[#354F99]">Impact pour votre entreprise : </span>
-                  <span className="text-xs text-[#354F99]/80 italic">{article.impact}</span>
+                <div className="bg-lumenjuris/5 border border-lumenjuris/15 rounded-lg px-3 py-2">
+                  <span className="text-xs font-semibold text-lumenjuris">Impact pour votre entreprise : </span>
+                  <span className="text-xs text-lumenjuris/80 italic">{article.impact}</span>
                 </div>
 
                 {/* Source */}
@@ -143,7 +143,7 @@ export function Veille() {
               {/* Bookmark */}
               <button
                 onClick={() => toggleBookmark(i)}
-                className={`shrink-0 mt-0.5 transition-colors ${bookmarked.has(i) ? "text-[#354F99]" : "text-gray-300 hover:text-gray-400"}`}
+                className={`shrink-0 mt-0.5 transition-colors ${bookmarked.has(i) ? "text-lumenjuris" : "text-gray-300 hover:text-gray-400"}`}
               >
                 <Bookmark className={`h-5 w-5 ${bookmarked.has(i) ? "fill-current" : ""}`} />
               </button>

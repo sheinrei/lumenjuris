@@ -4,6 +4,7 @@ import {
   useImperativeHandle,
   useMemo,
   useState,
+  useEffect,
 } from "react";
 import { motion } from "framer-motion";
 import { ClauseRisk } from "../../types";
@@ -13,14 +14,43 @@ import { useDocumentTextStore } from "../../store/documentTextStore";
 import { ContractAnalysisSummary } from "./ContractAnalysisSummary";
 import { AnalysisContext } from "../../types/contextualAnalysis";
 import { findBestClauseSpan } from "../../utils/textPatchLocator";
-//import { useClauseHighlight } from '../hooks/useClauseHighlight'; Momentanément desactivé
-import { formatContent } from "../../utils/documentViewerTools/formatContent";
+import { formatContentToHtml } from "../../utils/documentViewerTools/formatContentToHtml";
+import { injectClausesIntoHtml } from "../../utils/documentViewerTools/injectClausesIntoHtml";
 import { modernHighlighter } from "../../utils/modernHighlighter";
 
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css"; // thème
+import { useEditor, EditorContent } from "@tiptap/react";
+import { StarterKit } from "@tiptap/starter-kit";
+import { Mark, mergeAttributes } from "@tiptap/core";
 
-//import { escapeHtml } from '../utils/documentViewerTools/escapeHtml';
+// Extension TipTap personnalisée pour les spans de clauses
+// Elle préserve <span data-clause-risk-id="..."> à travers le schéma ProseMirror
+const ClauseMark = Mark.create({
+  name: "clauseMark",
+
+  addAttributes() {
+    return {
+      clauseId: {
+        default: null,
+        parseHTML: (el) => el.getAttribute("data-clause-risk-id"),
+        renderHTML: (attrs) =>
+          attrs.clauseId ? { "data-clause-risk-id": attrs.clauseId } : {},
+      },
+      style: {
+        default: null,
+        parseHTML: (el) => el.getAttribute("style"),
+        renderHTML: (attrs) => (attrs.style ? { style: attrs.style } : {}),
+      },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: "span[data-clause-risk-id]" }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ["span", mergeAttributes(HTMLAttributes), 0];
+  },
+});
 
 interface DocumentViewerProps {
   content: string;
@@ -34,9 +64,8 @@ interface DocumentViewerProps {
 
 export interface DocumentViewerRef {
   scrollToClause: (clauseId: string) => void;
-  //clearHighlight: () => void;
-  //reHighlight: () => void;
 }
+
 export const DocumentViewer = forwardRef<
   DocumentViewerRef,
   DocumentViewerProps
@@ -48,8 +77,8 @@ export const DocumentViewer = forwardRef<
       onClauseClick,
       fileName,
       contractSummary,
-      recommendationIndex,
-      setRecommendationIndex,
+      recommendationIndex: _recommendationIndex,
+      setRecommendationIndex: _setRecommendationIndex,
     },
     ref,
   ) => {
@@ -57,6 +86,7 @@ export const DocumentViewer = forwardRef<
     const showSidebar = isFeatureEnabled("ENABLE_CLAUSES_SIDEBAR");
     const originalText = useDocumentTextStore((s) => s.originalText);
     const patches = useDocumentTextStore((s) => s.patches);
+    const htmlContent = useDocumentTextStore((s) => s.htmlContent);
     const resetAll = useDocumentTextStore((s) => s.resetAll);
     const activePatchCount = useMemo(
       () => patches.filter((p) => p.active).length,
@@ -66,14 +96,13 @@ export const DocumentViewer = forwardRef<
       originalText && originalText.length > 0 ? originalText : content;
     const displayedText = effectiveOriginal;
 
-    // Etat pour afficher l'editeur de text de clause
-    const [editingClauseId, setEditingClauseId] = useState<string | null>(null);
-    const [quillActiv, setQuillActiv] = useState<boolean>(false);
-    // Gestion du click sur un span d'une clause détectée dans le texte
+    const [_editingClauseId, setEditingClauseId] = useState<string | null>(
+      null,
+    );
     const lastClick = useRef(0);
 
     const handleClickSpanClause = (clauseId: string) => {
-      const delayDoubleClick: number = 250;
+      const delayDoubleClick = 250;
       const now = Date.now();
       const diff = now - lastClick.current;
       lastClick.current = now;
@@ -81,14 +110,12 @@ export const DocumentViewer = forwardRef<
       const targetClause = clauses.find((c) => c.id === clauseId);
       if (!targetClause) return;
 
-      // Double-clic -> activer l'edit d'une clause
-      if (diff < delayDoubleClick && targetClause) {
+      if (diff < delayDoubleClick) {
         console.log("Activation de l'édition d'une clause dans le texte");
         setEditingClauseId(clauseId);
         return;
       }
 
-      // Click : ouvrir la modale EnhancedClause
       setTimeout(() => {
         if (Date.now() - lastClick.current >= delayDoubleClick) {
           onClauseClick(clauseId);
@@ -97,17 +124,8 @@ export const DocumentViewer = forwardRef<
     };
 
     const scrollAndHighlightClause = (clause: ClauseRisk) => {
-      console.log("🎯 Modern Highlighting for clause:", clause.type);
-      if (!documentRef.current || !clause.content) {
-        console.log("❌ documentRef ou clause.content manquant");
-        return;
-      }
+      if (!documentRef.current || !clause.content) return;
       try {
-        if (!documentRef.current) {
-          console.error("❌ documentRef.current is null");
-          return;
-        }
-        console.log("🔍 Attempting modern highlighting...");
         modernHighlighter.highlightClause(clause, documentRef.current);
       } catch (error) {
         console.error("❌ Modern highlighting error:", error);
@@ -116,63 +134,78 @@ export const DocumentViewer = forwardRef<
 
     useImperativeHandle(ref, () => ({
       scrollToClause: (clauseId: string) => {
-        console.log("🔍 scrollToClause appelé avec clauseId:", clauseId);
         const clause = clauses.find((c) => c.id === clauseId);
-        if (clause) {
-          console.log("🔍 Appel de scrollAndHighlightClause...");
-          scrollAndHighlightClause(clause);
-        } else {
-          console.log("❌ Clause non trouvée pour ID:", clauseId);
-        }
+        if (clause) scrollAndHighlightClause(clause);
       },
     }));
 
-    const handleSidebarClauseClick = (clause: ClauseRisk, index: number) => {
-      console.log(
-        "🎯 handleSidebarClauseClick appelé avec:",
-        clause.type,
-        "index:",
-        index,
-      );
+    const handleSidebarClauseClick = (clause: ClauseRisk, _index: number) => {
       onClauseClick(clause.id);
     };
 
-    //Construction du texte à render
-    const formattedContent = useMemo(() => {
-      console.log("Rerender du texte content");
+    // Construction du HTML à rendre dans TipTap
+    const htmlFormattedContent = useMemo(() => {
+      if (htmlContent) {
+        return injectClausesIntoHtml(htmlContent, clauses, patches);
+      }
+      // Fallback : construction depuis le texte brut (PDF.js ou OCR)
       const rangeClauseRisk: any[] = [];
-
-      clauses.map((c) => {
-        const range = findBestClauseSpan(displayedText, c);
-        rangeClauseRisk.push({ ...range, clauseId: c.id });
+      clauses.forEach((clause) => {
+        const range = findBestClauseSpan(displayedText, clause);
+        rangeClauseRisk.push({ ...range, clauseId: clause.id });
       });
-
       rangeClauseRisk.sort((a, b) => a.start - b.start);
-      return formatContent({
+      return formatContentToHtml({
         text: displayedText,
         clauseRiskRange: rangeClauseRisk,
         patches,
         clauses,
-        editingClauseId,
-        setEditingClauseId,
-        recommendationIndex,
-        setRecommendationIndex,
-        handleClickSpanClause,
       });
-    }, [displayedText, clauses, activePatchCount, editingClauseId, patches]);
+    }, [htmlContent, displayedText, clauses, activePatchCount, patches]);
 
-    /*     
-        //Librairie Quill pour l'edit de texte
-        const htmlQuill = (str: string) => {
-            const arrayStr: string[] = []
-            str.split("\n\n")
-                .map(l => arrayStr.push(`<p><span onClick="console.log("click")" style="font-size:22px>${escapeHtml(l)}</span></p>`))
-    
-            return arrayStr.join('')
+    // Initialisation de l'éditeur TipTap
+    const editor = useEditor({
+      extensions: [StarterKit, ClauseMark],
+      content: htmlFormattedContent,
+      editable: true,
+      onUpdate: () => {
+        console.log("text changed in tiptap");
+      },
+    });
+
+    useEffect(() => {
+      console.log("HTML", htmlContent);
+    }, []);
+
+    // Synchroniser le contenu quand htmlFormattedContent change (nouvelles clauses, patches…)
+    useEffect(() => {
+      if (!editor || editor.isDestroyed) return;
+      const current = editor.getHTML();
+      if (current !== htmlFormattedContent) {
+        editor.commands.setContent(htmlFormattedContent);
+      }
+    }, [htmlFormattedContent, editor]);
+
+    // Event delegation pour les clics sur les spans de clauses
+    const tiptapWrapperRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      const wrapper = tiptapWrapperRef.current;
+      if (!wrapper) return;
+
+      const handleClick = (event: Event) => {
+        const target = event.target as HTMLElement;
+        const span = target.closest("[data-clause-risk-id]");
+        if (span) {
+          const clauseId = span.getAttribute("data-clause-risk-id");
+          if (clauseId) handleClickSpanClause(clauseId);
         }
-    */
+      };
 
-    // Retour du JSX
+      wrapper.addEventListener("click", handleClick);
+      return () => wrapper.removeEventListener("click", handleClick);
+    }, [htmlFormattedContent]);
+
     return (
       <div
         className={`bg-white rounded-lg shadow-sm border border-gray-200 h-full ${showSidebar ? "flex" : ""}`}
@@ -185,14 +218,6 @@ export const DocumentViewer = forwardRef<
               📄 {fileName}
             </h2>
             <div className="flex items-center gap-4 text-xs">
-              <button
-                onClick={() => setQuillActiv(!quillActiv)}
-                className="px-2 py-1 rounded-full border text-xs font-semibold bg-blue-500 text-white
-                            shadow-md hover:shadow-lg transition-all duration-200"
-              >
-                {!quillActiv ? "Passer en mode Edition" : "Sortir de l'édition"}
-              </button>
-
               <button
                 onClick={() => resetAll()}
                 disabled={activePatchCount === 0}
@@ -215,27 +240,18 @@ export const DocumentViewer = forwardRef<
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.4 }}
               >
-                {!quillActiv && (
-                  <div className="max-w-4xl mx-auto space-y-2">
-                    {formattedContent.length > 0 ? (
-                      formattedContent
-                    ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        <div className="text-6xl mb-4">📄</div>
-                        <p>Aucun contenu à afficher</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {quillActiv && (
-                  <div>
-                    <ReactQuill
-                      theme="bubble" //sinon bubble pour avoir le text directement editable sans les tools
-                      value={displayedText}
-                      onChange={() => console.log("text changed in quill")}
-                    />
-                  </div>
-                )}
+                <div className="max-w-4xl mx-auto">
+                  {htmlFormattedContent.length > 0 ? (
+                    <div ref={tiptapWrapperRef}>
+                      <EditorContent editor={editor} />
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <div className="text-6xl mb-4">📄</div>
+                      <p>Aucun contenu à afficher</p>
+                    </div>
+                  )}
+                </div>
               </motion.div>
             </div>
           </div>

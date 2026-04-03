@@ -2,12 +2,13 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import ContractAnalysis from "./page/ContractAnalysis";
 
 import { Dashboard } from "./page/Dashboard";
-import { MainLayout } from "./components/MainLayout";
-import { Generateur } from "./page/Generateur";
-import { Signature } from "./page/Signature";
-import { ChatJuridique } from "./page/ChatJuridique";
-import { Calculateur } from "./page/Calculateur";
-import { Veille } from "./page/Veille";
+import { MainLayout } from "./components/dashboardComponents/MainLayout";
+import { Generateur } from "./components/dashboardComponents/Generateur";
+import { Signature } from "./components/dashboardComponents/Signature";
+import { ChatJuridique } from "./components/dashboardComponents/ChatJuridique";
+import { Calculateur } from "./components/dashboardComponents/Calculateur";
+import { Veille } from "./components/dashboardComponents/Veille";
+import { Conformite } from "./components/dashboardComponents/Conformite";
 
 import { Inscription } from "./page/Inscription";
 import { Sandbox } from "./page/Sandbox";
@@ -23,6 +24,7 @@ export function App() {
         <Route path="/chatjuridique" element={<ChatJuridique />} />
         <Route path="/calculateur" element={<Calculateur />} />
         <Route path="/veille" element={<Veille />} />
+        <Route path="/conformite" element={<Conformite />} />
       </Route>
 
       <Route path="/analyzer" element={<ContractAnalysis />} />
