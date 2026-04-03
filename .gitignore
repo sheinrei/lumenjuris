@@ -21,6 +21,5 @@ front/src/components/ContractAnalysis/DocumentViewerOld.tsx
 #backend nodeJS
 backNode/.env
 backNode/node_modules
-backNode/src/prisma/migrations
-backNode/src/generated/prisma
-backNode/src/generated
+backNode/prisma/migrations
+backNode/prisma/generated

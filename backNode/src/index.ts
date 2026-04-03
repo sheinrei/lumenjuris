@@ -6,8 +6,7 @@ import axios from "axios"
 import jwt from "jsonwebtoken"
 import cookieParser from "cookie-parser"
 
-
-
+import { Mailer } from "./infrastructure/mailer/classMailer";
 
 /**
  * Préparation du serveur nodejs/express pour ce backend
@@ -114,11 +113,14 @@ app.get("/auth/google/callback", async (req: Request, res: Response) => {
 })
 
 
+async function sandbox(){
+    const mailer = new Mailer("l.beaute@laposte.net")
+    await mailer.sendVerifyAccount("un liens", "beuate laurent")
+}
 
 
 
-
-app.listen(port, () => {
+app.listen(port, async () => {
     console.log(`Serveur backend nodejs running on port ${port}`);
-    console.log("env", process.env.DATABASE_PASSWORD)
+    await sandbox()
 })

@@ -78,6 +78,7 @@ async function extractViaServer(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
+
     try {
       const response = await fetch(PDF_SERVER_URL, {
         // ✅ Correction: PDF_SERVER_URL au lieu de SERVER_URL
@@ -93,7 +94,6 @@ async function extractViaServer(
       }
 
       const data = await response.json();
-
       // Vérifier que la réponse contient les données attendues
       if (!data.success) {
         throw new Error(data.error || "Extraction échouée");
