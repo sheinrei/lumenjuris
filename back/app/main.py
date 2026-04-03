@@ -38,12 +38,14 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"] ,
     allow_headers=["*"],
-)
+) 
+
 
 HF_TOKEN = os.environ.get("HF_TOKEN") #Hugging Face
 
@@ -103,6 +105,7 @@ async def extract_pdf_text(file: UploadFile = File(...), scan: bool = Form(False
     """Traite un fichier PDF de manière synchrone et retourne le texte et les clauses."""
     if file.filename == "" or not allowed_file(file.filename):
         raise HTTPException(status_code=400, detail="Type de fichier non autorisé")
+
 
     content = await file.read()
     texte_brut = _extract_text_from_pdf_content(content, scan)

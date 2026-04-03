@@ -538,7 +538,6 @@ class ModernHighlighter {
 
 
   // --- Création des ranges par offsets globaux ------------------------------------
-
   private createModernHighlightByOffsets(container: HTMLElement, start: number, end: number): boolean {
     try {
       if (start < 0 || end <= start) return false;

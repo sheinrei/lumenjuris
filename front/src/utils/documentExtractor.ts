@@ -23,7 +23,6 @@ const TIMEOUT_MS = 180000; // 3 minutes pour l'OCR
  */
 export async function extractDocumentContent(file: File): Promise<ExtractedContent> {
   // Essayer d'abord le serveur local avec gestion propre des annulations
-  console.log('🔍 Tentative d\'extraction via serveur local...');
   try {
     const result = await extractViaServer(file);
     return result;
@@ -68,7 +67,10 @@ async function extractViaServer(file: File, retries = MAX_RETRIES): Promise<Extr
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
+
     try {
+        console.log('🔍 Tentative d\'extraction via serveur local...');
+
       const response = await fetch(PDF_SERVER_URL, {  // ✅ Correction: PDF_SERVER_URL au lieu de SERVER_URL
         method: 'POST',
         body: formData,
@@ -82,7 +84,6 @@ async function extractViaServer(file: File, retries = MAX_RETRIES): Promise<Extr
       }
 
       const data = await response.json();
-
       // Vérifier que la réponse contient les données attendues
       if (!data.success) {
         throw new Error(data.error || 'Extraction échouée');
