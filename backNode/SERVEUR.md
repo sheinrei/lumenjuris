@@ -38,3 +38,11 @@ Cette commande :
 npx prisma generate
 ```
 Cette commande génère le client Prisma permettant d’interagir avec la base de données dans le code.
+
+### Reset de la base de données
+
+Lors du développement au besoin vous pouvez réinitialiser la base de données avec la commande 
+
+```bash
+npx prisma migrate reset
+```
