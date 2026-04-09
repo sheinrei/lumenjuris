@@ -86,6 +86,7 @@ model Enterprise {
   idEnterprise         Int     @id @default(autoincrement())
   siren                String?
   codeNaf              String?
+  intituleNaf          String?
   name                 String? 
   conventionCollective String?
   statusJuridique      String?
