@@ -16,7 +16,20 @@ export function Inscription() {
       <div className="bg-lumenjuris-background min-h-[calc(100vh-64px)]">
         <div className="w-[800px] mx-auto pt-10 flex flex-col items-center gap-5">
           <h1>Créez un compte</h1>
-          <SignupForm />
+          <SignupForm
+            lastName={lastName}
+            setLastName={setLastName}
+            firstName={firstName}
+            setFirstName={setFirstName}
+            email={email}
+            setEmail={setEmail}
+            password={password}
+            setPassword={setPassword}
+            siren={siren}
+            setSiren={setSiren}
+            acceptCgu={acceptCgu}
+            setAcceptCgu={setAcceptCgu}
+          />
         </div>
       </div>
     </>

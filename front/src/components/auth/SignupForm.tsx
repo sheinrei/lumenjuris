@@ -65,6 +65,7 @@ const SignupForm = ({
   const [submitLoading, setSubmitLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
   const handleChangeLastname = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
@@ -96,12 +97,16 @@ const SignupForm = ({
   const handleChangeConfirmPassword = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    console.log(event);
+    const value = event.target.value;
+    setConfirmPassword(value);
+    if (value.length > 1 && value !== password) {
+      setConfirmPasswordError("Les mots de passes doivent-être identiques !");
+    }
   };
 
   const handleCheckCgu = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.checked;
-    console.log(value);
+    setAcceptCgu(value);
   };
 
   return (
@@ -169,6 +174,13 @@ const SignupForm = ({
                   {showPassword ? <EyeIcon /> : <EyeOffIcon />}
                 </InputGroupAddon>
               </InputGroup>
+              <FieldError
+                errors={
+                  passwordError ? [{ message: passwordError }] : undefined
+                }
+              >
+                <span>{passwordError}</span>
+              </FieldError>
             </Field>
           </div>
           <div className="grid gap-2">
