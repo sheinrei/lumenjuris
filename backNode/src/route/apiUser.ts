@@ -7,8 +7,7 @@ import { createCookieAuth } from "../securite/cookieAuth"
 import { prisma } from "../../prisma/singletonPrisma"
 import { authMiddleware } from "../middleware/authMiddleware"
 import { Google } from "../services/classGoogle"
-import { TokenState } from "../generated/enums"
-
+import { TokenState } from "../../prisma/generated/enums"
 
 
 const routerUser: Router = express.Router()
