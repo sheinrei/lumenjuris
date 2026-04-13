@@ -12,7 +12,6 @@ back/services/gen-lang-client-0501326750-4f358317bac6.json
 front/node_modules/
 front/.env.development
 front/.env.production
-front/src/components/ContractAnalysis/DocumentViewerOld.tsx
 front/dist/
 
 #front proxy
