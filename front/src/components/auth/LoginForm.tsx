@@ -24,11 +24,15 @@ import { AlertBanner } from "../common/AlertBanner";
 
 import { useState } from "react";
 
+//  forgotPassword={forgotPassword}
+//                   setForgotPassword={setForgotPassword}
+
 interface LoginFormProps {
   email: string;
   setEmail: React.Dispatch<React.SetStateAction<string>>;
   password: string;
   setPassword: React.Dispatch<React.SetStateAction<string>>;
+  setForgotPassword: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const LoginForm = ({
@@ -36,6 +40,7 @@ const LoginForm = ({
   setEmail,
   password,
   setPassword,
+  setForgotPassword,
 }: LoginFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -68,6 +73,17 @@ const LoginForm = ({
 
   return (
     <section className="flex flex-col gap-5">
+      {submitError && (
+        <AlertBanner
+          title="Champs manquants"
+          variant="error"
+          detail="Vérifiez votre email et votre mot de passe"
+          onClose={() => {
+            setSubmitError(false);
+          }}
+        />
+      )}
+
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col gap-6">
           <div className="grid gap-2">
@@ -108,7 +124,7 @@ const LoginForm = ({
           <div className="grid gap-2">
             <Button
               className="text-background border border-lumenjuris"
-              disabled={submitLoading && true}
+              disabled={submitLoading ? true : submitError ? true : false}
               type="submit"
               size="lg"
             >
@@ -118,19 +134,17 @@ const LoginForm = ({
               <FcGoogle />
               <span className="text-[14px]">Se connecter avec Google</span>
             </button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setForgotPassword(true);
+              }}
+            >
+              Mot de passe oublié ?
+            </Button>
           </div>
         </div>
       </form>
-      {submitError && (
-        <AlertBanner
-          title="Champs manquants"
-          variant="error"
-          detail="Vérifiez votre email et votre mot de passe"
-          onClose={() => {
-            setSubmitError(false);
-          }}
-        />
-      )}
     </section>
   );
 };

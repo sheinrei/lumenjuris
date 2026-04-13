@@ -330,7 +330,7 @@ const SignupForm = ({
                 />
                 <FieldContent>
                   <FieldLabel htmlFor="terms-checkbox-desc">
-                    Valider nos{" "}
+                    Accepter nos{" "}
                     <a
                       href="https://www.lumenjuris.com/conditions-generales-dutilisation/"
                       className="hover:cursor-pointer underline"
@@ -355,7 +355,15 @@ const SignupForm = ({
           <div className="grid gap-2">
             <Button
               className="text-background border border-lumenjuris"
-              disabled={submitLoading ? true : false}
+              disabled={
+                submitLoading
+                  ? true
+                  : submitError
+                    ? true
+                    : submitCguError
+                      ? true
+                      : false
+              }
               type="submit"
               size="lg"
             >
