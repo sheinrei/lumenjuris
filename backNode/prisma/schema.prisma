@@ -29,6 +29,12 @@ enum SubscriptionStatus {
   PENDING
 }
 
+enum TokenState {
+  ACTIVE
+  EXPIRED
+  USED
+}
+
 //==== CREATION DES MODELS ====
 
 // --- UTILISATEUR ---
@@ -86,7 +92,7 @@ model Enterprise {
   idEnterprise         Int     @id @default(autoincrement())
   siren                String?
   codeNaf              String?
-  name                 String? 
+  raisonSocial         String? 
   conventionCollective String?
   statusJuridique      String?
 
@@ -113,7 +119,7 @@ model Token {
   token     String   @unique
   expiresAt DateTime
   type      String
-
+  status    TokenState @default(ACTIVE)
   //relation
   userId Int
   user   User @relation(fields: [userId], references: [idUser])

@@ -18,6 +18,8 @@ dotenv.config();
 
 const app = express();
 
+
+
 //Cord adapté pour prod
 app.use(cors({
   origin: [
@@ -29,9 +31,11 @@ app.use(cors({
 }));
 
 
+
 app.use(express.json({ limit: '1mb' }));
 const PORT = Number(process.env.PORT || 5173);
 const BACKEND_URL = process.env.BACKEND_URL;
+
 
 
 // ---- Relay vers Python backend ------------------------------------------------
@@ -55,6 +59,8 @@ function relayStreamToPython(req: Request, res: Response, targetPath: string): v
   req.pipe(proxyReq, { end: true });
 }
 
+
+
 function relayJsonToPython(req: Request, res: Response, targetPath: string): void {
   fetch(`${BACKEND_URL}${targetPath}`, {
     method: req.method,
@@ -71,6 +77,8 @@ function relayJsonToPython(req: Request, res: Response, targetPath: string): voi
     });
 }
 
+
+
 // Multipart (upload PDF) — stream direct, body non consommé par express.json
 app.post('/extract-pdf-text', (req: Request, res: Response) => relayStreamToPython(req, res, '/extract-pdf-text'));
 
@@ -82,6 +90,7 @@ app.post(['/api/chat', '/chat'], (req: Request, res: Response) => relayJsonToPyt
 app.post(['/api/openai-chat', '/openai-chat'], (req: Request, res: Response) => relayJsonToPython(req, res, '/openai-chat'));
 app.post(['/api/openai-chat-5', '/openai-chat-5'], (req: Request, res: Response) => relayJsonToPython(req, res, '/openai-chat-5'));
 app.post(['/api/huggingface-generate', '/huggingface-generate'], (req: Request, res: Response) => relayJsonToPython(req, res, '/huggingface-generate'));
+
 
 // ---- Front React : Vite middleware (dev) ou static (prod) ---------------------
 if (IS_PROD) {

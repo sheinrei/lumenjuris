@@ -7,7 +7,7 @@ import { createCookieAuth } from "../securite/cookieAuth"
 import { prisma } from "../../prisma/singletonPrisma"
 import { authMiddleware } from "../middleware/authMiddleware"
 import { Google } from "../services/classGoogle"
-
+import { TokenState } from "../generated/enums"
 
 
 
@@ -69,15 +69,47 @@ routerUser.get("/verify/:token", async (req: Request<PutVerifyUser>, res: Respon
     try {
         const { token } = req.params
 
-        const isValideToken = await prisma.token.findUnique({ where: { token } })
-        if (!isValideToken) {
-            return res.redirect(`${process.env.HOST_FRONT}/verify-account?reason=invalid`)
-        }
-        if (isValideToken.expiresAt < new Date()) {
-            return res.redirect(`${process.env.HOST_FRONT}/verify-account?reason=expired`)
-        }
-        const idUser = isValideToken.userId
+        const tokenEntry = await prisma.token.findUnique({
+            where: { token },
+            include: { user: true }
+        })
 
+        //Le token n'existe pas
+        if (!tokenEntry) {
+            return res.redirect(
+                `${process.env.HOST_FRONT}/verify-account?reason=invalid`
+            )
+        }
+
+        //Le token est déjà utilisé
+        if (tokenEntry.status === TokenState.USED) {
+            return res.redirect(
+                `${process.env.HOST_FRONT}/verify-account?reason=already-used`
+            )
+        }
+
+        
+        if (tokenEntry.status !== "ACTIVE") {
+            return res.redirect(
+                `${process.env.HOST_FRONT}/verify-account?reason=already-used`
+            )
+        }
+
+
+        //Le token est expiré
+        if (tokenEntry.expiresAt < new Date()) {
+            await prisma.token.update({
+                where: { token },
+                data: { status: "EXPIRED" }
+            })
+
+            return res.redirect(
+                `${process.env.HOST_FRONT}/verify-account?reason=expired`
+            )
+        }
+
+
+        const idUser = tokenEntry.userId
         const updatedUser = await prisma.user.update({
             where: { idUser },
             data: {
@@ -85,15 +117,20 @@ routerUser.get("/verify/:token", async (req: Request<PutVerifyUser>, res: Respon
             }
         })
 
-        await prisma.token.delete({ where: { token } })
+        await prisma.token.update({
+            where: { token },
+            data: { status: "USED" }
+        })
 
-        //Envoie le cookie d'auth
         createCookieAuth(idUser, updatedUser.role, res)
-
-        return res.redirect(`${process.env.HOST_FRONT}/dashboard?verified=true`)
+        return res.redirect(
+            `${process.env.HOST_FRONT}/dashboard?verified=true`
+        )
     } catch (err) {
-        console.error(`Une erreur est survenue lors de la validation d'un compte utilisateur, \n error : ${err}`)
-        return res.redirect(`${process.env.HOST_FRONT}/verify-account?reason=server`)
+        console.error(`Erreur lors de la validation utilisateur:\n${err}`)
+        return res.redirect(
+            `${process.env.HOST_FRONT}/verify-account?reason=server`
+        )
     }
 })
 
@@ -134,14 +171,14 @@ routerUser.post("/auth/login", async (req: Request, res: Response) => {
         const { password, email } = req.body;
         const logUser = await new User().authenticate(password, email)
 
-        if(!logUser.success){
+        if (!logUser.success) {
             return res.status(401).json({
-                success:false,
-                message : "Email ou mot de passe invalide"
+                success: false,
+                message: "Email ou mot de passe invalide"
             })
         }
 
-        if(logUser.success && logUser.data){
+        if (logUser.success && logUser.data) {
             createCookieAuth(logUser.data.idUser, "USER", res)
         }
 
@@ -193,8 +230,8 @@ routerUser.get("/get", authMiddleware, async (req: Request, res: Response) => {
                 stripeCustomerId: user.data.stripeCustomerId
             },
             provider: {},
-            enterprise : {
-                enterpriseId : user.data.enterpriseId
+            enterprise: {
+                enterpriseId: user.data.enterpriseId
             }
         }
 

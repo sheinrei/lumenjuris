@@ -4,6 +4,7 @@ import "dotenv/config";
 import cookieParser from "cookie-parser"
 import { Mailer } from "./infrastructure/mailer/classMailer";
 //import { Llm } from "./services/classLlm"
+import { User } from "./services/classUser"
 import routerGoogleAuth from "./route/authGoogle"
 import routerLlm from "./route/apiLlm";
 import routerUser from "./route/apiUser";
@@ -16,7 +17,8 @@ import routerUser from "./route/apiUser";
 const app = express()
 const port = process.env.PORT || 3020
 app.use(cookieParser())
-
+app.use(express.json())
+app.use(express.urlencoded({ extended: true })) 
 
 
 app.use("/", routerGoogleAuth)
@@ -38,15 +40,23 @@ app.get("/health", (req: Request, res: Response) => {
 
 
 
-async function sandbox(){
+async function sandbox() {
 
     //Vous pouvez faire vos testes içi
     console.log("Sandbox running")
+    const user = await new User().create({
+        email : "l.beaute@laposte.net",
+        nom : "Beaute",
+        prenom : "Laurent",
+        password :"password123",
+        cgu : true
+    })
+    console.log(user, " ")
 }
 
 
 
 app.listen(port, async () => {
     console.log(`Serveur backend nodejs running on port ${port}`);
-    await sandbox()
+    //await sandbox()
 })

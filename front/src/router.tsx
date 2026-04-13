@@ -1,15 +1,16 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import ContractAnalysis from "./page/ContractAnalysis";
 
-import { Dashboard } from "./page/Dashboard";
-import { MainLayout } from "./components/dashboardComponents/MainLayout";
-import { Generateur } from "./components/dashboardComponents/Generateur";
-import { Signature } from "./components/dashboardComponents/Signature";
-import { ChatJuridique } from "./components/dashboardComponents/ChatJuridique";
-import { Calculateur } from "./components/dashboardComponents/Calculateur";
-import { Veille } from "./components/dashboardComponents/Veille";
-import { Conformite } from "./components/dashboardComponents/Conformite";
+import { MainLayout } from "./components/DashboardComponents/MainLayout";
+import { Generateur } from "./components/DashboardComponents/Generateur";
+import { Signature } from "./components/DashboardComponents/Signature";
+import { ChatJuridique } from "./components/DashboardComponents/ChatJuridique";
+import { Calculateur } from "./components/DashboardComponents/Calculateur";
+import { Veille } from "./components/DashboardComponents/Veille";
+import { Conformite } from "./components/DashboardComponents/Conformite";
 
+import { Dashboard } from "./page/Dashboard";
+import { VerifyAccount } from "./page/VerifyAccount";
 import { Inscription } from "./page/Inscription";
 import { Sandbox } from "./page/Sandbox";
 import { ParamCompte } from "./page/ParamCompte";
@@ -31,6 +32,7 @@ export function App() {
       <Route path="/sandbox" element={<Sandbox />} />
       <Route path="/inscription" element={<Inscription />} />
       <Route path="/mon-compte" element={<ParamCompte />} />
+      <Route path="/verify-account" element={<VerifyAccount />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );

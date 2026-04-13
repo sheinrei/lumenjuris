@@ -10,8 +10,8 @@ back/services/gen-lang-client-0501326750-4f358317bac6.json
 
 #front
 front/node_modules/
-front/.env.development
-front/.env.production
+front/sever/.env.development
+front/server/.env.production
 front/src/components/ContractAnalysis/DocumentViewerOld.tsx
 front/dist/
 
@@ -19,7 +19,8 @@ front/dist/
 
 
 #backend nodeJS
-backNode/.env
+backNode/.env.production
+backNode/.env.development
 backNode/node_modules
 backNode/prisma/migrations
 backNode/prisma/generated
