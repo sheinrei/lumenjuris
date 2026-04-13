@@ -18,6 +18,8 @@ dotenv.config();
 
 const app = express();
 
+
+
 //Cord adapté pour prod
 app.use(cors({
   origin: [
@@ -29,10 +31,12 @@ app.use(cors({
 }));
 
 
+
 app.use(express.json({ limit: '1mb' }));
 const PORT = Number(process.env.PORT || 5173);
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5678";
 const BACKNODE_URL = process.env.BACKNODE_URL || "http://localhost:3020";
+
 
 
 // ---- Relay vers Python backend ------------------------------------------------
@@ -55,6 +59,8 @@ function relayStreamToPython(req: Request, res: Response, targetPath: string): v
   });
   req.pipe(proxyReq, { end: true });
 }
+
+
 
 function relayJsonToPython(req: Request, res: Response, targetPath: string): void {
   fetch(`${BACKEND_URL}${targetPath}`, {

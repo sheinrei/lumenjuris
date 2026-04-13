@@ -13,7 +13,6 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
     if (!token) {
         return res.status(401).send("Unauthorized");
     }
-
     try {
 
         const payload = jwt.verify(token, process.env.JWT_SECRET!) as CustomJwtPayload
