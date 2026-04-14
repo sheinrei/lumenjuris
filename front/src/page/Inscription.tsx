@@ -5,7 +5,7 @@ import MainHeader from "../components/MainHeader/MainHeader";
 // UI //
 import { Button } from "../components/ui/Button";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function Inscription() {
   const [isLoginOnScreen, setIsLoginOnScreen] = useState(true);
@@ -17,10 +17,12 @@ export function Inscription() {
   const [siren, setSiren] = useState("");
   const [acceptCgu, setAcceptCgu] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   return (
     <>
       <MainHeader />
+
       <div className="bg-lumenjuris-background min-h-[calc(100vh-64px)] w-screen">
         <div className="w-[420px] mx-auto pt-12">
           <div className="w-full border border-border px-4 py-7 rounded-xl flex flex-col gap-5 bg-background">
@@ -61,7 +63,10 @@ export function Inscription() {
                   setEmail={setEmail}
                   password={password}
                   setPassword={setPassword}
+                  forgotPassword={forgotPassword}
                   setForgotPassword={setForgotPassword}
+                  emailSent={emailSent}
+                  setEmailSent={setEmailSent}
                 />
               ) : (
                 <SignupForm

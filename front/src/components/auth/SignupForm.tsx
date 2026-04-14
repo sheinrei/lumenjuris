@@ -149,7 +149,7 @@ const SignupForm = ({
   };
 
   return (
-    <section className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5">
       {submitError && (
         <AlertBanner
           title="Champs manquants"
@@ -172,7 +172,7 @@ const SignupForm = ({
       )}
 
       <form onSubmit={handleSubmit}>
-        <div className="flex flex-col gap-6">
+        <section className="flex flex-col gap-6">
           <div className="grid gap-2">
             <Field>
               <FieldLabel htmlFor="lastname">
@@ -184,6 +184,7 @@ const SignupForm = ({
                 id="lastname"
                 type="text"
                 placeholder="Dupond"
+                value={lastName}
                 onChange={handleChangeLastname}
               />
             </Field>
@@ -196,6 +197,7 @@ const SignupForm = ({
                 id="firstname"
                 type="text"
                 placeholder="Jenny"
+                value={firstName}
                 onChange={handleChangeFirstname}
               />
             </Field>
@@ -212,6 +214,7 @@ const SignupForm = ({
                 id="email"
                 type="email"
                 placeholder="mail@example.com"
+                value={email}
                 // pattern="/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/"
                 onChange={handleChangeEmail}
                 className={
@@ -242,6 +245,7 @@ const SignupForm = ({
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Choisissez un mot de passe"
+                  value={password}
                   onChange={handleChangePassword}
                   className={passwordError && "text-destructive"}
                 />
@@ -278,6 +282,7 @@ const SignupForm = ({
                   id="confirmpassword"
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirmez votre mot de passe"
+                  value={confirmPassword}
                   onChange={handleChangeConfirmPassword}
                   className={confirmPasswordError && "text-destructive"}
                 />
@@ -302,13 +307,14 @@ const SignupForm = ({
           <div className="grid gap-2">
             <Field>
               <FieldLabel htmlFor="siren">Siren</FieldLabel>
-              <FieldDescription className="text-muted_foreground">
+              <FieldDescription className="text-gray-500">
                 Saisissez le numéro Siren de votre société
               </FieldDescription>
               <Input
                 id="siren"
                 type="text"
                 placeholder="552 178 639"
+                value={siren}
                 onChange={handleChangeFirstname}
               />
             </Field>
@@ -320,6 +326,7 @@ const SignupForm = ({
                 <Checkbox
                   id="terms-checkbox-desc"
                   name="terms-checkbox-desc"
+                  checked={acceptCgu}
                   defaultChecked={false}
                   onCheckedChange={(checked) => {
                     handleCheckCgu({
@@ -345,7 +352,7 @@ const SignupForm = ({
           </div>
 
           <div className="grid gap-2">
-            <span className="before:mr-0.5 before:text-red-500 before:content-['*'] text-[14px] text-muted_foreground">
+            <span className="before:mr-0.5 before:text-red-500 before:content-['*'] text-[14px] text-gray-500">
               Champs obligatoires.
             </span>
           </div>
@@ -374,9 +381,9 @@ const SignupForm = ({
               <span className="text-[14px]">Se connecter avec Google</span>
             </button>
           </div>
-        </div>
+        </section>
       </form>
-    </section>
+    </div>
   );
 };
 
