@@ -64,8 +64,18 @@ const LoginForm = ({
     } else {
       setSubmitLoading(true);
       try {
-        const loginResponse = await fetch(loginRequest);
-        console.log("▶️▶️ RETOUR SERVEUR CONNEXION :", loginResponse);
+        const loginResponse = await fetch("/api/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: { email },
+            password: { password },
+          }),
+        });
+        const data = loginResponse.json();
+        console.log("▶️▶️ RETOUR SERVEUR CONNEXION :", data);
         if (!loginResponse.ok) {
           setServerError(true);
           throw new Error(`BackNode Error : ${loginResponse.status}`);

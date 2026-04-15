@@ -23,7 +23,6 @@ import { FcGoogle } from "react-icons/fc";
 import { AlertBanner } from "../common/AlertBanner";
 
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 interface SignupFormProps {
   lastName: string;
@@ -55,25 +54,23 @@ const SignupForm = ({
   setAcceptCgu,
 }: SignupFormProps) => {
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [lastnameError, setLastnameError] = useState("");
-  const [firstnameError, setFirstnameError] = useState("");
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
   const [submitError, setSubmitError] = useState(false);
   const [submitCguError, setSubmitCguError] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [serverError, setServerError] = useState(false);
+  const [serverErrorMessage, setServerErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const passwordErrorTimeout = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-
-  const navigate = useNavigate();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -85,7 +82,7 @@ const SignupForm = ({
     } else {
       setSubmitLoading(true);
       try {
-        const signupResponse = await fetch(`http://localhost:5173/api/signup`, {
+        const signupResponse = await fetch("/api/signup", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -102,12 +99,17 @@ const SignupForm = ({
         console.log("▶️▶️ RETOUR PROXY INSCRIPTION :", data);
         if (!signupResponse.ok) {
           setServerError(true);
+          setServerErrorMessage(data.message);
           throw new Error(`BackNode Error : ${signupResponse.status}`);
         } else {
           setSubmitSuccess(true);
+          setSuccessMessage(data.message);
         }
       } catch (error) {
         setServerError(true);
+        setServerErrorMessage(
+          "Une erreur s'est produite, veuillez vérifier vos informations",
+        );
         console.log("🛑🛑🛑 ERREUR SERVEUR INSCRIPTION", error);
       }
     }
@@ -202,9 +204,9 @@ const SignupForm = ({
 
       {serverError && (
         <AlertBanner
-          title="Erreur serveur"
+          title="Une erreur est survenue"
           variant="error"
-          detail="Une erreur s'est produite, veuillez réessayer"
+          detail={serverErrorMessage}
           onClose={() => {
             setServerError(false);
             setSubmitLoading(false);
@@ -215,11 +217,10 @@ const SignupForm = ({
         <AlertBanner
           title="Inscription réussie !"
           variant="success"
-          detail="Votre compte a bien été créé, un email de confirmation vous a été envoyé"
+          detail={successMessage}
           onClose={() => {
             setSubmitSuccess(false);
             setSubmitLoading(false);
-            navigate("/dashboard");
           }}
         />
       )}

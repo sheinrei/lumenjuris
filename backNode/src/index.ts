@@ -24,8 +24,8 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/", routerGoogleAuth);
 app.use("/llm", routerLlm);
-app.use("/user/", routerUser);
-app.use("/enterprise/", routerEnterprise);
+app.use("/user", routerUser);
+app.use("/enterprise", routerEnterprise);
 
 app.get("/health", (req: Request, res: Response) => {
   return res.status(200).json({

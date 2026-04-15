@@ -155,6 +155,14 @@ app.get("/api/insee/:siren", (req: Request, res: Response) => {
   relayToNode(req, res, `/enterprise/insee/${siren}`);
 });
 
+// BackNode - Requêtes connexions
+app.post("/api/signup", (req: Request, res: Response) => {
+  relayToNode(req, res, "/user/create");
+});
+app.post("/api/login", (req: Request, res: Response) => {
+  relayToNode(req, res, "/user/auth/login");
+});
+
 // ---- Front React : Vite middleware (dev) ou static (prod) ---------------------
 if (IS_PROD) {
   // En production : servir le build Vite
@@ -179,12 +187,3 @@ if (IS_PROD) {
     console.log(` Dev server (Vite + Proxy): http://localhost:${PORT}`);
   });
 }
-
-// BackNode - Requêtes connexions
-app.post("/api/signup", (req: Request, res: Response) => {
-  // console.log("🛑🛑 REQ FORMAT :", req.body);
-  // relayToNode(req, res, "/user/create");
-  return res.status(200).json({ message: "Hello" });
-  // res.send("coucou");
-});
-app.post("/api/login", (req: Request, res: Response) => {});
