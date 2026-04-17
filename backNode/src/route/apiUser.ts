@@ -198,8 +198,7 @@ routerUser.post("/auth/login", async (req: Request, res: Response) => {
 /**
  * Endpoint User pour récuperer les données de l'utilisateur d'après son id dans le token d'authentification
  */
-// REMETTRE LE MIDDLEWARE AUTH
-routerUser.get("/get", async (req: Request, res: Response) => {
+routerUser.get("/get", authMiddleware, async (req: Request, res: Response) => {
   try {
     const idUser = Number(req.idUser);
     const user = await new User().get(idUser);

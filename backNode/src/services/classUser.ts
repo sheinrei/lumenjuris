@@ -7,6 +7,7 @@ type createDataDTO = {
   prenom?: string;
   password?: string;
   cgu: boolean;
+  isVerified?: boolean;
 };
 
 type UserAuthData = {
@@ -88,7 +89,7 @@ export class User {
   //Création d'un nouvel utilisateur dans la bdd
   async create(data: createDataDTO) {
     try {
-      const { email, nom, prenom, password, cgu } = data;
+      const { email, nom, prenom, password, cgu, isVerified } = data;
 
       let passwordHash = null;
 
@@ -103,6 +104,7 @@ export class User {
           prenom,
           password: passwordHash,
           cgu,
+          isVerified: isVerified! ? true : false,
         },
       });
 

@@ -86,6 +86,7 @@ routerAuthGoogle.get(
       email,
       nom: name,
       cgu: true,
+      isVerified: true,
     });
 
     console.log(newUser);

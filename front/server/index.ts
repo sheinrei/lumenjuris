@@ -165,6 +165,9 @@ app.post("/api/login", (req: Request, res: Response) => {
 app.get("/api/user/get", (req: Request, res: Response) => {
   relayToNode(req, res, "/user/get");
 });
+app.post("/api/user/logout", (req: Request, res: Response) => {
+  relayToNode(req, res, "/user/auth/logout");
+});
 
 // BackNode - Requête connexion GOOGLE
 // app.get("/api/login/google", (_req: Request, res: Response) => {

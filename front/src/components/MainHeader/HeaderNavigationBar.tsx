@@ -31,49 +31,64 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-  const [isConnected, setIsConnected] = useState(false);
-  // const [userData, setUserData] = useState(null);
-
-  const userData = {
-    profile: {
-      email: "julienbouchez@icloud.com",
-      nom: "Bouchez",
-      prenom: "Julien",
-      role: "USER",
-      isVerified: true,
-    },
+  type UserDataProfile = {
+    email: string;
+    nom: string;
+    prenom?: string;
+    role: "USER" | "ADMIN";
+    isVerified: boolean;
   };
 
-  let role = userData.profile.role;
-  let avatarUrl =
-    "https://res.cloudinary.com/dldc2n70y/image/upload/v1771322353/abystyle-grendizer-aimant-tete-goldorak-_o7zelr.jpg";
+  const [isConnected, setIsConnected] = useState(false);
+  const [userData, setUserData] = useState({} as UserDataProfile);
 
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     try {
-  //       const response = await fetch("/api/user/get", {
-  //         method: "GET",
-  //         headers: { "Content-Type": "application/json" },
-  //       });
+  let role = null;
+  let avatarUrl = null;
 
-  //       const dataResponse = await response.json();
-  //       if (dataResponse.success && dataResponse.data.profile.isVerified) {
-  //         setIsConnected(true);
-  //         setUserData(dataResponse.data);
-  //         role = dataResponse.data.profile.role;
-  //       }
-  //     } catch (error) {}
-  //   };
-  //   fetchData();
-  // }, []);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch("/api/user/get", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
 
-  const firstName = userData.profile.prenom;
-  const lastName = userData.profile.nom;
-  const initials = `${firstName.slice(0, 1)}${lastName.slice(0, 1)}`;
+        const dataResponse = await response.json();
+        console.log("USER DATA :", dataResponse);
+        if (dataResponse.success && dataResponse.data.profile.isVerified) {
+          setIsConnected(true);
+          setUserData(dataResponse.data.profile);
+          role = dataResponse.data.profile.role;
+          avatarUrl = dataResponse.data.provider.avatarUrl;
+        }
+      } catch (error) {
+        console.error("🛑🛑🛑 ERREUR SERVEUR GET USER", error);
+      }
+    };
+    fetchData();
+  }, []);
 
   const handleUserLogout = () => {
-    setIsConnected(false);
-    // navigate("/inscription");
+    const fetchLogout = async () => {
+      try {
+        const response = await fetch("/api/user/logout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        const logoutResponse = await response.json();
+        console.log("LOGOUT RES : ", logoutResponse);
+        if (logoutResponse.success) {
+          setIsConnected(false);
+          alert(logoutResponse.message);
+          navigate("/inscription");
+        } else {
+          alert(logoutResponse.message);
+        }
+      } catch (error) {
+        alert(error);
+      }
+    };
+    fetchLogout();
   };
 
   return (
@@ -175,7 +190,9 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
               ></img>
             ) : (
               <div className="h-8 w-8 rounded-full bg-lumenjuris flex items-center justify-center text-white text-xs font-medium">
-                {initials}
+                {userData.prenom
+                  ? `${userData.prenom.slice(0, 1)}${userData.nom.slice(0, 1)}`
+                  : `${userData.nom.slice(0, 1)}`}
               </div>
             )}
 
@@ -183,7 +200,9 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
               <DropdownMenuTrigger
                 render={
                   <button className="hidden md:flex items-center gap-1 cursor-pointer text-sm font-medium text-gray-800">
-                    {`${firstName} ${lastName.slice(0, 1)}.`}
+                    {userData.prenom
+                      ? `${userData.prenom} ${userData.nom.slice(0, 1)}.`
+                      : `${userData.nom.slice(0, 12)}.`}
                     <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
                   </button>
                 }

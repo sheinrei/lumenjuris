@@ -12,7 +12,7 @@ export function authMiddleware(
   res: Response,
   next: NextFunction,
 ) {
-  const token = req.cookies.token;
+  const token = req.cookies.authLumenJuris;
   console.log("TOKEN FROM FRONT :", token);
   if (!token) {
     return res.status(401).send("Unauthorized");
@@ -22,9 +22,10 @@ export function authMiddleware(
       token,
       process.env.JWT_SECRET!,
     ) as CustomJwtPayload;
-    req.idUser = payload.idUser;
+    req.idUser = payload.userId;
     req.role = payload.role;
     next();
+    console.log("PAYLOAD :", payload);
   } catch (err) {
     console.error(err);
     res.status(401).send("Token invalide ou expiré");
