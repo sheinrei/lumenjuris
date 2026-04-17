@@ -22,16 +22,31 @@ export function createEmptyEnterpriseSettings(): EnterpriseSettings {
   };
 }
 
+export function normalizeEnterpriseSettings(
+  enterprise?: Partial<EnterpriseSettings> | null,
+): EnterpriseSettings {
+  return {
+    name: enterprise?.name ?? "",
+    siren: enterprise?.siren ?? "",
+    codeNaf: enterprise?.codeNaf ?? "",
+    intituleNaf: enterprise?.intituleNaf ?? "",
+    statusJuridiqueCode: enterprise?.statusJuridiqueCode ?? "",
+    statusJuridique: enterprise?.statusJuridique ?? "",
+    selectedIdccKey: enterprise?.selectedIdccKey ?? null,
+    idccSelections:
+      enterprise?.idccSelections?.map((selection) => ({ ...selection })) ?? [],
+    address: {
+      address: enterprise?.address?.address ?? "",
+      codePostal: enterprise?.address?.codePostal ?? "",
+      pays: enterprise?.address?.pays ?? "",
+    },
+  };
+}
+
 export function cloneEnterpriseSettings(
   enterprise: EnterpriseSettings,
 ): EnterpriseSettings {
-  return {
-    ...enterprise,
-    idccSelections: enterprise.idccSelections.map((selection) => ({
-      ...selection,
-    })),
-    address: enterprise.address ? { ...enterprise.address } : null,
-  };
+  return normalizeEnterpriseSettings(enterprise);
 }
 
 export function getSelectedConventionLabel(enterprise: EnterpriseSettings) {
@@ -66,10 +81,16 @@ export function getParamConfirmationModalContent({
   activeConfirmationModal,
   onClose,
   onTwoFactorConfirm,
+  onPasswordConfirm,
+  onExportDataConfirm,
+  onDeleteAccountConfirm,
 }: {
   activeConfirmationModal: AccountConfirmationModal | null;
   onClose: () => void;
   onTwoFactorConfirm: () => void;
+  onPasswordConfirm: () => void;
+  onExportDataConfirm: () => void;
+  onDeleteAccountConfirm: () => void;
 }): ConfirmationModalContent | null {
   switch (activeConfirmationModal) {
     case "two_factor":
@@ -77,10 +98,22 @@ export function getParamConfirmationModalContent({
         title: "Authentification à deux facteurs",
         description:
           "À chaque connexion, vous recevrez un code par email que vous devrez renseigner pour accéder à votre compte.",
-        confirmLabel: "Je comprends",
+        confirmLabel: "Confirmer",
         confirmClassName: "bg-lumenjuris text-white hover:bg-lumenjuris/90",
         onConfirm: () => {
           onTwoFactorConfirm();
+          onClose();
+        },
+      };
+    case "password_change":
+      return {
+        title: "Modifier le mot de passe",
+        description:
+          "Voulez-vous enregistrer ce nouveau mot de passe pour votre compte ?",
+        confirmLabel: "Enregistrer le mot de passe",
+        confirmClassName: "bg-lumenjuris text-white hover:bg-lumenjuris/90",
+        onConfirm: () => {
+          onPasswordConfirm();
           onClose();
         },
       };
@@ -91,7 +124,10 @@ export function getParamConfirmationModalContent({
           "Vous recevrez prochainement un email contenant toutes les informations liées à votre compte.",
         confirmLabel: "Exporter mes données",
         confirmClassName: "bg-lumenjuris text-white hover:bg-lumenjuris/90",
-        onConfirm: onClose,
+        onConfirm: () => {
+          onExportDataConfirm();
+          onClose();
+        },
       };
     case "delete_account":
       return {
@@ -100,7 +136,10 @@ export function getParamConfirmationModalContent({
           "Vous recevrez un email de confirmation et cette action entraînera la suppression de toutes vos données.",
         confirmLabel: "Supprimer mon compte",
         confirmClassName: "bg-red-600 text-white hover:bg-red-700",
-        onConfirm: onClose,
+        onConfirm: () => {
+          onDeleteAccountConfirm();
+          onClose();
+        },
       };
     default:
       return null;

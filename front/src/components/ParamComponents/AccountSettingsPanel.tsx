@@ -18,7 +18,9 @@ type AccountSettingsPanelProps = {
     field: "prenom" | "nom" | "email",
     value: string,
   ) => void;
+  onProfileFieldBlur: () => void;
   onPasswordChange: (value: string) => void;
+  onPasswordBlur: () => void;
   onTwoFactorCheckedChange: (checked: boolean) => void;
   onExportDataClick: () => void;
   onDeleteAccountClick: () => void;
@@ -30,14 +32,18 @@ export function AccountSettingsPanel({
   provider,
   isTwoFactorEnabled,
   onProfileFieldChange,
+  onProfileFieldBlur,
   onPasswordChange,
+  onPasswordBlur,
   onTwoFactorCheckedChange,
   onExportDataClick,
   onDeleteAccountClick,
 }: AccountSettingsPanelProps) {
   // Le panneau Google décide seul de son affichage à partir du provider reçu.
   const googleConnectionPanelMode =
-    provider?.provider === "GOOGLE" ? provider.googleConnectionPanelMode : "hidden";
+    provider?.provider === "GOOGLE"
+      ? (provider.googleConnectionPanelMode ?? "google_only")
+      : "hidden";
   const shouldShowGooglePanel = googleConnectionPanelMode !== "hidden";
   const hasAddedPassword =
     googleConnectionPanelMode === "google_with_password";
@@ -61,12 +67,14 @@ export function AccountSettingsPanel({
               onChange={(event) =>
                 onProfileFieldChange("prenom", event.target.value)
               }
+              onBlur={onProfileFieldBlur}
             />
           </SettingsField>
           <SettingsField label="Nom">
             <Input
               value={profile.nom}
               onChange={(event) => onProfileFieldChange("nom", event.target.value)}
+              onBlur={onProfileFieldBlur}
             />
           </SettingsField>
           <SettingsField label="Email">
@@ -76,6 +84,7 @@ export function AccountSettingsPanel({
               onChange={(event) =>
                 onProfileFieldChange("email", event.target.value)
               }
+              onBlur={onProfileFieldBlur}
             />
           </SettingsField>
           <SettingsField label="Mot de passe">
@@ -84,6 +93,7 @@ export function AccountSettingsPanel({
               type="password"
               value={password}
               onChange={(event) => onPasswordChange(event.target.value)}
+              onBlur={onPasswordBlur}
             />
           </SettingsField>
         </div>

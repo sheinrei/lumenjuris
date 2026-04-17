@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocalStorageState } from "./useLocalStorageState";
 import type {
+  ApiResponse,
   EnterpriseSettings,
   InseePreviewResponse,
 } from "../types/paramSettings";
@@ -8,30 +8,20 @@ import {
   cloneEnterpriseSettings,
   createEmptyEnterpriseSettings,
   hasEnterpriseDisplayData,
+  normalizeEnterpriseSettings,
 } from "../utils/param/paramSettings";
 
 export function useEnterpriseSettings(
   initialSettings: EnterpriseSettings = createEmptyEnterpriseSettings(),
 ) {
-  const storagePrefix = "param-settings-enterprise";
-
-  // Version "persistée" et brouillon séparé pour l'édition.
-  const [enterpriseSettings, setEnterpriseSettings] =
-    useLocalStorageState<EnterpriseSettings>(
-      `${storagePrefix}:saved`,
-      () => cloneEnterpriseSettings(initialSettings),
-    );
-  const [enterpriseDraft, setEnterpriseDraft] =
-    useLocalStorageState<EnterpriseSettings>(
-      `${storagePrefix}:draft`,
-      () => cloneEnterpriseSettings(initialSettings),
-    );
-  const [isEditingEnterprise, setIsEditingEnterprise] =
-    useLocalStorageState<boolean>(`${storagePrefix}:editing`, false);
-  const [inseeLookupSiren, setInseeLookupSiren] = useLocalStorageState<string>(
-    `${storagePrefix}:lookup-siren`,
-    "",
+  const [enterpriseSettings, setEnterpriseSettings] = useState<EnterpriseSettings>(
+    () => normalizeEnterpriseSettings(initialSettings),
   );
+  const [enterpriseDraft, setEnterpriseDraft] = useState<EnterpriseSettings>(
+    () => normalizeEnterpriseSettings(initialSettings),
+  );
+  const [isEditingEnterprise, setIsEditingEnterprise] = useState(false);
+  const [inseeLookupSiren, setInseeLookupSiren] = useState("");
   const [isPrefillingFromSiren, setIsPrefillingFromSiren] = useState(false);
   const [inseePrefillError, setInseePrefillError] = useState<string | null>(
     null,
@@ -44,6 +34,16 @@ export function useEnterpriseSettings(
       inseePrefillAbortRef.current?.abort();
     };
   }, []);
+
+  useEffect(() => {
+    const normalized = normalizeEnterpriseSettings(initialSettings);
+
+    setEnterpriseSettings(normalized);
+
+    if (!isEditingEnterprise) {
+      setEnterpriseDraft(normalized);
+    }
+  }, [initialSettings, isEditingEnterprise]);
 
   const handleEditEnterprise = () => {
     setEnterpriseDraft(cloneEnterpriseSettings(enterpriseSettings));
@@ -62,8 +62,44 @@ export function useEnterpriseSettings(
     setIsEditingEnterprise(false);
   };
 
-  const handleSaveEnterpriseEdit = () => {
-    setEnterpriseSettings(cloneEnterpriseSettings(enterpriseDraft));
+  const handleSaveEnterpriseEdit = async () => {
+    const response = await fetch("/api/enterprise", {
+      method: "PUT",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: enterpriseDraft.name,
+        siren: enterpriseDraft.siren,
+        codeNaf: enterpriseDraft.codeNaf,
+        intituleNaf: enterpriseDraft.intituleNaf,
+        statusJuridiqueCode: enterpriseDraft.statusJuridiqueCode,
+        statusJuridique: enterpriseDraft.statusJuridique,
+        address: enterpriseDraft.address?.address ?? "",
+        codePostal: enterpriseDraft.address?.codePostal ?? "",
+        pays: enterpriseDraft.address?.pays ?? "",
+        idccSelections: enterpriseDraft.idccSelections,
+        selectedIdccKey: enterpriseDraft.selectedIdccKey,
+      }),
+    });
+    const payload = (await response.json().catch(() => null)) as
+      | ApiResponse<EnterpriseSettings>
+      | null;
+
+    if (!response.ok || !payload?.success) {
+      throw new Error(
+        payload?.message ||
+          "Impossible d'enregistrer les informations de l'entreprise.",
+      );
+    }
+
+    const nextEnterpriseSettings = normalizeEnterpriseSettings(
+      payload.data ?? enterpriseDraft,
+    );
+
+    setEnterpriseSettings(nextEnterpriseSettings);
+    setEnterpriseDraft(nextEnterpriseSettings);
     setInseeLookupSiren("");
     setInseePrefillError(null);
     setIsEditingEnterprise(false);

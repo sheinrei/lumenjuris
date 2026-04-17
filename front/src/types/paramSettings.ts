@@ -9,6 +9,7 @@ export type GoogleConnectionPanelMode =
   | "google_with_password";
 export type AccountConfirmationModal =
   | "two_factor"
+  | "password_change"
   | "export_data"
   | "delete_account";
 
@@ -22,8 +23,14 @@ export type AccountProfile = {
 
 export type AccountProvider = {
   provider: AuthProvider;
-  googleConnectionPanelMode: GoogleConnectionPanelMode;
+  googleConnectionPanelMode?: GoogleConnectionPanelMode;
 } | null;
+
+export type UserPreferenceSettings = {
+  preferenceUI: {
+    dyslexicMode: boolean;
+  };
+};
 
 export type ConventionCollectiveOption = {
   key: string;
@@ -77,4 +84,32 @@ export type ConfirmationModalContent = {
   confirmLabel: string;
   confirmClassName?: string;
   onConfirm: () => void;
+};
+
+export type UserGetData = {
+  profile: {
+    email: string;
+    nom: string | null;
+    prenom: string | null;
+    role?: string;
+    isVerified: boolean;
+  };
+  billing: {
+    stripeCustomerId: string | null;
+  };
+  provider:
+    | {
+        provider?: AuthProvider;
+        avatarUrl?: string | null;
+      }
+    | Record<string, never>;
+  enterprise: EnterpriseSettings;
+  conventionCollectives: ConventionCollectiveOption[];
+  selectedConventionCollective: ConventionCollectiveOption | null;
+};
+
+export type ApiResponse<T> = {
+  success: boolean;
+  message?: string;
+  data?: T;
 };
