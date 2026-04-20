@@ -38,9 +38,10 @@ routerUser.post("/create", async (req: Request, res: Response) => {
 
     const { idUser } = createdUser.data;
 
-    const token = new Token().createToken(idUser, "verifyAccount");
+    const token = await new Token().createToken(idUser, "verifyAccount");
 
-    const url = `${process.env.HOST}/user/verify/${token}`;
+    const url = `${process.env.HOST}/user/verify/${token.token}`;
+    console.log("NEW USER VALID URL :", url);
     const mailer = await new Mailer(email).sendVerifyAccount(
       url,
       `${prenom} ${nom}`,
@@ -70,6 +71,7 @@ routerUser.get(
   async (req: Request<PutVerifyUser>, res: Response) => {
     try {
       const { token } = req.params;
+      console.log("TOKEN TO BE VERIFIED :", token);
 
       const tokenEntry = await prisma.token.findUnique({
         where: { token },
@@ -135,29 +137,33 @@ routerUser.get(
 /**
  * Endpoint utilisateur pour se deconnecter
  */
-routerUser.post("/auth/logout", authMiddleware, (res: Response) => {
-  try {
-    res.clearCookie("authLumenJuris", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-    });
+routerUser.post(
+  "/auth/logout",
+  authMiddleware,
+  (_req: Request, res: Response) => {
+    try {
+      res.clearCookie("authLumenJuris", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+      });
 
-    return res.status(200).json({
-      success: true,
-      message: "L'utilisateur a été déconnecté avec succès.",
-    });
-  } catch (err) {
-    console.error(
-      `Une erreur est survenue lors de la déconnexion d'un utilisateur, error : \n ${err}`,
-    );
-    return res.status(500).json({
-      success: false,
-      message:
-        "Une erreur est survenue lors de la déconnexion d'un utilisateur.",
-    });
-  }
-});
+      return res.status(200).json({
+        success: true,
+        message: "L'utilisateur a été déconnecté avec succès.",
+      });
+    } catch (err) {
+      console.error(
+        `Une erreur est survenue lors de la déconnexion d'un utilisateur, error : \n ${err}`,
+      );
+      return res.status(500).json({
+        success: false,
+        message:
+          "Une erreur est survenue lors de la déconnexion d'un utilisateur.",
+      });
+    }
+  },
+);
 
 /**
  * Endpoint utilisateur pour s'authentifier.

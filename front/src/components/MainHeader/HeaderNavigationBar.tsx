@@ -41,9 +41,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
 
   const [isConnected, setIsConnected] = useState(false);
   const [userData, setUserData] = useState({} as UserDataProfile);
-
-  let role = null;
-  let avatarUrl = null;
+  const [userAvatarUrl, setUserAvatarUrl] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,15 +56,17 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
         if (dataResponse.success && dataResponse.data.profile.isVerified) {
           setIsConnected(true);
           setUserData(dataResponse.data.profile);
-          role = dataResponse.data.profile.role;
-          avatarUrl = dataResponse.data.provider.avatarUrl;
+          setUserAvatarUrl(dataResponse.data.provider.avatarUrl);
+        } else {
+          setIsConnected(false);
         }
       } catch (error) {
         console.error("🛑🛑🛑 ERREUR SERVEUR GET USER", error);
+        setIsConnected(false);
       }
     };
     fetchData();
-  }, []);
+  }, [isConnected]);
 
   const handleUserLogout = () => {
     const fetchLogout = async () => {
@@ -80,7 +80,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
         if (logoutResponse.success) {
           setIsConnected(false);
           alert(logoutResponse.message);
-          navigate("/inscription");
+          // navigate("/inscription");
         } else {
           alert(logoutResponse.message);
         }
@@ -158,7 +158,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
             </Button>
           </Link>
         )}
-        {isConnected && role === "ADMIN" && (
+        {isConnected && userData.role === "ADMIN" && (
           <Link to="/sandbox">
             <Button
               variant="ghost"
@@ -183,9 +183,9 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
             <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-green-500" />
           </button>
           <div className="flex items-center gap-2 pl-3 border-l border-gray-200">
-            {avatarUrl ? (
+            {userAvatarUrl ? (
               <img
-                src={avatarUrl}
+                src={userAvatarUrl}
                 className="h-8 w-8 rounded-full object-cover border border-lumenjuris/60"
               ></img>
             ) : (

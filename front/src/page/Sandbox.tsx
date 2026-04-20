@@ -61,16 +61,20 @@ export function Sandbox() {
         });
 
         const dataResponse = await response.json();
+        console.log("DATA SANDBOX PAGE :", dataResponse);
         if (
-          !dataResponse.success &&
           !dataResponse.data.profile.isVerified &&
-          dataResponse.data.profile.role !== "ADMIN"
+          dataResponse.data.profile.role != "ADMIN"
         ) {
           navigate("/inscription");
-        } else if (!dataResponse) {
+        }
+        if (!dataResponse) {
           navigate("/inscription");
         }
-      } catch (error) {}
+      } catch (error) {
+        console.error("🛑🛑🛑 ERREUR SERVEUR GET USER SANDBOX", error);
+        navigate("/inscription");
+      }
     };
     fetchData();
   }, []);
