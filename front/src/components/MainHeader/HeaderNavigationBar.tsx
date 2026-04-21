@@ -34,7 +34,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
   const [isConnected, setIsConnected] = useState(false);
   const [userData, setUserData] = useState<UserDataProfile | null>(null);
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
-  // const [userInfoError, setUserInfoError] = useState<string | null>(null);
+  const [userInfoError, setUserInfoError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,7 +47,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
         const dataResponse = await response.json();
         console.log("USER DATA :", dataResponse);
         if (!dataResponse.success) {
-          alert(dataResponse.message);
+          setUserInfoError(dataResponse.message);
         } else if (
           dataResponse.success &&
           dataResponse.data.profile.isVerified
@@ -63,7 +63,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
         }
       } catch (error) {
         console.error("🛑🛑🛑 ERREUR SERVEUR GET USER", error);
-        alert("Un problème est survenu, veuillez vous reconnecter.");
+        setUserInfoError("Un problème est survenu, veuillez vous reconnecter.");
       }
     };
     fetchData();
@@ -83,17 +83,15 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
           setIsConnected(false);
           setUserData(null);
           logout();
-<<<<<<< HEAD
-          alert(logoutResponse.message);
-=======
-          //alert(logoutResponse.message);
->>>>>>> main
+          setUserInfoError(logoutResponse.message);
           navigate("/inscription");
         } else {
-          alert(logoutResponse.message);
+          setUserInfoError(logoutResponse.message);
         }
       } catch (error) {
-        alert("Une erreur s'est produite, vous n'avez pas été déconnecté...");
+        setUserInfoError(
+          "Une erreur s'est produite, vous n'avez pas été déconnecté...",
+        );
         console.log(error);
       }
     };
@@ -101,8 +99,82 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
   };
 
   return (
-    <div className="flex items-center gap-2 lg:pr-2">
-      <nav className="flex items-center gap-2">
+    <div className="flex items-center gap-1 lg:pr-2">
+      <nav className="flex items-center gap-1  pr-1 lg:gap-3 lg:pr-3 xl:gap-4 xl:pr-4 2xl:hidden">
+        {isConnected && (
+          <Link to="/dashboard">
+            <Button
+              variant="ghost"
+              size="icon"
+              data-slot="icon"
+              onClick={onNavClick}
+              className={
+                pathname === "/dashboard" ||
+                pathname === "/generateur" ||
+                pathname === "/signature" ||
+                pathname === "/chatjuridique" ||
+                pathname === "/calculateur" ||
+                pathname === "/veille" ||
+                pathname === "/conformite"
+                  ? " text-gray-800 xl:tracking-wide font-semibold xl:text-[16px] hover:cursor-default"
+                  : "text-gray-400 hover:bg-lumenjuris-background"
+              }
+            >
+              <LayoutDashboard className="size-5" />
+            </Button>
+          </Link>
+        )}
+        {isConnected && (
+          <Link to="/analyzer">
+            <Button
+              variant="ghost"
+              size="icon"
+              data-slot="icon"
+              className={
+                pathname === "/analyzer"
+                  ? " text-gray-800 xl:tracking-wide font-semibold xl:text-[16px] hover:cursor-default"
+                  : "text-gray-400 hover:bg-lumenjuris-background"
+              }
+            >
+              <FileCheckIcon className="size-5" />
+            </Button>
+          </Link>
+        )}
+        {isConnected && (
+          <Link to="/mon-compte">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={
+                pathname === "/mon-compte"
+                  ? " text-gray-800 xl:tracking-wide font-semibold xl:text-[16px] hover:cursor-default"
+                  : "text-gray-400 hover:bg-lumenjuris-background"
+              }
+              onClick={onNavClick}
+            >
+              <User className="size-5" />
+            </Button>
+          </Link>
+        )}
+        {isConnected && userData?.role === "ADMIN" && (
+          <Link to="/sandbox">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={
+                pathname === "/sandbox"
+                  ? " text-gray-800 xl:tracking-wide font-semibold xl:text-[16px] hover:cursor-default"
+                  : "text-gray-400 hover:bg-lumenjuris-background"
+              }
+              onClick={onNavClick}
+            >
+              <ScatterChartIcon />
+            </Button>
+          </Link>
+        )}
+      </nav>
+
+      <nav className="hidden 2xl:flex items-center gap-1">
         {isConnected && (
           <Link to="/dashboard">
             <Button
@@ -111,22 +183,16 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
               data-slot="icon"
               onClick={onNavClick}
               className={
-                pathname === "/dashboard"
-                  ? " text-gray-500 tracking-wide font-semibold text-[16px] hover:cursor-default"
-                  : pathname === "/generateur"
-                    ? " text-gray-500 tracking-wide font-semibold text-[16px] hover:cursor-default"
-                    : pathname === "/signature"
-                      ? " text-gray-500 tracking-wide font-semibold text-[16px] hover:cursor-default"
-                      : pathname === "/chatjuridique"
-                        ? " text-gray-500 tracking-wide font-semibold text-[16px] hover:cursor-default"
-                        : pathname === "/calculateur"
-                          ? " text-gray-500 tracking-wide font-semibold text-[16px] hover:cursor-default"
-                          : pathname === "/veille"
-                            ? " text-gray-500 tracking-wide font-semibold text-[16px] hover:cursor-default"
-                            : pathname === "/conformite"
-                              ? " text-gray-500 tracking-wide font-semibold text-[16px] hover:cursor-default"
-                              : "text-gray-400 hover:bg-lumenjuris-background"
-            }
+                pathname === "/dashboard" ||
+                pathname === "/generateur" ||
+                pathname === "/signature" ||
+                pathname === "/chatjuridique" ||
+                pathname === "/calculateur" ||
+                pathname === "/veille" ||
+                pathname === "/conformite"
+                  ? " text-gray-500 xl:tracking-wide font-semibold xl:text-[16px] hover:cursor-default"
+                  : "text-gray-400 hover:bg-lumenjuris-background"
+              }
             >
               <LayoutDashboard />
               Mon workspace
@@ -141,7 +207,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
               data-slot="icon"
               className={
                 pathname === "/analyzer"
-                  ? " text-gray-500 tracking-wide font-semibold text-[16px] hover:cursor-default"
+                  ? " text-gray-500 xl:tracking-wide font-semibold xl:text-[16px] hover:cursor-default"
                   : "text-gray-400 hover:bg-lumenjuris-background"
               }
             >
@@ -157,7 +223,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
               size="lg"
               className={
                 pathname === "/mon-compte"
-                  ? " text-gray-500 tracking-wide font-semibold text-[16px] hover:cursor-default"
+                  ? " text-gray-500 xl:tracking-wide font-semibold xl:text-[16px] hover:cursor-default"
                   : "text-gray-400 hover:bg-lumenjuris-background"
               }
               onClick={onNavClick}
@@ -174,7 +240,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
               size="lg"
               className={
                 pathname === "/sandbox"
-                  ? " text-gray-500 tracking-wide font-semibold text-[16px] hover:cursor-default"
+                  ? " text-gray-500 xl:tracking-wide font-semibold xl:text-[16px] hover:cursor-default"
                   : "text-gray-400 hover:bg-lumenjuris-background"
               }
               onClick={onNavClick}
@@ -185,6 +251,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
           </Link>
         )}
       </nav>
+
       {isConnected ? (
         <section className="flex items-center gap-3">
           <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">

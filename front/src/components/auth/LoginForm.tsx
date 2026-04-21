@@ -7,11 +7,10 @@ import { EyeOffIcon, EyeIcon, SendIcon, LogInIcon } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 
 import { AlertBanner } from "../common/AlertBanner";
+import { useAuth } from "../../context/AuthContext";
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-import { useAuth } from "../../context/AuthContext";
 
 interface LoginFormProps {
   email: string;
@@ -40,10 +39,9 @@ const LoginForm = ({
   const [submitForgotError, setSubmitForgotError] = useState(false);
   const [serverError, setServerError] = useState(false);
   const [serverErrorMessage, setServerErrorMessage] = useState("");
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
 
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   useEffect(() => {
     setForgotPassword(false);
@@ -70,20 +68,23 @@ const LoginForm = ({
           credentials: "include",
         });
 
-        const data = await loginResponse.json();
-        console.log("▶️▶️ RETOUR SERVEUR CONNEXION :", data);
+        const dataResponse = await loginResponse.json();
+        console.log("▶️▶️ RETOUR SERVEUR CONNEXION :", dataResponse);
 
-        if (!loginResponse.ok) {
+        if (!loginResponse.ok || !dataResponse.success) {
           setServerError(true);
-          setServerErrorMessage(data.message);
+          setServerErrorMessage(
+            dataResponse.message ||
+              "Une erreur est survenue, veuillez réessayer...",
+          );
           throw new Error(`BackNode Auth Error : ${loginResponse.status}`);
         } else {
-          setSubmitSuccess(true);
-          setSuccessMessage(data.message);
+          login(dataResponse.data.role, dataResponse.isVerified, true);
           navigate("/dashboard");
         }
       } catch (error) {
         setServerError(true);
+        setServerErrorMessage("Une erreur est survenue, veuillez réessayer...");
         console.error("🛑🛑🛑 ERREUR SERVEUR CONNEXION", error);
       }
     }
@@ -93,15 +94,32 @@ const LoginForm = ({
     window.location.href = "http://localhost:3020/auth/google";
   };
 
-  const handleSubmitForgotPassword = (
+  const handleSubmitForgotPassword = async (
     event: React.FormEvent<HTMLFormElement>,
   ) => {
     event.preventDefault();
     if (!email) {
       setSubmitForgotError(true);
     } else {
-      setEmailSent(true);
-      setForgotPassword(false);
+      setSubmitLoading(true);
+      try {
+        const passwordResponse = await fetch("api/auth/forgotpassword", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+          credentials: "include",
+        });
+        const dataResponse = await passwordResponse.json();
+        if (!passwordResponse.ok || !dataResponse.success) {
+          setServerError(true);
+          setServerErrorMessage(
+            dataResponse.message ||
+              "Une erreur est survenue, veuillez réessayer...",
+          );
+        } else {
+          setEmailSent(true);
+        }
+      } catch (error) {}
     }
   };
 
@@ -133,7 +151,6 @@ const LoginForm = ({
           variant="error"
           detail="Pour réinitialiser votre mot de passe veuillez renseigner votre adresse email."
           onClose={() => {
-            setSubmitForgotError(false);
             setForgotPassword(true);
           }}
         />
@@ -147,21 +164,6 @@ const LoginForm = ({
           onClose={() => {
             setServerError(false);
             setSubmitLoading(false);
-          }}
-        />
-      )}
-      {submitSuccess && (
-        <AlertBanner
-          title="Connexion réussie !"
-          variant="success"
-          detail={successMessage}
-          onClose={() => {
-            setSubmitSuccess(false);
-            setSubmitLoading(false);
-            setSuccessMessage("");
-            setEmail("");
-            setPassword("");
-            navigate("/dashboard");
           }}
         />
       )}

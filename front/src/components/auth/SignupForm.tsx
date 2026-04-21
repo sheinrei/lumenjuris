@@ -87,6 +87,7 @@ const SignupForm = ({
             password: password,
             cgu: acceptCgu,
           }),
+          credentials: "include",
         });
 
         const data = await signupResponse.json();

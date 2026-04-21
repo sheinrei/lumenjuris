@@ -30,9 +30,13 @@ const navItems = [
 export function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  const { userVerified, userConnected } = useAuth();
+  const { userConnected } = useAuth();
 
-  return userVerified && userConnected ? (
+  console.log("USER STATE :", userConnected);
+
+  return !userConnected ? (
+    <Navigate to="/inscription" />
+  ) : (
     <div
       className="flex min-h-screen w-full bg-[#f8f9fb]"
       style={{ fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}
@@ -141,7 +145,5 @@ export function MainLayout() {
         </main>
       </div>
     </div>
-  ) : (
-    <Navigate to="/inscription" />
   );
 }

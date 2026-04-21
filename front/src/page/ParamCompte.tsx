@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Navigate } from "react-router-dom";
 import { SETTINGS_TABS } from "../config/paramSettings";
 import { useEnterpriseSettings } from "../hooks/useEnterpriseSettings";
 import { AccountSettingsPanel } from "../components/ParamComponents/AccountSettingsPanel";
@@ -21,6 +22,8 @@ import {
   getParamConfirmationModalContent,
   normalizeEnterpriseSettings,
 } from "../utils/param/paramSettings";
+
+import { useAuth } from "../context/AuthContext";
 
 const EMPTY_ACCOUNT_PROFILE: AccountProfile = {
   prenom: "",
@@ -50,6 +53,8 @@ export function ParamCompte() {
   const accountMeasureRef = useRef<HTMLElement>(null);
   const enterpriseMeasureRef = useRef<HTMLElement>(null);
   const preferenceMeasureRef = useRef<HTMLElement>(null);
+
+  const { userConnected } = useAuth();
 
   useEffect(() => {
     let isCancelled = false;
@@ -404,7 +409,9 @@ export function ParamCompte() {
     />
   );
 
-  return (
+  return !userConnected ? (
+    <Navigate to="/inscription" />
+  ) : (
     <>
       <ParamLayout
         title="Mes Paramètres"

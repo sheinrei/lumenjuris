@@ -3,6 +3,8 @@ import {
   AlertBanner,
   type AlertVariant,
 } from "../components/common/AlertBanner";
+import { useAuth } from "../context/AuthContext";
+import { Navigate } from "react-router-dom";
 
 const PRESETS: {
   label: string;
@@ -252,7 +254,11 @@ export function Sandbox() {
     }
   };
 
-  return (
+  const { userRole, userConnected } = useAuth();
+
+  return userRole != "ADMIN" && !userConnected ? (
+    <Navigate to="/inscription" />
+  ) : (
     <div className="space-y-8 max-w-2xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
