@@ -166,10 +166,7 @@ export class User {
     }
 
 
-    async update(
-        idUser: number,
-        dataUpdated: DataUpdatedDTO
-    ): Promise<ReturnData> {
+    async update(idUser: number, dataUpdated: DataUpdatedDTO): Promise<ReturnData> {
         try {
             const nextData = { ...dataUpdated }
 
@@ -191,6 +188,7 @@ export class User {
             return this.errorCatching(err, "User.update")
         }
     }
+
 
 
     async get(idUser: number): Promise<ReturnData> {
