@@ -606,20 +606,22 @@ routerUser.post("/forgotpassword", async (req: Request, res: Response) => {
         "forgotPassword",
       );
       const url = `${process.env.HOST}/user/resetpassword/${token.token}`;
-      const mailer = await new Mailer(email).sendResetPassword(
+      await new Mailer(email).sendResetPassword(
         url,
         `${user.prenom} ${user.nom}`,
       );
-
-      return res.status(200).json({
-        success: mailer.success,
-        message: mailer.message,
-      });
-    } else {
-      return;
     }
+
+    return res.status(200).json({
+      success: true,
+      message: "Si cet email est associé à un compte, vous recevrez un lien de réinitialisation.",
+    });
   } catch (error) {
-    console.log("🛑🛑🛑🛑 USER RESET", error);
+    console.error("Erreur lors de la demande de réinitialisation:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Une erreur est survenue, veuillez réessayer.",
+    });
   }
 });
 
