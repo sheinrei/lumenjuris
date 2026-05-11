@@ -133,7 +133,9 @@ const SignupForm = ({
         setServerErrorMessage(data.message);
         throw new Error(`BackNode Auth Error : ${signupResponse.status}`);
       } else {
-        setSubmitPending(true);
+        setSubmitPending(false);
+        setSubmitSuccess(true);
+        setSuccessMessage(`Votre compte a été créé. Un email de vérification a été envoyé à ${email}. Veuillez vérifier votre boîte de réception et vos spams.`);
       }
     } catch (error) {
       setSubmitPending(false);
@@ -259,11 +261,7 @@ const SignupForm = ({
           variant="info"
           detail={`Votre compte a été créé. Un email de vérification est en cours d'envoi à ${email}. Veuillez attendre quelques secondes...`}
           duration={0}
-          onClose={() => {
-            setSubmitPending(false);
-            setSubmitSuccess(true);
-            setSuccessMessage(`Votre compte a été créé. Un email de vérification a été envoyé à ${email}. Veuillez vérifier votre boîte de réception et vos spams.`);
-          }}
+          onClose={() => setSubmitPending(false)}
         />
       )}
       {submitSuccess && (

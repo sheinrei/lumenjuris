@@ -89,7 +89,14 @@ routerUser.post("/create", async (req: Request, res: Response) => {
     const url = `${process.env.HOST}/user/verify/${token.token}`;
 
     if (enterprise && typeof enterprise === "object" && !Array.isArray(enterprise)) {
-      await new Enterprise().updateByUser(idUser, enterprise);
+      const nested = enterprise as any;
+      const enterpriseInput = {
+        ...nested,
+        address: nested.address?.address ?? nested.address ?? null,
+        codePostal: nested.address?.codePostal ?? nested.codePostal ?? null,
+        pays: nested.address?.pays ?? nested.pays ?? null,
+      };
+      await new Enterprise().updateByUser(idUser, enterpriseInput);
     }
 
     const mailer = await new Mailer(email).sendVerifyAccount(url, `${prenom} ${nom}`);
