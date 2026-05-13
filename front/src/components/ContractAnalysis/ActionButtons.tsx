@@ -4,7 +4,6 @@ import { useDocumentTextStore } from '../../store/documentTextStore';
 import { useAppliedRecommendationsStore } from '../../store/appliedRecommendationsStore';
 
 interface ActionButtonsProps {
-  onNewAnalysis: () => void;
   onShareReport: () => void;
   isProcessed: boolean;
   originalContent?: string;
@@ -12,7 +11,6 @@ interface ActionButtonsProps {
 }
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
-  onNewAnalysis,
   onShareReport,
   isProcessed,
   originalContent,
@@ -27,14 +25,6 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
     <div className="bg-white border-b border-gray-200 px-6 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <button
-            onClick={onNewAnalysis}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Nouvelle analyse
-          </button>
-
           <button
             onClick={onShareReport}
             className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"

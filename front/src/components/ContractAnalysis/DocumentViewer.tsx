@@ -61,7 +61,6 @@ interface DocumentViewerProps {
   activeClauseId: string | null;
   isFullscreen?: boolean;
   onSuggestedClauses?: () => void;
-  onReanalyze?: () => void;
   isLoadingSuggested?: boolean;
 }
 
@@ -85,7 +84,6 @@ export const DocumentViewer = forwardRef<
       activeClauseId,
       isFullscreen = false,
       onSuggestedClauses,
-      onReanalyze,
       isLoadingSuggested = false,
     },
     ref,
@@ -338,7 +336,6 @@ export const DocumentViewer = forwardRef<
               isVisible={true}
               recommandationApplied={patches}
               onSuggestedClauses={onSuggestedClauses}
-              onReanalyze={onReanalyze}
               isLoadingSuggested={isLoadingSuggested}
             />
           </div>

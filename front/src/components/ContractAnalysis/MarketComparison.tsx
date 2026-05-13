@@ -37,7 +37,7 @@ export const MarketComparison: React.FC<MarketComparisonProps> = ({
       <div className="p-6 bg-gray-50">
         {clausesManquantes.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            ✅ Aucune clause manquante critique détectée
+            Aucune clause manquante critique détectée
           </div>
         ) : (
           <div className="space-y-3">

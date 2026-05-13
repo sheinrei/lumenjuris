@@ -986,8 +986,6 @@ export default function ContractAnalysis() {
     <div className="min-h-screen bg-gray-50">
       <MainHeader
         onNavClick={handleNavClick}
-        onReanalyze={handleNewAnalysis}
-        showReanalyze={!!contract}
       />
 
       <DocumentHistorySidebar
@@ -996,6 +994,7 @@ export default function ContractAnalysis() {
         onOpen={handleOpenHistoryItem}
         onDelete={handleDeleteHistoryItem}
         onCollapse={setSidebarCollapsed}
+        onNewAnalysis={handleNewAnalysis}
       />
 
       <main
@@ -1122,7 +1121,6 @@ export default function ContractAnalysis() {
                       isFullscreen={sidebarCollapsed}
                       ref={documentViewerRef}
                       onSuggestedClauses={handleMarketAnalysisClick}
-                      onReanalyze={() => {}}
                       isLoadingSuggested={isMarketAnalysisLoading}
                     />
                   </div>
@@ -1131,7 +1129,6 @@ export default function ContractAnalysis() {
                 {/* Boutons d'action - Centrés */}
                 <div className="flex justify-center">
                   <ActionButtons
-                    onNewAnalysis={handleNewAnalysis}
                     onShareReport={handleShareReport}
                     isProcessed={Boolean(contract?.processed)}
                   />

@@ -2,7 +2,7 @@
    Détection des clauses suggérées (manquantes) par rapport aux standards
    ------------------------------------------------------------------ */
 
-import { callOpenAI } from './aiClient';
+import { callOpenAi52 } from './aiClient';
 
 export interface MissingClause {
   nom: string;
@@ -72,10 +72,7 @@ ${contractExcerpt}
 Réponds UNIQUEMENT avec le JSON.`;
 
   try {
-    const txt = await callOpenAI(
-      [{ role: 'user', content: prompt }],
-      { model: 'gpt-5.4-nano', temperature: 0.1, max_tokens: 1500, response_format: { type: 'json_object' } }
-    );
+    const txt = await callOpenAi52(prompt, 'low', 'low', 'gpt-5.4-nano');
     const result = JSON.parse(txt);
 
     console.log('🤖 Clauses manquantes détectées:', result.clausesManquantes);

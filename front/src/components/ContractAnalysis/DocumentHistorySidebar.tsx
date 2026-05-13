@@ -6,6 +6,7 @@ import {
   MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
+  Plus,
   Trash2,
 } from "lucide-react";
 import type { ContractHistoryItem } from "../../utils/contractHistory";
@@ -16,6 +17,7 @@ interface DocumentHistorySidebarProps {
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
   onCollapse?: (collapsed: boolean) => void;
+  onNewAnalysis?: () => void;
 }
 
 export const DocumentHistorySidebar: React.FC<DocumentHistorySidebarProps> = ({
@@ -24,6 +26,7 @@ export const DocumentHistorySidebar: React.FC<DocumentHistorySidebarProps> = ({
   onOpen,
   onDelete,
   onCollapse,
+  onNewAnalysis,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -41,15 +44,27 @@ export const DocumentHistorySidebar: React.FC<DocumentHistorySidebarProps> = ({
     >
       {/* Header */}
       {isCollapsed ? (
-        <button
-          type="button"
-          onClick={toggle}
-          className="flex flex-col items-center justify-start gap-3 w-full pt-3 pb-4 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
-          title="Afficher l'historique"
-        >
-          <PanelLeftOpen className="w-5 h-5" />
-          <Clock3 className="w-4 h-4" />
-        </button>
+        <div className="flex flex-col items-center gap-3 w-full pt-3 pb-4 shrink-0">
+          <button
+            type="button"
+            onClick={toggle}
+            className="flex flex-col items-center gap-3 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors p-1 rounded"
+            title="Afficher l'historique"
+          >
+            <PanelLeftOpen className="w-5 h-5" />
+            <Clock3 className="w-4 h-4" />
+          </button>
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={onNewAnalysis}
+              className="text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors p-1 rounded"
+              title="Nouvelle analyse"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       ) : (
         <div className="flex items-center justify-between px-3 py-3 border-b border-gray-200 bg-gray-50 shrink-0">
           <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -57,14 +72,19 @@ export const DocumentHistorySidebar: React.FC<DocumentHistorySidebarProps> = ({
             <h2 className="font-semibold text-gray-900 truncate text-sm">
               Historique
             </h2>
-            <span className="text-xs font-medium text-gray-500 ml-auto shrink-0">
-              {items.length}
-            </span>
           </div>
           <button
             type="button"
-            onClick={toggle}
+            onClick={onNewAnalysis}
             className="ml-2 flex items-center justify-center w-6 h-6 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors shrink-0"
+            title="Nouvelle analyse"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={toggle}
+            className="ml-1 flex items-center justify-center w-6 h-6 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors shrink-0"
             title="Réduire l'historique"
           >
             <PanelLeftClose className="w-4 h-4" />

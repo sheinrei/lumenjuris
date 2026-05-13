@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, Lightbulb } from 'lucide-react';
+import { Lightbulb, RefreshCw } from 'lucide-react';
 import { ClauseRisk } from '../../types';
 import { ClauseRiskCard } from './ClauseRiskCard';
 import { TextPatch } from '../../store/documentTextStore';
@@ -11,7 +11,6 @@ interface ClausesSidebarProps {
   activeClauseId?: string | null;
   recommandationApplied?: TextPatch[];
   onSuggestedClauses?: () => void;
-  onReanalyze?: () => void;
   isLoadingSuggested?: boolean;
 }
 
@@ -21,7 +20,6 @@ export const ClausesSidebar: React.FC<ClausesSidebarProps> = ({
   isVisible = true,
   recommandationApplied,
   onSuggestedClauses,
-  onReanalyze,
   isLoadingSuggested = false,
 }) => {
 
@@ -55,8 +53,8 @@ export const ClausesSidebar: React.FC<ClausesSidebarProps> = ({
           </button>
 
           <button
-            onClick={onReanalyze}
-            className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200 transition-colors"
+            disabled
+            className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-white text-gray-400 border border-gray-200 cursor-not-allowed"
           >
             <RefreshCw className="w-4 h-4" />
             Re-analyser les clauses
