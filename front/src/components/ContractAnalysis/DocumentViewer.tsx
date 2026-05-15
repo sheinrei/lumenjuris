@@ -7,9 +7,10 @@ import {
   useEffect,
 } from "react";
 import { motion } from "framer-motion";
-import { Info } from "lucide-react";
+import { Info, X } from "lucide-react";
 import { ClauseRisk } from "../../types";
 import { ClausesSidebar } from "./ClausesSidebar";
+import { ClauseRiskCard } from "./ClauseRiskCard";
 import { isFeatureEnabled } from "../../config/features";
 import { useDocumentTextStore } from "../../store/documentTextStore";
 import { AnalysisContext } from "../../types/contextualAnalysis";
@@ -120,9 +121,8 @@ export const DocumentViewer = forwardRef<
       );
     }, [contractSummary]);
 
-    const [_editingClauseId, setEditingClauseId] = useState<string | null>(
-      null,
-    );
+    const [_editingClauseId, setEditingClauseId] = useState<string | null>(null);
+    const [isMobileClausesOpen, setIsMobileClausesOpen] = useState(false);
 
     const lastClick = useRef(0);
 
@@ -284,11 +284,30 @@ export const DocumentViewer = forwardRef<
                 </span>
               )}
             </h2>
-            <div className="flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-2 text-xs">
+              {clauses.length > 0 && (() => {
+                const maxRisk = Math.max(...clauses.map((c) => c.riskScore));
+                const riskStyle =
+                  maxRisk === 5
+                    ? { backgroundColor: "#fee2e2", borderColor: "#fecaca", color: "#7f1d1d" }
+                    : maxRisk >= 3
+                      ? { backgroundColor: "#ffedd5", borderColor: "#fed7aa", color: "#7c2d12" }
+                      : { backgroundColor: "#dcfce7", borderColor: "#bbf7d0", color: "#14532d" };
+                return (
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileClausesOpen(true)}
+                    style={riskStyle}
+                    className="md:hidden flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-medium transition-opacity shrink-0 hover:opacity-80"
+                  >
+                    ⚖️ Voir les {clauses.length} clause{clauses.length > 1 ? "s" : ""}
+                  </button>
+                );
+              })()}
               <button
                 onClick={() => resetAll()}
                 disabled={activePatchCount === 0}
-                className={`px-2 py-1 rounded-full border text-xs font-medium transition-colors ${activePatchCount === 0 ? "border-gray-200 text-gray-300 cursor-not-allowed" : "border-red-300 text-red-600 hover:bg-red-50"}`}
+                className={`px-1.5 py-0.5 md:px-2 md:py-1 rounded-full border text-[10px] md:text-xs font-medium transition-colors ${activePatchCount === 0 ? "border-gray-200 text-gray-300 cursor-not-allowed" : "border-red-300 text-red-600 hover:bg-red-50"}`}
                 title="Réinitialiser toutes les modifications"
               >
                 Réinitialiser tout
@@ -329,7 +348,7 @@ export const DocumentViewer = forwardRef<
 
         {/* Sidebar */}
         {showSidebar && (
-          <div>
+          <div className="hidden md:block">
             <ClausesSidebar
               clauses={clauses}
               onClauseClick={handleSidebarClauseClick}
@@ -340,6 +359,49 @@ export const DocumentViewer = forwardRef<
             />
           </div>
         )}
+
+        {/* Mobile clause bottom sheet — always mounted for smooth animation */}
+        <>
+          <div
+            className={`fixed inset-0 z-30 bg-black/40 md:hidden transition-opacity duration-200 ${
+              isMobileClausesOpen
+                ? "opacity-100 pointer-events-auto"
+                : "opacity-0 pointer-events-none"
+            }`}
+            onClick={() => setIsMobileClausesOpen(false)}
+          />
+          <div
+            className={`fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white rounded-t-2xl shadow-xl flex flex-col max-h-[75vh] transition-transform duration-300 ease-out ${
+              isMobileClausesOpen ? "translate-y-0" : "translate-y-full"
+            }`}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 shrink-0">
+              <h3 className="font-semibold text-gray-900 text-sm">
+                ⚖️ {clauses.length} clause{clauses.length > 1 ? "s" : ""} détectée{clauses.length > 1 ? "s" : ""}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsMobileClausesOpen(false)}
+                className="flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {clauses.map((clause) => (
+                <ClauseRiskCard
+                  key={clause.id}
+                  clause={clause}
+                  onClick={() => {
+                    onClauseClick(clause.id);
+                    setIsMobileClausesOpen(false);
+                  }}
+                  recommandationApplied={patches}
+                />
+              ))}
+            </div>
+          </div>
+        </>
       </div>
     );
   },

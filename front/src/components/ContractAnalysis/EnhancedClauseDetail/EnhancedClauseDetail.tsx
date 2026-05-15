@@ -154,7 +154,7 @@ export const EnhancedClauseDetail: React.FC<Props> = ({ clause, context, onClose
       {/* Mobile */}
       <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 md:hidden">
         <motion.section
-          className="relative w-full max-w-full rounded-t-lg bg-white shadow-xl mx-2 flex flex-col"
+          className="relative w-full max-w-full rounded-lg bg-white shadow-xl mx-2 mb-3 flex flex-col overflow-hidden"
           style={{ height: '85vh' }}
           initial={{ y: 40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

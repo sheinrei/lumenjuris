@@ -207,7 +207,9 @@ export default function ContractAnalysis() {
   const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
   const currentHistoryIdRef = useRef<string | null>(null);
   const [historyItems, setHistoryItems] = useState<ContractHistoryItem[]>([]);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 768,
+  );
 
   useEffect(() => {
     loadContractHistoryIndex().then(setHistoryItems).catch(() => {});
@@ -995,11 +997,12 @@ export default function ContractAnalysis() {
         onDelete={handleDeleteHistoryItem}
         onCollapse={setSidebarCollapsed}
         onNewAnalysis={handleNewAnalysis}
+        defaultCollapsed={typeof window !== "undefined" && window.innerWidth < 768}
       />
 
       <main
-        className={`px-4 py-8 transition-all duration-300 ease-in-out ${
-          sidebarCollapsed ? "pl-14" : "pl-72"
+        className={`px-4 py-8 transition-all duration-300 ease-in-out overflow-x-hidden ${
+          sidebarCollapsed ? "pl-12 md:pl-14" : "pl-12 md:pl-72"
         }`}
       >
           <div className="min-w-0 w-full">
