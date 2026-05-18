@@ -29,20 +29,60 @@ type NavigationClickHandler = (
   event?: MouseEvent<HTMLElement>,
 ) => boolean | void;
 
-type NotificationBadge = "none" | "news" | "alert" | "urgent";
+type NotificationSeverity = "news" | "alert" | "urgent";
+type NotificationBadge = "none" | NotificationSeverity;
+
+interface NotificationItem {
+  id: string;
+  severity: NotificationSeverity;
+  title: string;
+  path: string;
+  linkState?: Record<string, string>;
+  buttonLabel: string;
+}
 
 interface HeaderNavBarProps {
   onNavClick?: NavigationClickHandler;
 }
 
-const NOTIFICATION_TYPES = {
+const SEVERITY_PRIORITY: Record<NotificationSeverity, number> = {
+  news: 1,
+  alert: 2,
+  urgent: 3,
+};
+
+const SEVERITY_ICON_COLOR: Record<NotificationSeverity, string> = {
+  news: "text-green-500",
+  alert: "text-orange-400",
+  urgent: "text-red-500",
+};
+
+const BADGE_DOT: Record<NotificationSeverity, string> = {
+  news: "bg-green-500",
+  alert: "bg-orange-400",
+  urgent: "bg-red-500",
+};
+
+const NOTIFICATION_TYPES: Record<string, Omit<NotificationItem, "id">> = {
   missingEnterpriseData: {
+    severity: "urgent",
     title: "Pensez à compléter les informations manquantes dans : ",
     path: "/mon-compte",
-    origin: "header-alert",
+    linkState: { origin: "header-alert" },
     buttonLabel: "Mon compte > Mon entreprise",
   },
 };
+
+function deriveOverallBadge(tab: NotificationItem[]): NotificationBadge {
+  if (tab.length === 0) return "none";
+  return tab.reduce<NotificationSeverity>(
+    (max, item) =>
+      SEVERITY_PRIORITY[item.severity] > SEVERITY_PRIORITY[max]
+        ? item.severity
+        : max,
+    "news",
+  );
+}
 
 const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
   const { pathname } = useLocation();
@@ -51,12 +91,21 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
   const { userData, isConnected, userAvatarUrl, logoutUser } = useUserStore();
 
   const [isMobile, setIsMobile] = useState(false);
-  const [notification, setNotification] = useState<NotificationBadge>("none");
+  const [notificationTab, setNotificationTab] = useState<NotificationItem[]>(
+    [],
+  );
 
-  const fetchEnterpriseData = useCallback(() => {
+  const notification: NotificationBadge = deriveOverallBadge(notificationTab);
+
+  const fetchNotificationData = useCallback(() => {
+    const tab: NotificationItem[] = [];
     if (!userData?.enterprise) {
-      setNotification("urgent");
-    } else setNotification("none");
+      tab.push({
+        id: "missingEnterpriseData",
+        ...NOTIFICATION_TYPES.missingEnterpriseData,
+      });
+    }
+    setNotificationTab(tab);
   }, [userData]);
 
   useEffect(() => {
@@ -69,8 +118,8 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
   }, []);
 
   useEffect(() => {
-    fetchEnterpriseData();
-  }, [fetchEnterpriseData]);
+    fetchNotificationData();
+  }, [fetchNotificationData]);
 
   const handleUserLogout = async () => {
     if (onNavClick?.() === false) return;
@@ -279,15 +328,15 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
               render={
                 <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors">
                   <Bell className="h-5 w-5 text-gray-400" />
-                  {notification === "none" ? (
-                    <></>
-                  ) : (
+                  {notification !== "none" && (
                     <>
                       <span
-                        className={`absolute top-1.5 right-1.5 h-2 w-2 rounded-full ${notification === "urgent" ? "bg-destructive" : notification === "alert" ? "bg-destructive" : notification === "news" ? "bg-green-600" : ""} `}
+                        className={`absolute top-1.5 right-1.5 h-2 w-2 rounded-full ${BADGE_DOT[notification]}`}
                       />
                       {notification === "urgent" && (
-                        <span className="absolute top-1.5 right-1.5 h-2 w-2 animate-ping rounded-full bg-destructive opacity-75"></span>
+                        <span
+                          className={`absolute top-1.5 right-1.5 h-2 w-2 animate-ping rounded-full opacity-75 ${BADGE_DOT[notification]}`}
+                        />
                       )}
                     </>
                   )}
@@ -297,15 +346,32 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
             <DropdownMenuContent
               sideOffset={6}
               alignOffset={-60}
-              className="min-w-28 bg-lumenjuris-sidebar ring-lumenjuris/60 font-medium text-sm px-4 text-gray-400"
+              className="min-w-64 bg-lumenjuris-sidebar ring-lumenjuris/60 font-medium text-sm px-4 text-gray-400"
             >
-              {!userData?.enterprise && (
-                <>
-                  <p>Pensez à compléter les informations manquantes dans : </p>
-                  <Link to="/mon-compte" state={{ origin: "header-alert" }}>
-                    <button className="font-semibold text-gray-100">{`Mon compte > Mon entreprise`}</button>
-                  </Link>
-                </>
+              {notificationTab.length === 0 ? (
+                <p className="py-3 text-xs text-gray-500">
+                  Aucune notification
+                </p>
+              ) : (
+                <div className="flex flex-col gap-3 py-3">
+                  {notificationTab.map((item) => (
+                    <div key={item.id} className="flex items-start gap-2.5">
+                      <AlertCircleIcon
+                        className={`mt-0.5 h-4 w-4 shrink-0 ${SEVERITY_ICON_COLOR[item.severity]}`}
+                      />
+                      <div className="flex flex-col gap-1 pt-0.5">
+                        <p className="text-xs text-gray-300 leading-snug">
+                          {item.title}
+                        </p>
+                        <Link to={item.path} state={item.linkState}>
+                          <button className="text-left text-xs font-semibold text-white hover:text-lumenjuris transition-colors">
+                            {item.buttonLabel}
+                          </button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </DropdownMenuContent>
           </DropdownMenu>

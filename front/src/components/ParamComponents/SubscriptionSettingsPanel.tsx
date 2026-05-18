@@ -191,13 +191,12 @@ export function SubscriptionSettingsPanel() {
               used={credits.totalIncluded - credits.creditIncluded}
               total={credits.totalIncluded}
             />
-            {credits.creditAdded > 0 && (
-              <CreditBar
-                label="Crédits achetés"
-                used={0}
-                total={credits.creditAdded}
-              />
-            )}
+
+            <CreditBar
+              label="Crédits ajoutés"
+              used={0}
+              total={credits.creditAdded}
+            />
           </div>
         </div>
       )}

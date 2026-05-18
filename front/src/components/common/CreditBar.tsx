@@ -18,7 +18,7 @@ export function CreditBar({
         <span
           className={isLow ? "font-semibold text-red-600" : "text-gray-500"}
         >
-          {remaining}
+          {used === 0 ? `${total}` : `${remaining} / ${total}`}
         </span>
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
