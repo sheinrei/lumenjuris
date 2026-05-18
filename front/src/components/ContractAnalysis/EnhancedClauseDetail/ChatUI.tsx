@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { useChatStore } from '../../../store/chatStore';
 import { Send, MessageSquare, AlertTriangle, HelpCircle } from 'lucide-react';
 import { type OpenAIModelId } from '../../../utils/aiClient';
@@ -117,11 +118,14 @@ export const ChatUI: React.FC<ChatUIProps> = ({
               className={`max-w-[80%] p-3 rounded-lg text-sm leading-relaxed ${msg.role === 'user'
                 ? 'bg-slate-800 text-white rounded-br-none'
                 : msg.role === 'assistant'
-                  ? 'bg-white text-slate-800 border border-slate-200 rounded-bl-none shadow-sm'
+                  ? 'bg-white text-slate-800 border border-slate-200 rounded-bl-none shadow-sm [&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:text-sm [&_h3]:font-medium [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1 [&_li]:leading-relaxed [&_strong]:font-semibold [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_p]:mb-2 [&_p:last-child]:mb-0'
                   : 'bg-red-100 text-red-800 border border-red-200 rounded-bl-none'
                 }`}
             >
-              {msg.content}
+              {msg.role === 'assistant'
+                ? <ReactMarkdown>{msg.content}</ReactMarkdown>
+                : msg.content
+              }
             </div>
           </div>
         ))}

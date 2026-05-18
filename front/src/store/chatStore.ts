@@ -65,7 +65,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         body: JSON.stringify({
           message,
           model,
-          context: `Texte de la clause:\n"""${contextClause.text.slice(0, 4000)}"""`,
+          context: `Réponds en 2-3 phrases maximum. Pas d'introduction ni de conclusion.\n\nTexte de la clause:\n"""${contextClause.text.slice(0, 4000)}"""`,
         }),
       });
 
