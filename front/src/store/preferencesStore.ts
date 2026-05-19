@@ -10,12 +10,15 @@ interface PreferencesState {
   reset: () => void;
 }
 
-async function updatePreference(payload: Record<string, boolean>) {
+async function updatePreference(accountParameters: {
+  dyslexicMode: boolean;
+  emailNotifications: boolean;
+}) {
   const res = await fetchProxy("/api/user/preferences", {
     method: "PUT",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ accountParameters }),
   });
   const data = await res.json().catch(() => null);
   return { ok: res.ok, data };
@@ -32,9 +35,10 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
       });
       const data = await res.json().catch(() => null);
       if (res.ok && data?.success) {
+        const params = data.data?.accountParameters ?? {};
         set({
-          isDyslexicMode: Boolean(data.data?.dyslexicMode),
-          isEmailNotifications: data.data?.emailNotifications !== false,
+          isDyslexicMode: Boolean(params.dyslexicMode),
+          isEmailNotifications: params.emailNotifications !== false,
         });
       }
     } catch (error) {
@@ -45,13 +49,16 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   setDyslexicMode: async (value: boolean) => {
     const previous = get().isDyslexicMode;
     set({ isDyslexicMode: value });
-    const { ok, data } = await updatePreference({ dyslexicMode: value }).catch(
-      () => ({ ok: false, data: null }),
-    );
+    const { ok, data } = await updatePreference({
+      dyslexicMode: value,
+      emailNotifications: get().isEmailNotifications,
+    }).catch(() => ({ ok: false, data: null }));
     if (!ok || !data?.success) {
       set({ isDyslexicMode: previous });
     } else {
-      set({ isDyslexicMode: Boolean(data.data?.dyslexicMode) });
+      set({
+        isDyslexicMode: Boolean(data.data?.accountParameters?.dyslexicMode),
+      });
     }
   },
 
@@ -59,12 +66,16 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     const previous = get().isEmailNotifications;
     set({ isEmailNotifications: value });
     const { ok, data } = await updatePreference({
+      dyslexicMode: get().isDyslexicMode,
       emailNotifications: value,
     }).catch(() => ({ ok: false, data: null }));
     if (!ok || !data?.success) {
       set({ isEmailNotifications: previous });
     } else {
-      set({ isEmailNotifications: Boolean(data.data?.emailNotifications) });
+      set({
+        isEmailNotifications:
+          data.data?.accountParameters?.emailNotifications !== false,
+      });
     }
   },
 

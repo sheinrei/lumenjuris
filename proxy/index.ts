@@ -87,6 +87,7 @@ function relayToNode(req: Request, res: Response, targetPath: string): void {
     headers: {
       "Content-Type": "application/json",
       cookie: req.headers.cookie || "",
+      "x-internal-api-key": process.env.INTERNAL_API_KEY || "",
     },
     body: req.method === "GET" ? undefined : JSON.stringify(req.body),
   })

@@ -9,6 +9,7 @@ import { authMiddleware } from "../middleware/authMiddleware";
 import { Google } from "../services/classGoogle";
 import { Enterprise } from "../services/classEnterprise";
 import { Subscription } from "../services/classSubscription";
+import { normalizeAccountParameters } from "../utils/normalizeAccountParameters";
 //import { TokenState } from "../../prisma/generated/enums"
 
 const routerUser: Router = express.Router();
@@ -370,8 +371,9 @@ routerUser.get(
         success: true,
         message: "Les préférences utilisateur ont été récupérées avec succès.",
         data: {
-          dyslexicMode: userPreference?.dyslexicMode ?? false,
-          emailNotifications: userPreference?.emailNotifications ?? true,
+          accountParameters: normalizeAccountParameters(
+            userPreference?.accountParameters,
+          ),
         },
       });
     } catch (err) {
@@ -393,33 +395,21 @@ routerUser.put(
   async (req: Request, res: Response) => {
     try {
       const idUser = Number(req.idUser);
-      const body = req.body ?? {};
-
-      const existing = await prisma.userPreference.findUnique({
-        where: { userId: idUser },
-      });
-
-      const dyslexicMode =
-        "dyslexicMode" in body
-          ? Boolean(body.dyslexicMode)
-          : (existing?.dyslexicMode ?? false);
-
-      const emailNotifications =
-        "emailNotifications" in body
-          ? Boolean(body.emailNotifications)
-          : (existing?.emailNotifications ?? true);
+      const accountParameters = normalizeAccountParameters(
+        req.body?.accountParameters,
+      );
 
       await prisma.userPreference.upsert({
         where: { userId: idUser },
-        update: { dyslexicMode, emailNotifications },
-        create: { userId: idUser, dyslexicMode, emailNotifications },
+        update: { accountParameters },
+        create: { userId: idUser, accountParameters },
       });
 
       return res.status(200).json({
         success: true,
         message:
           "Les préférences utilisateur ont été mises à jour avec succès.",
-        data: { dyslexicMode, emailNotifications },
+        data: { accountParameters },
       });
     } catch (err) {
       console.error(
