@@ -9,6 +9,14 @@ import http from "http";
 import { proxyAuthMiddleware } from "./src/middleware/authMiddleware.js";
 import { analyzeContractWithAI } from "./src/services/aiAnalyser/aiAnalyzer.js";
 import type { AnalysisContext } from "./src/services/aiAnalyser/types.js";
+import { detectContractWithAI } from "./src/utils/contractDetector.js";
+import { performCompleteMarketAnalysis } from "./src/utils/marketAnalysis.js";
+import type { MarketAnalysisResult } from "./src/utils/marketAnalysis.js";
+import { getRecommendedClauses } from "./src/utils/recommendClause.js";
+import { detectLegalReferences } from "./src/utils/detectLegalReferences.js";
+import { fetchLegalTexts } from "./src/utils/fetchLegalTexts.js";
+import { summarizeCaseInline } from "./src/utils/aiSummarizer.js";
+import type { JurisprudenceCase } from "./src/utils/aiSummarizer.js";
 
 // Charge d'abord server/.env puis la racine
 dotenv.config({ path: path.resolve(process.cwd(), "server/.env") });
@@ -331,6 +339,146 @@ function handleBillingCredits(req: Request, res: Response): void {
   relayToNode(req, res, "/billing/credits");
 }
 
+async function handleDetectContract(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const { text } = req.body as { text?: string };
+  if (!text || typeof text !== "string") {
+    res
+      .status(400)
+      .json({ success: false, message: "Le champ 'text' est requis." });
+    return;
+  }
+  try {
+    const context = await detectContractWithAI(text);
+    res.json(context);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Erreur interne";
+    console.error("detect-contract error:", message);
+    res.status(500).json({ success: false, message });
+  }
+}
+
+async function handleMarketAnalysis(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const { contractText, contractType, detectedClauses } = req.body as {
+    contractText?: string;
+    contractType?: string;
+    detectedClauses?: unknown[];
+  };
+  if (!contractText || !contractType) {
+    res.status(400).json({
+      success: false,
+      message: "Les champs 'contractText' et 'contractType' sont requis.",
+    });
+    return;
+  }
+  try {
+    const result: MarketAnalysisResult = await performCompleteMarketAnalysis(
+      contractText,
+      contractType,
+      (detectedClauses ?? []) as any,
+    );
+    res.json(result);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Erreur interne";
+    console.error("market-analysis error:", message);
+    res.status(500).json({ success: false, message });
+  }
+}
+
+async function handleRecommendClause(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const { clause, context, model } = req.body as {
+    clause?: unknown;
+    context?: unknown;
+    model?: string;
+  };
+  if (!clause) {
+    res
+      .status(400)
+      .json({ success: false, message: "Le champ 'clause' est requis." });
+    return;
+  }
+  try {
+    const recommendations = await getRecommendedClauses(
+      clause as any,
+      context as any,
+      model,
+    );
+    res.json(recommendations);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Erreur interne";
+    console.error("recommend-clause error:", message);
+    res.status(500).json({ success: false, message });
+  }
+}
+
+async function handleDetectLegalReferences(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const { clause } = req.body as { clause?: unknown };
+  if (!clause) {
+    res
+      .status(400)
+      .json({ success: false, message: "Le champ 'clause' est requis." });
+    return;
+  }
+  try {
+    const refs = await detectLegalReferences(clause as any);
+    res.json(refs);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Erreur interne";
+    console.error("detect-legal-references error:", message);
+    res.status(500).json({ success: false, message });
+  }
+}
+
+async function handleFetchLegalTexts(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const { refs, clause } = req.body as { refs?: unknown; clause?: unknown };
+  if (!refs) {
+    res
+      .status(400)
+      .json({ success: false, message: "Le champ 'refs' est requis." });
+    return;
+  }
+  try {
+    const texts = await fetchLegalTexts(refs as any, clause as any);
+    res.json(texts);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Erreur interne";
+    console.error("fetch-legal-texts error:", message);
+    res.status(500).json({ success: false, message });
+  }
+}
+
+async function handleSummarizeCase(req: Request, res: Response): Promise<void> {
+  const { item } = req.body as { item?: unknown };
+  if (!item) {
+    res
+      .status(400)
+      .json({ success: false, message: "Le champ 'item' est requis." });
+    return;
+  }
+  try {
+    const summary = await summarizeCaseInline(item as JurisprudenceCase);
+    res.json({ summary });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Erreur interne";
+    console.error("summarize-case error:", message);
+    res.status(500).json({ success: false, message });
+  }
+}
+
 async function handleAnalyzeContract(
   req: Request,
   res: Response,
@@ -425,6 +573,12 @@ app.put("/api/billing/add-credits", auth, handleBillingAddCredits);
 app.put("/api/billing/remove-credits", auth, handleBillingRemoveCredits);
 app.get("/api/billing/credits", auth, handleBillingCredits);
 app.post("/api/analyze-contract", auth, handleAnalyzeContract);
+app.post("/api/detect-contract", auth, handleDetectContract);
+app.post("/api/market-analysis", auth, handleMarketAnalysis);
+app.post("/api/recommend-clause", auth, handleRecommendClause);
+app.post("/api/detect-legal-references", auth, handleDetectLegalReferences);
+app.post("/api/fetch-legal-texts", auth, handleFetchLegalTexts);
+app.post("/api/summarize-case", auth, handleSummarizeCase);
 
 // Health pour tester le serveur
 app.get("/health", (req: Request, res: Response) => {
