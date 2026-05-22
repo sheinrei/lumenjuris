@@ -56,6 +56,10 @@ class JurisprudenceRequest(BaseModel):
     queries: List[str]
 
 
+class ClassifyVeilleRequest(BaseModel):
+    articles: List[Dict[str, str]]  # [{title, description}, ...]
+
+
 class AnalyzeClauseRequest(BaseModel):
     clauseText: str
     question: str
@@ -158,6 +162,58 @@ async def legifrance_search(req: SearchRequest):
         raise HTTPException(status_code=400, detail="Aucun terme de recherche fourni.")
     resultats = _legifrance_search(query, limit=limit)
     return {"success": True, "query": query, "resultats": resultats}
+
+
+_VEILLE_TAGS = [
+    "Rupture", "Temps de travail", "Rémunération", "Santé/Sécurité",
+    "Discipline", "Relations collectives", "Protection sociale", "Recrutement",
+]
+
+@app.post("/classify-veille")
+async def classify_veille(req: ClassifyVeilleRequest):
+    if not req.articles:
+        return []
+    if not _openai_client:
+        raise HTTPException(status_code=503, detail="Service IA non disponible")
+
+    tag_list = ", ".join(_VEILLE_TAGS)
+    lines = "\n".join(
+        f"{i+1}. \"{a.get('title','')}\" — {a.get('description','')[:150]}"
+        for i, a in enumerate(req.articles)
+    )
+    prompt = (
+        f"Tu es un expert RH et droit du travail français.\n"
+        f"Classe chaque actualité dans l'une de ces catégories : {tag_list}.\n"
+        f"Réponds \"null\" si l'actualité n'est pas directement liée au droit du travail ou aux RH, "
+        f"OU si elle ne s'applique pas concrètement à un employeur ou un service RH "
+        f"(ex : politique étrangère, défense, environnement, textes sans impact employeur).\n"
+        f"Réponds UNIQUEMENT avec une ligne par actualité, format exact :\n"
+        f"1. <catégorie ou null>\n2. <catégorie ou null>\n...\n\n"
+        f"Actualités :\n{lines}"
+    )
+
+    def _call():
+        return _openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0,
+            max_tokens=len(req.articles) * 15,
+        )
+
+    resp = await run_in_threadpool(_call)
+    output = (resp.choices[0].message.content or "").strip()
+
+    results = [None] * len(req.articles)
+    for line in output.splitlines():
+        m = __import__("re").match(r"^(\d+)\.\s*(.+)$", line.strip())
+        if not m:
+            continue
+        idx = int(m.group(1)) - 1
+        val = m.group(2).strip()
+        if 0 <= idx < len(req.articles) and val in _VEILLE_TAGS:
+            results[idx] = val
+
+    return results
 
 
 def _structure_decision_summary(decision: Dict[str, Any]) -> Dict[str, Any]:

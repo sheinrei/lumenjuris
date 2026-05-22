@@ -30,6 +30,7 @@ const HOST_PROXY: string = process.env.HOST_PROXY
 
 
 const app = express();
+app.set("etag", false);
 const port = process.env.PORT || 3020;
 app.use(express.json({ limit: "20mb" }));
 app.use(cookieParser());
