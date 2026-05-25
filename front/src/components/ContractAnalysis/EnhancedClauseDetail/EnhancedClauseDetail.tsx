@@ -75,15 +75,16 @@ interface Props {
   context?: AnalysisContext;
   onClose: () => void;
   recommendationIndex: number;
-  setRecommendationIndex: (number: number) => void
+  setRecommendationIndex: (number: number) => void;
+  isSensitive?: boolean;
 }
-export const EnhancedClauseDetail: React.FC<Props> = ({ clause, context, onClose, recommendationIndex, setRecommendationIndex }) => {
+export const EnhancedClauseDetail: React.FC<Props> = ({ clause, context, onClose, recommendationIndex, setRecommendationIndex, isSensitive = true }) => {
   if (!clause) return
 
 
   const [tab, setTab] = useState<Tab>('overview');
   const [expanded, setExpanded] = useState(false);
-  const [clauseAiModel, setClauseAiModel] = useState<OpenAIModelId>('gpt-4o');
+  const [clauseAiModel, setClauseAiModel] = useState<OpenAIModelId>(isSensitive ? 'gpt-5.4-nano' : 'gpt-4o');
   const [alternatives, setAlternatives] = useState<Recommendation[] | null>(null);
   const setContextClause = useChatStore(s => s.setContextClause);
 
@@ -154,7 +155,7 @@ export const EnhancedClauseDetail: React.FC<Props> = ({ clause, context, onClose
       {/* Mobile */}
       <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 md:hidden">
         <motion.section
-          className="relative w-full max-w-full rounded-t-lg bg-white shadow-xl mx-2 flex flex-col"
+          className="relative w-full max-w-full rounded-lg bg-white shadow-xl mx-2 mb-3 flex flex-col overflow-hidden"
           style={{ height: '85vh' }}
           initial={{ y: 40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

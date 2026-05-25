@@ -64,10 +64,6 @@ import type { MarketAnalysisResult } from "../utils/marketAnalysis";
 
 import { useUserStore } from "../store/userStore";
 import { fetchProxy } from "../utils/fetchProxy";
-// ---------------------------------------------------------------------
-// SUPPRIMER LA FONCTION DÉPLACÉE PAR ERREUR (elle existe déjà en utils)
-// ---------------------------------------------------------------------
-
 function getProcessingStatusLines(
   phase: string,
   analysisProgress?: AnalysisProgress | null,
@@ -211,6 +207,9 @@ export default function ContractAnalysis() {
   const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
   const currentHistoryIdRef = useRef<string | null>(null);
   const [historyItems, setHistoryItems] = useState<ContractHistoryItem[]>([]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 768,
+  );
 
   useEffect(() => {
     loadContractHistoryIndex().then(setHistoryItems).catch(() => {});
@@ -433,7 +432,7 @@ export default function ContractAnalysis() {
     }
 
     try {
-      const analysisResults = await analyzeContractWithAI(
+      const { clauses: analysisResults, isSensitive } = await analyzeContractWithAI(
         baseContract.content,
         analysisContext,
         {
@@ -455,6 +454,7 @@ export default function ContractAnalysis() {
         analysisResults,
         analysisType,
         analysisContext,
+        isSensitive,
       );
       const completedEntry: TemporaryHistoryEntry = {
         ...latestEntry,
@@ -818,12 +818,6 @@ export default function ContractAnalysis() {
     }
   };
 
-  const handleQuestionClick = (question: string) => {
-    // This function is now a placeholder, as the chat is in the modal.
-    // You could use it to open the modal and pre-fill the chat with a question.
-    console.log("Question clicked:", question);
-  };
-
   const handleNavClick = (event?: React.MouseEvent<HTMLElement>) => {
     if (!confirmLeavingUnfinishedAnalysis()) {
       event?.preventDefault();
@@ -995,20 +989,24 @@ export default function ContractAnalysis() {
     <div className="min-h-screen bg-gray-50">
       <MainHeader
         onNavClick={handleNavClick}
-        onReanalyze={handleNewAnalysis}
-        showReanalyze={!!contract}
       />
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
-          <DocumentHistorySidebar
-            items={visibleHistoryItems}
-            activeId={currentHistoryId}
-            onOpen={handleOpenHistoryItem}
-            onDelete={handleDeleteHistoryItem}
-          />
+      <DocumentHistorySidebar
+        items={visibleHistoryItems}
+        activeId={currentHistoryId}
+        onOpen={handleOpenHistoryItem}
+        onDelete={handleDeleteHistoryItem}
+        onCollapse={setSidebarCollapsed}
+        onNewAnalysis={handleNewAnalysis}
+        defaultCollapsed={typeof window !== "undefined" && window.innerWidth < 768}
+      />
 
-          <div className="min-w-0 flex-1 w-full">
+      <main
+        className={`px-4 py-8 transition-all duration-300 ease-in-out overflow-x-hidden ${
+          sidebarCollapsed ? "pl-12 md:pl-14" : "pl-12 md:pl-72"
+        }`}
+      >
+          <div className="min-w-0 w-full">
             {!contract && (
               <div className="max-w-5xl mx-auto space-y-8">
                 <div className="mx-auto max-w-2xl text-center">
@@ -1093,7 +1091,7 @@ export default function ContractAnalysis() {
               )}
 
             {contract?.processed && !displayedIsProcessing && (
-              <div className="max-w-7xl mx-auto">
+              <div className={sidebarCollapsed ? "w-full px-3" : "max-w-7xl mx-auto"}>
                 {/* Tableau de bord des risques supprimé (allègement UI) */}
 
             {/* Zone principale - Document avec sidebar intégrée */}
@@ -1124,7 +1122,10 @@ export default function ContractAnalysis() {
                       recommendationIndex={recommendationIndex}
                       setRecommendationIndex={handleIncrementIndexRecommendation}
                       activeClauseId={selectedClause}
+                      isFullscreen={sidebarCollapsed}
                       ref={documentViewerRef}
+                      onSuggestedClauses={handleMarketAnalysisClick}
+                      isLoadingSuggested={isMarketAnalysisLoading}
                     />
                   </div>
                 </div>
@@ -1132,19 +1133,13 @@ export default function ContractAnalysis() {
                 {/* Boutons d'action - Centrés */}
                 <div className="flex justify-center">
                   <ActionButtons
-                    onNewAnalysis={handleNewAnalysis}
                     onShareReport={handleShareReport}
-                    onMarketAnalysis={handleMarketAnalysisClick}
-                    isMarketAnalysisLoading={isMarketAnalysisLoading}
                     isProcessed={Boolean(contract?.processed)}
-                    analysisResult={marketAnalysis}
-                    onQuestionClick={handleQuestionClick}
                   />
                 </div>
               </div>
             )}
           </div>
-        </div>
       </main>
 
       {/* Détails de la clause sélectionnée */}
@@ -1155,16 +1150,17 @@ export default function ContractAnalysis() {
           onClose={handleCloseModal}
           recommendationIndex={recommendationIndex}
           setRecommendationIndex={handleIncrementIndexRecommendation}
+          isSensitive={contract?.isSensitive ?? true}
         />
       )}
 
-      {/* Analyse comparative de marché */}
-      {showMarketAnalysis && marketAnalysis && currentAnalysisContext && (
+      {/* Clauses suggérées */}
+      {showMarketAnalysis && marketAnalysis && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-xl font-bold text-gray-900">
-                📊 Analyse Comparative & Standards
+                Clauses Suggérées
               </h2>
               <button
                 onClick={() => setShowMarketAnalysis(false)}
@@ -1177,13 +1173,12 @@ export default function ContractAnalysis() {
               <Suspense
                 fallback={
                   <div className="p-6 text-center text-sm text-gray-500">
-                    Chargement de l'analyse comparative...
+                    Chargement des clauses suggérées...
                   </div>
                 }
               >
                 <MarketComparison
                   analysisResult={marketAnalysis}
-                  onQuestionClick={handleQuestionClick}
                   isLoading={isMarketAnalysisLoading}
                 />
               </Suspense>
