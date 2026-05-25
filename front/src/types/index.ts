@@ -68,6 +68,8 @@ export interface JurisprudenceCase {
   url: string;
   keyPrinciples?: string[];
   date?: string;
+  litige?: string;
+  resultat?: string;
 }
 
 export interface KeywordSearchLink {
@@ -107,6 +109,7 @@ export interface ContractAnalysis {
   jurisdiction: string;
   contractType: string;
   aiConfidenceScore: number;
+  isSensitive?: boolean;
   reviewHistory?: ReviewAction[];
   // Nouveaux champs pour l'analyse contextuelle
   reponses_questions_mandant?: Record<string, string>;
