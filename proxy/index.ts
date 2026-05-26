@@ -186,8 +186,8 @@ async function logOpenAiTokens(data: PythonJsonResponse): Promise<void> {
   }
 }
 
-function handleExtractPdfText(req: Request, res: Response): void {
-  relayStreamToPython(req, res, "/extract-pdf-text");
+function handleExtractDocumentText(req: Request, res: Response): void {
+  relayStreamToPython(req, res, "/extract-document-text");
 }
 
 function handleLegifranceSearch(req: Request, res: Response): void {
@@ -504,7 +504,10 @@ async function handleAnalyzeContract(
 }
 
 // Multipart (upload PDF) — stream direct, body non consommé par express.json
-app.post("/extract-pdf-text", handleExtractPdfText);
+app.post(
+  ["/extract-document-text", "/api/extract-document-text"],
+  handleExtractDocumentText,
+);
 
 // JSON routes — body déjà parsé par express.json
 app.post(

@@ -122,7 +122,7 @@ def extract_token_usage(response: Any, model: str) -> Dict[str, Any]:
 
 
 
-@app.post("/extract-pdf-text")
+@app.post("/extract-document-text")
 async def extract_pdf_text(file: UploadFile = File(...), scan: bool = Form(False)):
     """Traite un fichier PDF ou Word et retourne le texte et les clauses."""
     if file.filename == "" or not allowed_file(file.filename):
@@ -138,7 +138,8 @@ async def extract_pdf_text(file: UploadFile = File(...), scan: bool = Form(False
         texte_corrige = corriger_espaces(texte_brut)
         extraction_method = "word"
     else:
-        html_formatte = _extract_html_from_pdf_dict(content)
+        try :html_formatte = _extract_html_from_pdf_dict(content)
+        except ValueError as e: raise HTTPException(status_code=422, detail=str(e))
         print("EXTRACT PDF CONTENT IN HTML : ", html_formatte[:1000])
         texte_brut = _extract_text_from_pdf_content(content, scan)
         texte_corrige = corriger_espaces(texte_brut)
