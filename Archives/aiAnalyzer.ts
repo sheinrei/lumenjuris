@@ -8,7 +8,7 @@ import { AnalysisContext } from "../../types/contextualAnalysis";
 import { callOpenAi52 } from "../aiClient";
 
 import { saveAnalysisToCache, loadAnalysisFromCache } from "./cachedAnalysis";
-import { parseAIResponse } from "./parsingData";
+import { parseAIResponse } from "../../../../Archives/parsingData";
 import { buildClauseExtractionPromptForAI } from "./buildingPrompt";
 
 export interface AnalyzeContractResult {

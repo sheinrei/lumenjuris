@@ -765,6 +765,7 @@ export default function ContractAnalysis() {
     }
   };
 
+  
   const onStandardAnalysis = () => {
     const analysisHistoryId = currentHistoryIdRef.current;
     if (!analysisHistoryId || !contract) return;

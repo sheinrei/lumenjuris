@@ -8,6 +8,8 @@ import { prisma } from "../../prisma/singletonPrisma";
 import { authMiddleware } from "../middleware/authMiddleware";
 import { Google } from "../services/classGoogle";
 import { Enterprise } from "../services/classEnterprise";
+import { Subscription } from "../services/classSubscription";
+import { normalizeAccountParameters } from "../utils/normalizeAccountParameters";
 //import { TokenState } from "../../prisma/generated/enums"
 
 const routerUser: Router = express.Router();
@@ -47,7 +49,7 @@ const ALL_VEILLE_TAGS = [
   "Discipline", "Relations collectives", "Protection sociale", "Recrutement",
 ] as const;
 
-function normalizePreferenceUI(input: unknown) {
+/* function normalizePreferenceUI(input: unknown) {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     return { dyslexicMode: false, veilleActiveTags: [...ALL_VEILLE_TAGS] };
   }
@@ -63,7 +65,7 @@ function normalizePreferenceUI(input: unknown) {
     dyslexicMode: Boolean(candidate.dyslexicMode),
     veilleActiveTags,
   };
-}
+} */
 
 routerUser.post("/create", async (req: Request, res: Response) => {
   try {
@@ -155,6 +157,9 @@ routerUser.get(
       // Auth cookie
       createCookieAuth(idUser, updatedUser.role, res);
 
+      // Activation freemium plan
+      new Subscription().activateFreemium(idUser).catch(console.error);
+
       return res.redirect(`${process.env.HOST_FRONT}/dashboard?verified=true`);
     } catch (err) {
       console.error("Erreur lors de la validation utilisateur:", err);
@@ -218,6 +223,8 @@ routerUser.post("/auth/login", async (req: Request, res: Response) => {
     }
 
     createCookieAuth(logUser.data.idUser, "USER", res);
+
+
 
     if (logUser.data.twoFactorEnabled) {
       const codeResult = await new Token().createTwoFactorCode(
@@ -388,7 +395,9 @@ routerUser.get(
         success: true,
         message: "Les préférences utilisateur ont été récupérées avec succès.",
         data: {
-          preferenceUI: normalizePreferenceUI(userPreference?.preferenceUI),
+          accountParameters: normalizeAccountParameters(
+            userPreference?.accountParameters,
+          ),
         },
       });
     } catch (err) {
@@ -410,26 +419,21 @@ routerUser.put(
   async (req: Request, res: Response) => {
     try {
       const idUser = Number(req.idUser);
-      const preferenceUI = normalizePreferenceUI(req.body?.preferenceUI);
+      const accountParameters = normalizeAccountParameters(
+        req.body?.accountParameters,
+      );
 
       await prisma.userPreference.upsert({
         where: { userId: idUser },
-        update: {
-          preferenceUI,
-        },
-        create: {
-          userId: idUser,
-          preferenceUI,
-        },
+        update: { accountParameters },
+        create: { userId: idUser, accountParameters },
       });
 
       return res.status(200).json({
         success: true,
         message:
           "Les préférences utilisateur ont été mises à jour avec succès.",
-        data: {
-          preferenceUI,
-        },
+        data: { accountParameters },
       });
     } catch (err) {
       console.error(

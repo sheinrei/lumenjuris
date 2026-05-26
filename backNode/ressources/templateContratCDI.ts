@@ -97,8 +97,8 @@ agissant en qualité de ${signataireData.SIGNATAIRE_FUNCTION},
 ci-après dénommée « l’entreprise »,
 
 D’une part,
-
 ET
+
 
 ${salarieData.SALARIE_FIRSTNAME + " " + salarieData.SALARIE_LASTNAME},
 demeurant à ${salarieData.SALARIE_ADRESS},
@@ -137,10 +137,8 @@ En fonction des nécessités de service, le salarié pourra être amené à effe
 
 ARTICLE 3 — DATE D’EMBAUCHE\n\n
 
-
 Le présent contrat prend effet à compter du :
 ${embaucheDateStart}
-
 Le contrat est conclu pour une durée indéterminée.
 
 
@@ -166,7 +164,6 @@ Il pourra être mis fin à la période d’essai conformément aux dispositions 
 
 
 ARTICLE 5 — DURÉE DU TRAVAIL\n\n
-
 
 Le salarié exercera ses fonctions dans le cadre d’un contrat à temps complet.
 
@@ -233,7 +230,6 @@ ARTICLE 9 — CONVENTION COLLECTIVE\n\n
 
 
 Le présent contrat est soumis à la convention collective suivante :
-
 ${conventionCollectiveName}
 
 
@@ -290,7 +286,6 @@ auprès de la Commission Nationale de l’Informatique et des Libertés (CNIL).`
 --------------------------------------------------
 SIGNATURES
 --------------------------------------------------
-
 Fait à ${signatureLocalisation},
 le ${today},
 

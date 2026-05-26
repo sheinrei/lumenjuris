@@ -93,7 +93,7 @@ export function Sandbox() {
   // map "feedIndex-itemIndex" → tag | null
   const [classifyTags, setClassifyTags] = useState<Record<string, string | null>>({});
 
-  const { isConnected: userConnected, userData } = useUserStore();
+  const { userData } = useUserStore();
 
   const applyAiFilter = async () => {
     const allItems: { feedIdx: number; itemIdx: number; title: string; description: string }[] = [];
@@ -202,10 +202,8 @@ export function Sandbox() {
     }
   };
 
-  return !userConnected ? (
-    <Navigate to="/inscription" />
-  ) : userData?.profile.role !== "ADMIN" ? (
-    <Navigate to="/dashboard" />
+  return userData?.profile.role !== "ADMIN" ? (
+    <Navigate to="/dashboard" replace />
   ) : (
     <>
       <MainHeader />

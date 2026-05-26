@@ -1,4 +1,4 @@
-import { ClauseRisk } from "../../types";
+import { ClauseRisk } from "../front/src/types";
 
 export interface ParsedAIResponse {
     clauses: ClauseRisk[];
