@@ -63,6 +63,7 @@ model User {
   documentCustom DocumentCustom[]
   contractHistory ContractHistory[]
   chatHistory ChatHistory?
+  userUpload UserUpload?
 }
 
 
@@ -266,6 +267,16 @@ model Llm {
   llmUsage LlmUsage[]
 }
 
+
+// --- ASSETS UTILISATEUR (filigranes) ---
+
+model UserUpload {
+  idUserUpload    Int    @id @default(autoincrement())
+  uploadedImages  Json
+
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [idUser], onDelete: Cascade)
+}
 
 model LlmUsage {
   idLlmUsage    Int      @id @default(autoincrement())

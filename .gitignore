@@ -26,6 +26,7 @@ backNode/prisma/migrations
 backNode/prisma/generated
 backNode/dist/
 gpt5_tokens_log.json
+backNode/userassets/
 
 #proxy
 proxy/.env
