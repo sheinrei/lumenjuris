@@ -593,11 +593,11 @@ app.post("/api/billing/customer", handleBillingCustomer);
 app.post("/api/billing/payment-intent", handleBillingPaymentIntent);
 app.get("/api/veille", handleNodeVeille);
 app.get("/api/veille/debug", handleNodeVeilleDebug);
-app.get("/api/user-uploads", handleUserUploadsGet);
-app.post("/api/user-uploads/upload", handleUserUploadsPost);
-app.put("/api/user-uploads/:filename", handleUserUploadsRename);
-app.delete("/api/user-uploads/:filename", handleUserUploadsDelete);
-app.get("/api/user-uploads/assets/:filename", handleUserUploadsAsset);
+app.get("/api/user-uploads", auth, handleUserUploadsGet);
+app.post("/api/user-uploads/upload", auth, handleUserUploadsPost);
+app.put("/api/user-uploads/:filename", auth, handleUserUploadsRename);
+app.delete("/api/user-uploads/:filename", auth, handleUserUploadsDelete);
+app.get("/api/user-uploads/assets/:filename", auth, handleUserUploadsAsset);
 
 // Routes protégées (JWT vérifié par le proxy)
 app.post("/api/user/auth/logout", auth, handleNodeLogout);
