@@ -250,6 +250,12 @@ function handleLlmCurrentUsage(req: Request, res: Response): void {
   relayToNode(req, res, "/llm/usage");
 }
 
+function handleLlmUsageHistory(req: Request, res: Response): void {
+  // Transmet le query param ?days= tel quel au backNode
+  const days = req.query.days ? `?days=${req.query.days}` : "";
+  relayToNode(req, res, `/llm/usage/history${days}`);
+}
+
 function handleLlmUserUsage(req: Request, res: Response): void {
   relayToNode(req, res, "/llm/usage/me");
 }
@@ -581,6 +587,7 @@ app.get("/api/veille/debug", handleNodeVeilleDebug);
 app.post("/api/user/auth/logout", auth, handleNodeLogout);
 app.get("/api/insee/:siren", auth, handleInseeRequest);
 app.get("/api/llm/usage", auth, handleLlmCurrentUsage);
+app.get("/api/llm/usage/history", auth, handleLlmUsageHistory);
 app.get("/api/llm/usage/me", auth, handleLlmUserUsage);
 app.get("/api/llm/usage/users", auth, handleLlmUsersUsage);
 app.get("/api/user/get", auth, handleNodeUserGet);

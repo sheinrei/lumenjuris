@@ -364,7 +364,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
                           {item.title}
                         </p>
                         <Link to={item.path} state={item.linkState}>
-                          <button className="text-left text-xs font-semibold text-white hover:text-lumenjuris transition-colors">
+                          <button className="text-left text-xs font-semibold text-white hover:text-gray-400 transition-colors">
                             {item.buttonLabel}
                           </button>
                         </Link>

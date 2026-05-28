@@ -1,5 +1,18 @@
 import { prisma } from "../../prisma/singletonPrisma";
 
+// Structure d'un jour dans l'historique, renvoyée par getUsageHistory
+type DayEntry = {
+  date: string; // "YYYY-MM-DD"
+  totalCostUsd: number;
+  totalTokens: number;
+  tokenInput: number;
+  tokenOutput: number;
+  byModel: Record<
+    string,
+    { tokenInput: number; tokenOutput: number; totalCostUsd: number }
+  >;
+};
+
 const LLM_MODELS = [
   {
     name: "gpt-4o",
@@ -59,7 +72,11 @@ export class Llm {
       await this.setLlm();
 
       const today = new Date();
-      const startAt = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const startAt = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+      );
       const nextDay = new Date(startAt);
       nextDay.setDate(nextDay.getDate() + 1);
 
@@ -110,7 +127,12 @@ export class Llm {
    * @param {number} output
    * @returns
    */
-  async incrementUsage(model: string, input: number, output: number, userId?: number) {
+  async incrementUsage(
+    model: string,
+    input: number,
+    output: number,
+    userId?: number,
+  ) {
     try {
       await this.setLlm();
 
@@ -133,7 +155,11 @@ export class Llm {
       const totalCostUsd = totalCost / 100;
 
       const today = new Date();
-      const startAt = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const startAt = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+      );
 
       const expiresAt = new Date(startAt);
       expiresAt.setDate(expiresAt.getDate() + 1);
@@ -147,14 +173,29 @@ export class Llm {
       await prisma.llmUsage.upsert({
         where: { llmId_startAt: { llmId: idLlm, startAt } },
         update: incrementPayload,
-        create: { llmId: idLlm, startAt, expiresAt, tokenInput: input, tokenOutput: output, totalCostUsd },
+        create: {
+          llmId: idLlm,
+          startAt,
+          expiresAt,
+          tokenInput: input,
+          tokenOutput: output,
+          totalCostUsd,
+        },
       });
 
       if (userId) {
         await prisma.userLlmUsage.upsert({
           where: { llmId_startAt_userId: { llmId: idLlm, startAt, userId } },
           update: incrementPayload,
-          create: { llmId: idLlm, userId, startAt, expiresAt, tokenInput: input, tokenOutput: output, totalCostUsd },
+          create: {
+            llmId: idLlm,
+            userId,
+            startAt,
+            expiresAt,
+            tokenInput: input,
+            tokenOutput: output,
+            totalCostUsd,
+          },
         });
       }
 
@@ -177,7 +218,11 @@ export class Llm {
       await this.setLlm();
 
       const today = new Date();
-      const startAt = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const startAt = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+      );
 
       const records = await prisma.userLlmUsage.findMany({
         where: { userId, startAt },
@@ -199,7 +244,8 @@ export class Llm {
       console.error(err);
       return {
         success: false,
-        message: "Une erreur est survenue lors de la récupération de l'utilisation llm utilisateur",
+        message:
+          "Une erreur est survenue lors de la récupération de l'utilisation llm utilisateur",
         usage: [],
       };
     }
@@ -208,13 +254,19 @@ export class Llm {
   async getAllUsersUsage() {
     try {
       const today = new Date();
-      const startAt = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const startAt = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+      );
 
       const records = await prisma.userLlmUsage.findMany({
         where: { startAt },
         include: {
           llm: { select: { name: true } },
-          user: { select: { idUser: true, email: true, nom: true, prenom: true } },
+          user: {
+            select: { idUser: true, email: true, nom: true, prenom: true },
+          },
         },
         orderBy: { totalCostUsd: "desc" },
       });
@@ -238,8 +290,88 @@ export class Llm {
       console.error(err);
       return {
         success: false,
-        message: "Une erreur est survenue lors de la récupération de l'utilisation llm par utilisateur",
+        message:
+          "Une erreur est survenue lors de la récupération de l'utilisation llm par utilisateur",
         usage: [],
+      };
+    }
+  }
+
+  /**
+   * Retourne l'historique d'utilisation LLM agrégé par jour sur les N derniers jours.
+   * Les jours sans données sont renvoyés avec des zéros pour éviter les trous dans le graphe.
+   * @param days Nombre de jours à couvrir (1 = aujourd'hui uniquement, 30 = le mois courant)
+   */
+  async getUsageHistory(days: number) {
+    try {
+      await this.setLlm();
+
+      const today = new Date();
+      // Début de la journée courante (minuit local)
+      const todayStart = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+      );
+
+      // Point de départ : on remonte (days - 1) jours en arrière pour
+      // qu'aujourd'hui soit toujours inclus dans la fenêtre
+      const from = new Date(todayStart);
+      from.setDate(from.getDate() - (days - 1));
+
+      const records = await prisma.llmUsage.findMany({
+        where: { startAt: { gte: from } },
+        include: { llm: { select: { name: true } } },
+        orderBy: { startAt: "asc" },
+      });
+
+      // Construction d'une timeline complète avec des zéros pour les jours sans données.
+      // Cela garantit que le graphe côté front n'a aucun trou sur l'axe X.
+      const toKey = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+      const timeline: Record<string, DayEntry> = {};
+      for (let i = 0; i < days; i++) {
+        const d = new Date(from);
+        d.setDate(d.getDate() + i);
+        const key = toKey(d);
+        timeline[key] = {
+          date: key,
+          totalCostUsd: 0,
+          totalTokens: 0,
+          tokenInput: 0,
+          tokenOutput: 0,
+          byModel: {},
+        };
+      }
+
+      for (const r of records) {
+        // On recalcule la clé via les composantes locales de la date pour éviter
+        // les décalages de fuseau horaire liés à l'ISO string (ex: UTC vs Europe/Paris)
+        const key = toKey(r.startAt);
+        if (!timeline[key]) continue;
+
+        const entry = timeline[key];
+        const cost = Number(r.totalCostUsd);
+        entry.totalCostUsd += cost;
+        entry.totalTokens += r.tokenInput + r.tokenOutput;
+        entry.tokenInput += r.tokenInput;
+        entry.tokenOutput += r.tokenOutput;
+        entry.byModel[r.llm.name] = {
+          tokenInput: r.tokenInput,
+          tokenOutput: r.tokenOutput,
+          totalCostUsd: cost,
+        };
+      }
+
+      return { success: true, history: Object.values(timeline) };
+    } catch (err) {
+      console.error(err);
+      return {
+        success: false,
+        message:
+          "Une erreur est survenue lors de la récupération de l'historique d'utilisation LLM",
+        history: [],
       };
     }
   }
