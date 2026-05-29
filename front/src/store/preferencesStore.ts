@@ -34,6 +34,33 @@ async function updatePreferenceUI(preferenceUI: { dyslexicMode: boolean }) {
   return { ok: res.ok, data };
 }
 
+/**
+ * Store Zustand des préférences utilisateur enregistrées en BDD.
+ * Les préférences sont réparties sur deux endpoints distincts :
+ *
+ * - **`/api/user/preferences`** (`accountParameters`) — paramètres de compte :
+ *   notifications email.
+ * - **`/api/user/preferences/ui`** (`preferenceUI`) — préférences d'interface :
+ *   mode dyslexique.
+ *
+ * **Chargement** : `loadPreferences` lance les deux requêtes en parallèle
+ * (`Promise.all`) et applique chaque résultat indépendamment — une erreur sur
+ * l'un n'empêche pas l'autre de s'appliquer.
+ *
+ * **Mise à jour optimiste** : `setDyslexicMode` et `setEmailNotifications`
+ * appliquent la valeur localement avant la réponse serveur, puis la restaurent
+ * à la valeur précédente si la requête échoue. La valeur finale est ensuite
+ * synchronisée depuis la réponse serveur pour garantir la cohérence.
+ *
+ * **`reset`** : remet les valeurs aux défauts applicatifs (`false` / `true`).
+ * À appeler à la déconnexion pour ne pas exposer les préférences d'un autre compte.
+ *
+ * @example
+ * ```ts
+ * const { isDyslexicMode, setDyslexicMode } = usePreferencesStore();
+ * await setDyslexicMode(true); // appliqué localement, persisté, rollback auto si erreur
+ * ```
+ */
 export const usePreferencesStore = create<PreferencesState>((set, get) => ({
   isDyslexicMode: false,
   isEmailNotifications: true,

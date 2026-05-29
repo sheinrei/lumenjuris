@@ -17,6 +17,35 @@ interface InputFileProps {
   multiple?: boolean;
 }
 
+/**
+ * Zone de dépôt de fichier, construite sur `react-dropzone`, avec affichage d'une zone cliquable ou glisser-déposer.
+ *
+ * @example
+ * ```tsx
+ * <InputFile
+ *   onDrop={(files) => handleFile(files[0])}
+ *   accepted={{ "application/pdf": [".pdf"] }}
+ *   fieldTitle="Importez votre contrat"
+ *   supportedFileType="PDF"
+ * />
+ * ```
+ *
+ * @param onDrop            Callback appelé par `react-dropzone` avec la liste des fichiers
+ *                          déposés ou sélectionnés. La validation MIME est déléguée à `accepted`.
+ * @param fieldTitle        Titre affiché dans la zone (défaut : "Importez votre fichier").
+ * @param fieldDescription  Texte d'aide sous le titre (défaut : "Cliquez ici ou glissez-déposez votre fichier").
+ * @param supportedFileType Libellé des formats supportés affiché dans le badge (défaut : "tous formats").
+ * @param fieldClassName    Classes Tailwind supplémentaires pour le conteneur principal.
+ * @param iconClassName     Classes Tailwind supplémentaires pour le cercle d'icône.
+ * @param fieldTitleClassName        Classes Tailwind supplémentaires pour le titre.
+ * @param fieldDescriptionClassName  Classes Tailwind supplémentaires pour la description.
+ * @param fileTypeClassName Classes Tailwind supplémentaires pour le badge de format.
+ * @param disabled          Désactive l'interaction et applique un style `opacity-50` (défaut : `false`).
+ * @param accepted          Dictionnaire MIME → extensions passé à `react-dropzone`.
+ *                          Format : `{ "application/pdf": [".pdf"], "application/msword": [".doc"] }`.
+ *                          Si l'objet est vide, aucun filtre MIME n'est appliqué.
+ * @param multiple          Autorise la sélection de plusieurs fichiers simultanément (défaut : `false`).
+ */
 const InputFile = ({
   onDrop,
   fieldTitle = "Importez votre fichier",

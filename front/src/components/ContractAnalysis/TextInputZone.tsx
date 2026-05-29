@@ -10,6 +10,36 @@ interface TextInputZoneProps {
   analyseCredit?: number | null;
 }
 
+/**
+ * Zone de saisie d'un contrat, proposant deux modes d'entrée via des onglets :
+ * - **Fichier** : import par glisser-déposer ou sélection (PDF, DOC, DOCX), géré par `InputFile`.
+ * - **Texte** : saisie manuelle avec validation du nombre de caractères (≥ 100).
+ *
+ * Le composant gère lui-même l'onglet actif et la valeur du textarea.
+ * Il est rendu inaccessible (disabled) lorsque les crédits d'analyse sont insuffisants
+ * (< 100 crédits), et affiche alors une alerte détaillée avec le solde restant.
+ *
+ * @example
+ * ```tsx
+ * <TextInputZone
+ *   onTextSubmit={(text, fileName) => startAnalysis(text, fileName)}
+ *   onFileUpload={(file) => uploadAndAnalyze(file)}
+ *   isProcessing={isLoading}
+ *   analyseCredit={user.credits}
+ * />
+ * ```
+ *
+ * @param onTextSubmit    Callback déclenché à la soumission du texte saisi manuellement.
+ *                        Reçoit le texte nettoyé (`trim()`) et un nom de fichier généré
+ *                        automatiquement au format `Contrat_JJ-MM-AAAA`.
+ * @param onFileUpload    Callback déclenché après validation MIME du fichier déposé.
+ *                        Reçoit l'objet `File` brut ; la logique d'upload est à la charge du parent.
+ * @param isProcessing    Lorsque `true`, désactive le bouton de soumission et affiche un spinner.
+ *                        Doit rester `true` pendant toute la durée de l'analyse côté serveur.
+ * @param analyseCredit   Solde de crédits d'analyse de l'utilisateur. Si la valeur est définie
+ *                        et inférieure à 100, toutes les interactions sont bloquées et une alerte
+ *                        rouge est affichée. `null` ou `undefined` = pas de restriction.
+ */
 export const TextInputZone: React.FC<TextInputZoneProps> = ({
   onTextSubmit,
   onFileUpload,

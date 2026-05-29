@@ -16,6 +16,14 @@ type CreditsPanelProps = {
   onClose: () => void;
 };
 
+/**
+ * Panneau d'achat ponctuel de crédits supplémentaires.
+ *
+ * @param onSuccess Callback appelé après un paiement réussi. Le parent doit
+ *                  l'utiliser pour rafraîchir le solde de crédits affiché.
+ * @param onClose   Callback appelé pour fermer le panneau sans action
+ *                  (bouton "Retour" ou bannière d'erreur).
+ */
 export function CreditsPanel({ onSuccess, onClose }: CreditsPanelProps) {
   const [view, setView] = useState<View>("select");
   const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(
@@ -89,7 +97,8 @@ export function CreditsPanel({ onSuccess, onClose }: CreditsPanelProps) {
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-gray-800">Crédits</p>
             <p className="text-xs text-gray-400">
-              +{BLOCK_SIZE} crédits / ajout — {formatPrice(PRICE_PER_BLOCK)} / ajout
+              +{BLOCK_SIZE} crédits / ajout — {formatPrice(PRICE_PER_BLOCK)} /
+              ajout
             </p>
           </div>
 

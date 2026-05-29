@@ -23,6 +23,23 @@ type BillingStripePanelProps = {
   creditsPayload?: CreditsPayload;
 };
 
+/**
+ * Stripe context avec wrapping de `BillingForm`.
+ *
+ * Ce composant a deux responsabilités :
+ * 1. Initialiser le SDK Stripe via `loadStripe`
+ * 2. Afficher un message d'avertissement si la variable d'environnement
+ *    `VITE_STRIPE_CLIENT` est absente, sans bloquer l'exécution de l'application.
+ *
+ * @param planName        Nom du plan ou libellé de l'achat, transmis à `BillingForm`.
+ * @param price           Prix en centimes, transmis à `BillingForm` et utilisé comme `key` du contexte Stripe.
+ * @param interval        Périodicité de l'abonnement. Optionnel en mode `"credits"`.
+ * @param onBack          Callback déclenché par le bouton "Retour" de `BillingForm`.
+ * @param onSuccess       Callback appelé après paiement réussi.
+ * @param onError         Callback optionnel appelé si le paiement échoue.
+ * @param mode            `"plan"` ou `"credits"`. Transmis à `BillingForm`.
+ * @param creditsPayload  Payload de crédits à ajouter. Utilisé uniquement en mode `"credits"`.
+ */
 export function BillingStripePanel({
   planName,
   price,
