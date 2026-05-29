@@ -78,6 +78,25 @@ type SelectedPlan = {
   interval: BillingInterval;
 };
 
+/**
+ * Panneau de sélection et de souscription aux offres LumenJuris.
+ * Gère trois états d'affichage successifs :
+ *
+ * 1. **Grille des plans** — affiche les trois offres (Starter, Pro, Enterprise)
+ *    avec un toggle mensuel / annuel (-20 %). Le plan "Pro" est mis en avant
+ *    (`highlight`). "Enterprise" déclenche un `mailto:` au lieu d'un paiement.
+ *    Une FAQ statique est affichée en bas de page.
+ *
+ * 2. **Paiement** (`selectedPlan !== null`) — remplace la grille par
+ *    `BillingStripePanel` en mode `"plan"`. Le bouton "Retour" remet
+ *    `selectedPlan` à `null` et revient à la grille.
+ *
+ * 3. **Confirmation** (`paymentSuccess`) — remplace tout par un écran de succès
+ *    avec un bouton de retour vers `/dashboard`.
+ *
+ * **Prix** : stockés en euros dans `PLANS` (`monthly` / `yearly`),
+ * convertis en centimes (`× 100`) avant d'être passés à `BillingStripePanel` (le montant doit-être transmis en centimes à Stripe).
+ */
 export function PlansPanel() {
   const [yearly, setYearly] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<SelectedPlan | null>(null);

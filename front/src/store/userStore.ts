@@ -2,6 +2,13 @@ import { create } from "zustand";
 import { UserData } from "../types/userData";
 import { fetchProxy } from "../utils/fetchProxy";
 
+/**
+ * Cycle de vie de l'authentification :
+ * - `"idle"`            — état initial, `fetchUser` n'a pas encore été appelé.
+ * - `"loading"`         — vérification du cookie JWT en cours.
+ * - `"authenticated"`   — utilisateur connecté et vérifié.
+ * - `"unauthenticated"` — pas de session valide (cookie absent, expiré ou compte non vérifié).
+ */
 export type AuthStatus =
   | "idle"
   | "loading"
@@ -19,6 +26,39 @@ interface UserState {
   reset: () => void;
 }
 
+/**
+ * Store Zustand de la session utilisateur.
+ * Fournit l'identité et le statut d'authentification dans toute l'application.
+ *
+ * ---
+ *
+ * **`fetchUser`** — appelle `GET /api/user/get` et met à jour le store selon
+ * la réponse :
+ * - Succès + `isVerified` → `authStatus: "authenticated"`, `userData` renseigné,
+ *   `userAvatarUrl` extrait du provider OAuth si disponible.
+ * - Succès mais non vérifié → `authStatus: "unauthenticated"` (le compte existe
+ *   mais l'email n'a pas été confirmé — traité comme non connecté).
+ * - Erreur réseau / serveur → `authStatus: "unauthenticated"`, `userInfoError` renseigné.
+ *
+ * **`logoutUser`** — appelle `POST /api/user/auth/logout` pour invalider le cookie
+ * JWT côté serveur, puis remet le store à zéro. Retourne `true` si la déconnexion
+ * a réussi, `false` sinon (l'appelant peut décider de ne pas naviguer).
+ *
+ * **`reset`** — remet le store à l'état "non connecté" sans appel réseau.
+ * Utile pour nettoyer l'état après expiration de session détectée localement.
+ *
+ * @example
+ * ```ts
+ * const { authStatus, fetchUser, logoutUser } = useUserStore();
+ *
+ * // Vérification de session au démarrage
+ * useEffect(() => { if (authStatus === "idle") void fetchUser(); }, [authStatus]);
+ *
+ * // Déconnexion avec redirection conditionnelle
+ * const success = await logoutUser();
+ * if (success) navigate("/inscription");
+ * ```
+ */
 export const useUserStore = create<UserState>((set) => ({
   userData: null,
   isConnected: false,
@@ -37,10 +77,7 @@ export const useUserStore = create<UserState>((set) => ({
 
       const dataResponse = await response.json();
       console.log("Resultat du get data user", dataResponse);
-      if (
-        dataResponse.success &&
-        dataResponse.data?.profile?.isVerified
-      ) {
+      if (dataResponse.success && dataResponse.data?.profile?.isVerified) {
         const provider = dataResponse.data.provider as { avatarUrl?: string };
         set({
           isConnected: true,

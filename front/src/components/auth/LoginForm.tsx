@@ -11,7 +11,7 @@ import { TwoFactorCodeModal } from "../ui/TwoFactorCodeModal";
 import { useUserStore } from "../../store/userStore";
 
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation, Navigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import { fetchProxy } from "../../utils/fetchProxy";
 
@@ -29,6 +29,33 @@ interface LoginFormProps {
 const PROXY_URL: string =
   import.meta.env.VITE_URL_PROXY || "http://localhost:3000";
 
+/**
+ * Formulaire de connexion gérant trois flux d'authentification distincts :
+ *
+ * 1. **Email / mot de passe** — appelle `POST /api/user/auth/login`. En cas de
+ *    succès, vérifie deux conditions avant de naviguer :
+ *    - Le compte doit être vérifié (`isVerified`). Sinon, une alerte invite
+ *      l'utilisateur à cliquer sur le lien reçu par email.
+ *    - Si le 2FA est activé (`twoFactorRequired`), ouvre `TwoFactorCodeModal`
+ *      plutôt que de naviguer immédiatement.
+ *
+ * 2. **Google OAuth** — redirige `window.location` vers `PROXY_URL/api/google`.
+ *    Le proxy gère le callback et pose le cookie JWT, puis redirige vers `/analyzer`.
+ *
+ * 3. **Mot de passe oublié** — bascule le rendu vers un formulaire minimaliste
+ *    (contrôlé par `forgotPassword`) qui appelle `POST /api/auth/forgotpassword`.
+ *    L'envoi est best-effort : aucune erreur serveur n'est exposée à l'utilisateur
+ *    pour ne pas révéler l'existence d'un compte.
+ *
+ * @param email            Valeur contrôlée du champ email.
+ * @param setEmail         Setter du champ email.
+ * @param password         Valeur contrôlée du champ mot de passe.
+ * @param setPassword      Setter du champ mot de passe.
+ * @param forgotPassword   `true` lorsque le formulaire est en mode "mot de passe oublié".
+ * @param setForgotPassword Bascule entre le formulaire de connexion et celui de réinitialisation.
+ * @param emailSent        `true` après l'envoi de l'email de réinitialisation, affiche une alerte de succès.
+ * @param setEmailSent     Setter de l'état `emailSent`.
+ */
 const LoginForm = ({
   email,
   setEmail,

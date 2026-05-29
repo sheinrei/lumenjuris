@@ -44,6 +44,11 @@ type BillingFormProps = {
   creditsPayload?: CreditsPayload;
 };
 
+/**
+ * Crée ou récupère le client Stripe associé à l'utilisateur connecté.
+ * Appelle `POST /api/billing/customer` et retourne le `stripeCustomerId`,
+ * ou `null` en cas d'échec (profil de paiement introuvable / erreur serveur).
+ */
 async function ensureStripeCustomer(): Promise<string | null> {
   const res = await fetch(`${PROXY_URL}/api/billing/customer`, {
     method: "POST",
@@ -55,6 +60,13 @@ async function ensureStripeCustomer(): Promise<string | null> {
   return data.stripeCustomerId as string;
 }
 
+/**
+ * Crée un PaymentIntent Stripe côté serveur pour le montant donné.
+ * Retourne le `clientSecret` nécessaire à `stripe.confirmCardPayment`,
+ * ou `null` si l'initialisation échoue.
+ *
+ * @param amount Montant en centimes (ex : 2900 pour 29,00 €).
+ */
 async function createPaymentIntent(amount: number): Promise<string | null> {
   const res = await fetch(`${PROXY_URL}/api/billing/payment-intent`, {
     method: "POST",
@@ -67,6 +79,11 @@ async function createPaymentIntent(amount: number): Promise<string | null> {
   return data.clientSecret as string;
 }
 
+/**
+ * Enregistre l'abonnement en BDD après confirmation du paiement Stripe.
+ * L'appel est best-effort : une erreur est loguée mais ne bloque pas le flux
+ * (le paiement a déjà été confirmé côté Stripe).
+ */
 async function saveSubscription(
   planName: string,
   interval: string,
@@ -83,6 +100,10 @@ async function saveSubscription(
   );
 }
 
+/**
+ * Crédite le compte de l'utilisateur après un paiement réussi.
+ * Best-effort : l'erreur est loguée sans interrompre le flux.
+ */
 async function addCreditsToAccount(payload: CreditsPayload): Promise<void> {
   await fetch(`${PROXY_URL}/api/billing/add-credits`, {
     method: "PUT",
@@ -92,6 +113,28 @@ async function addCreditsToAccount(payload: CreditsPayload): Promise<void> {
   }).catch((err) => console.error("Erreur lors de l'ajout des crédits:", err));
 }
 
+/**
+ * Formulaire de paiement par carte bancaire, alimenté par les éléments Stripe
+ * (`CardNumberElement`, `CardExpiryElement`, `CardCvcElement`).
+ * Doit être rendu à l'intérieur d'un `<Elements>` Stripe (voir `BillingStripePanel`).
+ *
+ * **Pipeline de paiement en 4 étapes** :
+ * 1. `ensureStripeCustomer` — crée ou récupère le profil Stripe de l'utilisateur.
+ * 2. `createPaymentIntent` — génère un `clientSecret` côté serveur pour le montant calculé.
+ * 3. `stripe.confirmCardPayment` — soumet la carte ; en cas d'erreur Stripe, le flux s'arrête ici.
+ * 4. Selon `mode` :
+ *    - `"plan"` → `saveSubscription` enregistre l'abonnement en BDD.
+ *    - `"credits"` → `addCreditsToAccount` crédite le compte utilisateur.
+ *
+ * @param planName        Nom affiché dans le récapitulatif de commande.
+ * @param price           Prix de base en centimes.
+ * @param interval        Périodicité de l'abonnement (`"month"` | `"year"`). Non utilisé en mode `"credits"`.
+ * @param onBack          Callback déclenché par le bouton "Retour", pour revenir à la sélection.
+ * @param onSuccess       Callback appelé après paiement et enregistrement réussis.
+ * @param onError         Callback optionnel appelé si `stripe.confirmCardPayment` échoue.
+ * @param mode            `"plan"` (abonnement) ou `"credits"` (achat ponctuel). Défaut : `"plan"`.
+ * @param creditsPayload  Payload envoyé à `addCreditsToAccount` en mode `"credits"`. Ignoré en mode `"plan"`.
+ */
 export function BillingForm({
   planName,
   price,

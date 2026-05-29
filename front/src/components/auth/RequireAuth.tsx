@@ -6,6 +6,32 @@ interface RequireAuthProps {
   children: ReactNode;
 }
 
+/**
+ * Fonction de sécurisation des routes protègeant contre les accès non authentifiés.
+ * À placer en tant que wrapper autour des `<Route>` ou des pages à protéger.
+ *
+ * **Comportement selon `authStatus`** :
+ * - `"idle"` / `"loading"` → affiche un écran de chargement plein écran pour
+ *   éviter le flash de la page de connexion pendant la vérification du cookie JWT.
+ * - `"unauthenticated"` → redirige vers `/inscription` via `<Navigate replace>`.
+ *   Le chemin courant est sauvegardé dans `location.state.from` pour permettre
+ *   un retour automatique après connexion.
+ * - `"authenticated"` → rend `children` normalement.
+ *
+ * @example
+ * ```tsx
+ * <Route
+ *   path="/dashboard"
+ *   element={
+ *     <RequireAuth>
+ *       <Dashboard />
+ *     </RequireAuth>
+ *   }
+ * />
+ * ```
+ *
+ * @param children Contenu à afficher si l'utilisateur est authentifié.
+ */
 export function RequireAuth({ children }: RequireAuthProps) {
   const authStatus = useUserStore((state) => state.authStatus);
   const location = useLocation();

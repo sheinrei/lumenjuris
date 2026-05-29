@@ -62,7 +62,8 @@ model User {
   preference      UserPreference?
   documentCustom  DocumentCustom[]
   contractHistory ContractHistory[]
-  chatHistory ChatHistory?
+  chatHistory     ChatHistory?
+  userLlmUsage    UserLlmUsage[]
   userUpload UserUpload?
 }
 
@@ -256,7 +257,8 @@ model Llm {
   tokenPriceInput  Int
   tokenPriceOutput Int
 
-  llmUsage LlmUsage[]
+  llmUsage     LlmUsage[]
+  userLlmUsage UserLlmUsage[]
 }
 
 
@@ -283,4 +285,23 @@ model LlmUsage {
   llm   Llm @relation(fields: [llmId], references: [idLlm])
 
   @@unique([llmId, startAt])
+}
+
+model UserLlmUsage {
+  idUserLlmUsage Int      @id @default(autoincrement())
+  startAt        DateTime
+  expiresAt      DateTime
+  totalCostUsd   Decimal  @db.Decimal(18, 6)
+  tokenInput     Int
+  tokenOutput    Int
+
+  //relation
+  userId Int
+  user   User @relation(fields: [userId], references: [idUser], onDelete: Cascade)
+
+  llmId Int
+  llm   Llm @relation(fields: [llmId], references: [idLlm])
+
+  @@unique([llmId, startAt, userId])
+  @@index([userId])
 }

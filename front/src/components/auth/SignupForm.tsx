@@ -36,6 +36,33 @@ interface SignupFormProps {
 const PROXY_URL: string =
   import.meta.env.VITE_URL_PROXY || "http://localhost:3000";
 
+/**
+ * Formulaire d'inscription gérant deux flux de création de compte :
+ *
+ * 1. **Email / mot de passe** — pipeline en deux étapes :
+ *    - (Optionnel) Lookup INSEE via `GET /api/insee/:siren` pour pré-remplir
+ *      les données entreprise. L'appel est best-effort : un échec ne bloque pas
+ *      l'inscription, le compte est créé sans données entreprise.
+ *    - `POST /api/signup` avec nom, prénom, email, mot de passe, CGU et,
+ *      si disponible, les données entreprise issues de l'INSEE.
+ *    - En cas de succès, affiche une alerte de confirmation avec l'adresse email
+ *      utilisée, puis remet tous les champs à zéro.
+ *
+ * 2. **Google OAuth** — redirige `window.location` vers `PROXY_URL/api/google`.
+ *
+ * @param lastName     Valeur contrôlée du champ nom (obligatoire).
+ * @param setLastName  Setter du champ nom.
+ * @param firstName    Valeur contrôlée du champ prénom (optionnel).
+ * @param setFirstName Setter du champ prénom.
+ * @param email        Valeur contrôlée du champ email (obligatoire).
+ * @param setEmail     Setter du champ email.
+ * @param password     Valeur contrôlée du champ mot de passe (obligatoire).
+ * @param setPassword  Setter du champ mot de passe.
+ * @param siren        Valeur contrôlée du champ SIREN (optionnel, 9 chiffres).
+ * @param setSiren     Setter du champ SIREN.
+ * @param acceptCgu    `true` si l'utilisateur a coché les CGU (obligatoire pour soumettre).
+ * @param setAcceptCgu Setter de l'état d'acceptation des CGU.
+ */
 const SignupForm = ({
   lastName,
   setLastName,

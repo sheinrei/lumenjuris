@@ -1,3 +1,20 @@
+/**
+ * Barre de progression affichant le solde de crédits restants par rapport
+ * à un total, avec un basculement visuel rouge en cas de solde faible.
+ *
+ * @example
+ * ```tsx
+ * <CreditBar label="Analyses" used={420} total={500} />
+ * // → "80 / 500" en rouge, barre à 16 %
+ *
+ * <CreditBar label="Analyses" used={0} total={500} />
+ * // → "500", barre pleine
+ * ```
+ *
+ * @param label Libellé affiché à gauche au-dessus de la barre (ex : `"Analyses"`).
+ * @param used  Nombre de crédits consommés. Doit être ≥ 0.
+ * @param total Capacité totale de crédits. Si ≤ 0, la barre est vide.
+ */
 export function CreditBar({
   label,
   used,

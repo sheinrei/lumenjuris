@@ -30,6 +30,7 @@ type NavigationClickHandler = (
 ) => boolean | void;
 
 type NotificationSeverity = "news" | "alert" | "urgent";
+
 type NotificationBadge = "none" | NotificationSeverity;
 
 interface NotificationItem {
@@ -73,6 +74,13 @@ const NOTIFICATION_TYPES: Record<string, Omit<NotificationItem, "id">> = {
   },
 };
 
+/**
+ * Calcule la sévérité globale à afficher sur la pastille de la cloche
+ * en retenant le niveau le plus critique parmi toutes les notifications actives.
+ * Retourne `"none"` si le tableau est vide.
+ *
+ * @param tab Liste des notifications actives.
+ */
 function deriveOverallBadge(tab: NotificationItem[]): NotificationBadge {
   if (tab.length === 0) return "none";
   return tab.reduce<NotificationSeverity>(
@@ -84,6 +92,32 @@ function deriveOverallBadge(tab: NotificationItem[]): NotificationBadge {
   );
 }
 
+/**
+ * Barre de navigation principale du header, adaptée à trois contextes :
+ *
+ * 1. **Utilisateur connecté** — affiche les liens de navigation (`/dashboard`,
+ *    `/analyzer`), les liens admin-only (`/sandbox`, `/monitoring`), la cloche
+ *    de notifications et le menu utilisateur (avatar, logout, mon compte, formules).
+ *
+ * 2. **Utilisateur non connecté** — affiche uniquement les liens `/souscription`
+ *    et `/inscription`.
+ *
+ * 3. **Responsive** — deux rendus parallèles (mobile/tablette `< 768 px` vs
+ *    desktop `≥ 768 px`) via Tailwind `lg:hidden` / `hidden lg:flex` :
+ *    les icônes seules sur mobile, les boutons texte+icône sur desktop.
+ *    Le breakpoint est également détecté via `window.innerWidth` pour adapter
+ *    le trigger du dropdown utilisateur (initiales circulaires vs nom tronqué).
+ *
+ * **Système de notifications** :
+ * Les notifications sont dérivées de l'état `userData` au montage et à chaque
+ * changement. Actuellement, la seule source est `missingEnterpriseData`
+ * (données entreprise absentes → sévérité `"urgent"`). La pastille de la cloche
+ * reflète la sévérité maximale parmi toutes les notifications actives ;
+ * le niveau `"urgent"` déclenche une animation `ping` pour attirer l'attention.
+ *
+ * @param onNavClick Callback optionnel exécuté avant les navigations programmées
+ *                   (logout, mon compte…). Retourner `false` annule la navigation.
+ */
 const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -364,7 +398,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
                           {item.title}
                         </p>
                         <Link to={item.path} state={item.linkState}>
-                          <button className="text-left text-xs font-semibold text-white hover:text-lumenjuris transition-colors">
+                          <button className="text-left text-xs font-semibold text-white hover:text-gray-400 transition-colors">
                             {item.buttonLabel}
                           </button>
                         </Link>
