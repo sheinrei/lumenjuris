@@ -130,12 +130,12 @@ export function Signature() {
 
       {step === "prepare" && (
         <PrepareStep
-          file={file}
-          numPages={numPages}
-          signers={signers}
-          onFileChange={(f) => { setFile(f); if (!f) { setFields([]); setNumPages(0); } }}
-          onNumPagesLoaded={setNumPages}
-          onNext={() => setStep("place")}
+          onFileChange={(f) => {
+            setFile(f);
+            // Dès qu'un PDF est déposé, on passe directement à l'étape de
+            // placement — l'utilisateur n'a pas à valider explicitement.
+            if (f) setStep("place");
+          }}
         />
       )}
 

@@ -79,7 +79,14 @@ function SignerPicker({
   );
 }
 
-/** Sélection du type de champ + option "Toutes les pages". */
+/**
+ * Sélection du type de champ + option "Toutes les pages".
+ *
+ * NB : la case "Toutes les pages" est TOUJOURS visible (pas conditionnée
+ * à un type sélectionné). L'utilisateur doit pouvoir la cocher avant de
+ * déposer le champ — la cocher après serait trop tard, le champ est déjà
+ * créé avec sa configuration.
+ */
 function FieldTypePicker({
   armed, replicateAllPages, onArm, onReplicateAllPagesChange,
 }: {
@@ -88,7 +95,6 @@ function FieldTypePicker({
   onArm: (type: FieldType) => void;
   onReplicateAllPagesChange: (value: boolean) => void;
 }) {
-  const showAllPagesOption = armed === "signature" || armed === "initial";
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
       <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Type de champ</p>
@@ -107,22 +113,21 @@ function FieldTypePicker({
         />
       </div>
 
-      {showAllPagesOption && (
-        <label className="flex items-start gap-2 pt-2 border-t border-gray-100 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={replicateAllPages}
-            onChange={(e) => onReplicateAllPagesChange(e.target.checked)}
-            className="mt-0.5 w-3.5 h-3.5 rounded border-gray-300 text-[#354F99] focus:ring-[#354F99]/30"
-          />
-          <div>
-            <p className="text-xs font-semibold text-gray-700">Toutes les pages</p>
-            <p className="text-[10px] text-gray-400 leading-tight">
-              Le champ sera dupliqué à la même position sur chaque page.
-            </p>
-          </div>
-        </label>
-      )}
+      <label className="flex items-start gap-2 pt-2 border-t border-gray-100 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={replicateAllPages}
+          onChange={(e) => onReplicateAllPagesChange(e.target.checked)}
+          className="mt-0.5 w-3.5 h-3.5 rounded border-gray-300 text-[#354F99] focus:ring-[#354F99]/30"
+        />
+        <div>
+          <p className="text-xs font-semibold text-gray-700">Toutes les pages</p>
+          <p className="text-[10px] text-gray-400 leading-tight">
+            Le champ sera dupliqué à la même position sur chaque page.
+            Cochez avant de déposer.
+          </p>
+        </div>
+      </label>
     </div>
   );
 }
