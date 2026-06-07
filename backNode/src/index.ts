@@ -14,21 +14,22 @@ import routerChatHistory from "./route/apiChatHistory";
 import routerBilling from "./route/apiBilling";
 import routerVeille from "./route/apiVeille";
 import routerUserUploads from "./route/apiUserUploads";
+import routerFeedback from "./route/apiFeedback";
+import routerTemplate from "./route/apiTemplate";
 import cors from "cors";
 import { seedBootstrapUsers } from "./services/bootstrapUsers";
 import { seedPlans } from "./services/planSeeder";
 // import { internalApiKeyMiddleware } from "./middleware/internalApiKeyMiddleware";
-
-
 /**
  * Préparation du serveur nodejs/express pour ce backend
  * Ici sera traité toute les opérations avec la base de données
  */
 
 const HOST_PROXY: string =
-  process.env.HOST_PROXY || process.env.NODE_ENV == "dev"
+  process.env.HOST_PROXY ||
+  (process.env.NODE_ENV == "dev"
     ? "http://localhost:3000"
-    : "https://proxy.lumenjuris.com";
+    : "https://proxy.lumenjuris.com");
 
 const app = express();
 app.set("etag", false);
@@ -56,6 +57,8 @@ app.use("/chat-history", routerChatHistory);
 app.use("/billing", routerBilling);
 app.use("/veille", routerVeille);
 app.use("/user-uploads", routerUserUploads);
+app.use("/feedback", routerFeedback);
+app.use("/template", routerTemplate);
 
 app.get("/health", (req: Request, res: Response) => {
   return res.status(200).json({

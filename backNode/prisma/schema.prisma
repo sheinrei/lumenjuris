@@ -58,13 +58,14 @@ model User {
   subscription  Subscription?
   enterprise    Enterprise?
 
-  userCredit      UserCredit?
-  preference      UserPreference?
-  documentCustom  DocumentCustom[]
-  contractHistory ContractHistory[]
-  chatHistory     ChatHistory?
-  userLlmUsage    UserLlmUsage[]
-  userUpload UserUpload?
+  userCredit        UserCredit?
+  preference        UserPreference?
+  documentCustom    DocumentCustom[]
+  contractHistory   ContractHistory[]
+  chatHistory       ChatHistory?
+  userLlmUsage      UserLlmUsage[]
+  userUpload        UserUpload?
+  contractTemplates ContractTemplate[]
 }
 
 // --- AUTH VIA PROVIDER ---
@@ -261,6 +262,70 @@ model Llm {
   userLlmUsage UserLlmUsage[]
 }
 
+
+// --- MODELES DE CONTRATS (import + playbook + génération) ---
+
+model ContractTemplate {
+  idTemplate         Int      @id @default(autoincrement())
+  externalId         String   @unique
+  name               String
+  contractType       String?
+  sourceFilename     String?
+  sourceFilePath     String?
+  encryptedStructure String   @db.LongText
+  version            Int      @default(1)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  userId         Int
+  user           User              @relation(fields: [userId], references: [idUser], onDelete: Cascade)
+  playbook       TemplatePlaybook?
+  doctrinalNotes DoctrinalNote[]
+  generationLogs GenerationLog[]
+
+  @@index([userId])
+}
+
+model TemplatePlaybook {
+  idPlaybook  Int      @id @default(autoincrement())
+  rulesText   String   @db.LongText
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  templateId Int              @unique
+  template   ContractTemplate @relation(fields: [templateId], references: [idTemplate], onDelete: Cascade)
+}
+
+model DoctrinalNote {
+  idNote      Int      @id @default(autoincrement())
+  externalId  String   @unique
+  title       String
+  content     String   @db.LongText
+  clauseRef   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  templateId Int
+  template   ContractTemplate @relation(fields: [templateId], references: [idTemplate], onDelete: Cascade)
+
+  @@index([templateId])
+}
+
+model GenerationLog {
+  idLog           Int      @id @default(autoincrement())
+  externalId      String   @unique
+  variables       Json
+  promptTokens    Int      @default(0)
+  completionTokens Int     @default(0)
+  encryptedOutput String   @db.LongText
+  createdAt       DateTime @default(now())
+
+  templateId Int
+  template   ContractTemplate @relation(fields: [templateId], references: [idTemplate], onDelete: Cascade)
+
+  @@index([templateId])
+}
 
 // --- ASSETS UTILISATEUR (filigranes) ---
 

@@ -1,64 +1,71 @@
-import { useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, AlertCircle, CheckCircle, Lock } from "lucide-react";
+import {
+  UploadCloud,
+  Search,
+  ChevronDown,
+  BarChart3,
+  ShieldAlert,
+  FileCheck,
+  FileText,
+  MoreVertical,
+  Trash2,
+  Lock,
+} from "lucide-react";
 import InputFile from "../common/InputFile";
+import {
+  loadContractHistoryIndex,
+  deleteContractHistoryEntry,
+  type ContractHistoryItem,
+} from "../../utils/contractHistory";
 
-type RiskLevel = "high" | "medium" | "ok";
+type RiskLevel = "Élevé" | "Moyen" | "Faible" | "—";
 
-interface Risk {
-  level: RiskLevel;
-  title: string;
-  article: string;
-  suggestion: string;
+function getRiskLevel(score?: number): RiskLevel {
+  if (score === undefined || score === null) return "—";
+  if (score >= 60) return "Élevé";
+  if (score >= 30) return "Moyen";
+  return "Faible";
 }
 
-const mockRisks: Risk[] = [
-  {
-    level: "high",
-    title: "Clause de non-concurrence non conforme",
-    article: "Art. L1121-1",
-    suggestion:
-      "La clause doit prévoir une contrepartie financière et être limitée dans le temps et l'espace.",
-  },
-  {
-    level: "medium",
-    title: "Période d'essai : durée excessive",
-    article: "Art. L1221-19",
-    suggestion:
-      "La période d'essai ne peut excéder 4 mois pour les cadres (renouvellement compris : 8 mois).",
-  },
-  {
-    level: "ok",
-    title: "Mention de la convention collective manquante",
-    article: "Art. R2262-1",
-    suggestion:
-      "Le contrat doit mentionner la convention collective applicable.",
-  },
-];
+function getRiskStyles(level: RiskLevel): string {
+  switch (level) {
+    case "Élevé":  return "text-red-500 border-red-100 bg-red-50";
+    case "Moyen":  return "text-amber-500 border-amber-100 bg-amber-50";
+    case "Faible": return "text-emerald-500 border-emerald-100 bg-emerald-50";
+    default:       return "text-slate-400 border-slate-100 bg-slate-50";
+  }
+}
 
-const RISK_CONFIG: Record<
-  RiskLevel,
-  { icon: typeof AlertTriangle; iconClass: string; borderClass: string }
-> = {
-  high: {
-    icon: AlertTriangle,
-    iconClass: "text-red-500",
-    borderClass: "border-red-100",
-  },
-  medium: {
-    icon: AlertCircle,
-    iconClass: "text-amber-500",
-    borderClass: "border-amber-100",
-  },
-  ok: {
-    icon: CheckCircle,
-    iconClass: "text-lumenjuris",
-    borderClass: "border-lumenjuris/20",
-  },
-};
+function formatDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function avgScore(items: ContractHistoryItem[]): number {
+  const scored = items.filter((i) => i.overallRiskScore !== undefined);
+  if (!scored.length) return 0;
+  const avg = scored.reduce((s, i) => s + (i.overallRiskScore ?? 0), 0) / scored.length;
+  // Conformité = inverse du score de risque
+  return Math.round(100 - avg);
+}
 
 export function Conformite() {
   const navigate = useNavigate();
+  const [isDragging, setIsDragging] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("Tous");
+  const [history, setHistory] = useState<ContractHistoryItem[]>([]);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadContractHistoryIndex().then(setHistory).catch(() => {});
+  }, []);
 
   const onDrop = useCallback(
     (files: File[]) => {
@@ -67,8 +74,32 @@ export function Conformite() {
     [navigate],
   );
 
+  const handleOpen = (id: string) => {
+    navigate("/analyzer", { state: { historyId: id } });
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteContractHistoryEntry(id);
+    setHistory((prev) => prev.filter((i) => i.id !== id));
+    setOpenMenuId(null);
+  };
+
+  const filtered = history.filter((item) => {
+    const matchSearch = item.fileName.toLowerCase().includes(searchTerm.toLowerCase());
+    const level = getRiskLevel(item.overallRiskScore);
+    const matchPriority = priorityFilter === "Tous" || level === priorityFilter;
+    return matchSearch && matchPriority;
+  });
+
+  const highRiskCount = history.filter(
+    (i) => getRiskLevel(i.overallRiskScore) === "Élevé",
+  ).length;
+
+  const conformityAvg = avgScore(history);
+
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-8 max-w-5xl">
+      {/* Title */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
           Analyse de conformité
@@ -78,149 +109,235 @@ export function Conformite() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
-        {/* Left: upload */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-5">
-          <h2 className="text-base font-semibold text-gray-900">
-            Importer un document
-          </h2>
-
+      {/* Upload zone */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setIsDragging(false); }}
+        className={`relative border border-dashed rounded-xl p-8 transition-all duration-300 text-center cursor-pointer ${
+          isDragging
+            ? "border-lumenjuris bg-lumenjuris/5 scale-[1.01]"
+            : "border-gray-200 bg-gray-50/30 hover:border-lumenjuris/40 hover:bg-gray-50"
+        }`}
+      >
+        <div className="flex flex-col md:flex-row items-center justify-center gap-8">
+          <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center text-lumenjuris shadow-sm border border-gray-100">
+            <UploadCloud className="w-7 h-7 stroke-[1.5]" />
+          </div>
+          <div className="text-left">
+            <h2 className="text-xl font-semibold text-gray-800">
+              Analyser un document
+            </h2>
+            <p className="text-gray-400 text-sm mt-1">
+              Glissez-déposez votre contrat ici pour un diagnostic.
+            </p>
+            <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-1.5">
+              <Lock className="h-3 w-3" />
+              Document traité de manière confidentielle
+            </div>
+          </div>
           <InputFile
             onDrop={onDrop}
             accepted={{
               "application/pdf": [".pdf"],
               "application/msword": [".doc"],
-              "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-                [".docx"],
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
             }}
             multiple={false}
-            fieldTitle="Glissez-déposez votre document"
-            fieldDescription="PDF, DOCX – Max 10 Mo"
-            supportedFileType="PDF / DOCX"
-            fieldClassName="mb-0 p-6 border-gray-200 hover:border-lumenjuris/40 hover:bg-gray-50"
-            iconClassName="w-10 h-10 bg-slate-100 text-gray-300"
-            fieldTitleClassName="text-sm font-medium mb-0 text-gray-700"
-            fieldDescriptionClassName="text-xs text-gray-400 mb-0"
+            fieldTitle=""
+            fieldDescription=""
+            supportedFileType=""
+            fieldClassName="hidden"
+            iconClassName="hidden"
+            fieldTitleClassName="hidden"
+            fieldDescriptionClassName="hidden"
             fileTypeClassName="hidden"
           />
-
           <button
-            disabled
-            className="w-full bg-lumenjuris text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}
+            className="bg-lumenjuris text-white px-8 py-2.5 rounded-lg font-medium hover:opacity-90 transition-all shadow-md active:scale-95 text-sm shrink-0"
           >
-            Analyser le document
+            Parcourir
           </button>
+        </div>
+      </div>
 
-          <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
-            <Lock className="h-3 w-3" />
-            Document traité de manière confidentielle
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="p-5 border border-gray-100 rounded-xl bg-white shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-slate-50 rounded-lg text-slate-400">
+            <BarChart3 className="w-5 h-5 stroke-[1.5]" />
+          </div>
+          <div>
+            <p className="text-[10px] text-gray-400 uppercase tracking-widest">
+              Total documents
+            </p>
+            <p className="text-lg font-semibold text-gray-700">{history.length}</p>
           </div>
         </div>
-
-        {/* Right: results */}
-        <div className="space-y-4">
-          {/* Score */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-base font-semibold text-gray-900">
-                Score de conformité
-              </h2>
-              <span className="text-xs font-semibold text-lumenjuris bg-lumenjuris/10 border border-lumenjuris/20 px-2.5 py-1 rounded-full">
-                Conforme
-              </span>
-            </div>
-
-            <div className="flex items-center gap-6">
-              {/* Circle */}
-              <div className="relative shrink-0">
-                <svg
-                  width="80"
-                  height="80"
-                  viewBox="0 0 80 80"
-                  className="-rotate-90"
-                >
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r="32"
-                    fill="none"
-                    stroke="#f1f5f9"
-                    strokeWidth="7"
-                  />
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r="32"
-                    fill="none"
-                    stroke="#354F99"
-                    strokeWidth="7"
-                    strokeDasharray={`${2 * Math.PI * 32 * 0.85} ${2 * Math.PI * 32}`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-lg font-bold text-lumenjuris">
-                  85%
-                </span>
-              </div>
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center justify-between text-sm text-gray-700">
-                  <span>Clauses conformes</span>
-                  <span className="font-semibold">17/20</span>
-                </div>
-                <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-                  <div
-                    className="h-full bg-lumenjuris rounded-full"
-                    style={{ width: "85%" }}
-                  />
-                </div>
-                <p className="text-xs text-gray-400">
-                  3 points nécessitent votre attention
-                </p>
-              </div>
-            </div>
+        <div className="p-5 border border-gray-100 rounded-xl bg-white shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-red-50 rounded-lg text-red-400">
+            <ShieldAlert className="w-5 h-5 stroke-[1.5]" />
           </div>
+          <div>
+            <p className="text-[10px] text-gray-400 uppercase tracking-widest">
+              Risque élevé
+            </p>
+            <p className="text-lg font-semibold text-red-500">{highRiskCount}</p>
+          </div>
+        </div>
+        <div className="p-5 border border-gray-100 rounded-xl bg-white shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-emerald-50 rounded-lg text-emerald-400">
+            <FileCheck className="w-5 h-5 stroke-[1.5]" />
+          </div>
+          <div>
+            <p className="text-[10px] text-gray-400 uppercase tracking-widest">
+              Conformité moy.
+            </p>
+            <p className="text-lg font-semibold text-emerald-500">
+              {history.length ? `${conformityAvg}%` : "—"}
+            </p>
+          </div>
+        </div>
+      </div>
 
-          {/* Risks */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4">
-            <h2 className="text-base font-semibold text-gray-900">
-              Risques détectés
-            </h2>
-            <div className="space-y-3">
-              {mockRisks.map((risk, i) => {
-                const cfg = RISK_CONFIG[risk.level];
-                const Icon = cfg.icon;
+      {/* Search + Filter */}
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 stroke-[1.5]" />
+          <input
+            type="text"
+            placeholder="Rechercher un document..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-lumenjuris/40 focus:ring-4 focus:ring-lumenjuris/5 transition-all"
+          />
+        </div>
+        <div className="relative w-full md:w-48">
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="appearance-none w-full bg-white border border-gray-200 px-4 py-2.5 pr-9 rounded-xl text-sm outline-none focus:border-lumenjuris/40 cursor-pointer transition-all"
+          >
+            <option value="Tous">Filtrer par priorité</option>
+            <option value="Élevé">Élevé</option>
+            <option value="Moyen">Moyen</option>
+            <option value="Faible">Faible</option>
+          </select>
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none stroke-[1.5]" />
+        </div>
+      </div>
+
+      {/* History table */}
+      <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+        <table className="w-full text-left border-collapse">
+          <thead className="bg-gray-50/60 border-b border-gray-100 text-gray-400 text-[10px] uppercase tracking-widest font-medium">
+            <tr>
+              <th className="px-6 py-4">Document</th>
+              <th className="px-4 py-4 text-center">Clauses</th>
+              <th className="px-4 py-4">Priorité</th>
+              <th className="px-4 py-4 hidden md:table-cell">Date</th>
+              <th className="px-6 py-4 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {filtered.length > 0 ? (
+              filtered.map((item) => {
+                const level = getRiskLevel(item.overallRiskScore);
                 return (
-                  <div
-                    key={i}
-                    className={`rounded-lg border p-4 space-y-2 ${cfg.borderClass}`}
+                  <tr
+                    key={item.id}
+                    className="hover:bg-gray-50/40 transition-all group cursor-pointer"
+                    onClick={() => handleOpen(item.id)}
                   >
-                    <div className="flex items-start gap-2.5">
-                      <Icon
-                        className={`h-4 w-4 shrink-0 mt-0.5 ${cfg.iconClass}`}
-                      />
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {risk.title}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          {risk.article}
-                        </p>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-gray-50 rounded-lg text-gray-400 shrink-0">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-800 truncate max-w-xs">
+                            {item.fileName}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {item.status === "analyzed" ? "Analysé" : "En cours"}
+                            {item.activePatchCount > 0
+                              ? ` · ${item.activePatchCount} modif.`
+                              : ""}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="ml-6.5 bg-gray-50 border border-gray-100 rounded-md px-3 py-2">
-                      <span className="text-xs font-semibold text-gray-600">
-                        Texte proposé :{" "}
+                    </td>
+                    <td className="px-4 py-5 text-center">
+                      <span className="text-sm text-gray-500">
+                        {item.clausesCount ?? "—"}
                       </span>
-                      <span className="text-xs text-gray-500 italic">
-                        {risk.suggestion}
+                    </td>
+                    <td className="px-4 py-5">
+                      {level !== "—" ? (
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-lg border text-[11px] font-medium tracking-wide ${getRiskStyles(level)}`}
+                        >
+                          {level}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-5 hidden md:table-cell">
+                      <span className="text-xs text-gray-400">
+                        {formatDate(item.createdAt)}
                       </span>
-                    </div>
-                  </div>
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <div
+                        className="relative inline-flex items-center gap-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={() => handleOpen(item.id)}
+                          className="text-lumenjuris font-medium text-xs hover:underline underline-offset-4 opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          Ouvrir
+                        </button>
+                        <button
+                          onClick={() =>
+                            setOpenMenuId(openMenuId === item.id ? null : item.id)
+                          }
+                          className="p-1.5 text-gray-300 hover:text-gray-500 transition-colors rounded-md hover:bg-gray-100"
+                        >
+                          <MoreVertical className="w-4 h-4 stroke-[1.5]" />
+                        </button>
+                        {openMenuId === item.id && (
+                          <div className="absolute right-0 top-8 z-10 bg-white border border-gray-100 rounded-xl shadow-lg py-1 min-w-[140px]">
+                            <button
+                              onClick={() => handleDelete(item.id)}
+                              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Supprimer
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
                 );
-              })}
-            </div>
-          </div>
-        </div>
+              })
+            ) : (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="px-6 py-16 text-center text-gray-300 italic text-sm"
+                >
+                  {history.length === 0
+                    ? "Aucun document analysé pour le moment."
+                    : "Aucun résultat pour cette recherche."}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

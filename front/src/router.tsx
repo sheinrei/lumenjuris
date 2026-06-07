@@ -56,11 +56,14 @@ export function App() {
       <ScrollToTop />
       <Routes>
         <Route element={<RequireAuth><MainLayout /></RequireAuth>} >
-          {" "}
           {/* Sous-ensemble (charge panneau latéral et header) */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/generateur" element={<Generateur />} />
           <Route path="/generateur/filigranes" element={<MesFiligranes />} />
+          <Route path="/contrat-generation" element={<Generateur />} />
+          <Route path="/contrat-statique" element={<Generateur />} />
+          <Route path="/contrat-from-model" element={<Generateur />} />
+          <Route path="/contrat-enhanced" element={<Generateur />} />
           <Route path="/signature" element={<Signature />} />
           <Route path="/chatjuridique" element={<ChatJuridique />} />
           <Route path="/calculateur" element={<Calculateur />} />
@@ -70,13 +73,6 @@ export function App() {
 
         {/* Entrée principale de l'application sur le dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
-        {/* Generation de contrat page main*/}
-        <Route path="/contrat-generation" element={<RequireAuth> <GenerationContract /> </RequireAuth>} />
-        {/* Generation contrat page sub*/}
-        <Route path="/contrat-statique" element={<RequireAuth> <GenerationContract /> </RequireAuth>} />
-        <Route path="/contrat-from-model" element={<RequireAuth> <GenerationContract /> </RequireAuth>} />
-        <Route path="/contrat-enhanced" element={<RequireAuth> <GenerationContract /> </RequireAuth>} />
 
 
 
