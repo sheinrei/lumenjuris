@@ -45,8 +45,8 @@ const navItems: NavItem[] = [
     label: "Générateur de modèles",
     path: "/generateur",
     children: [
-      { icon: BookOpen, label: "Bibliothèque de modèles", path: "/contrat-generation?section=library", notificationKey: "templateAdded" },
       { icon: Upload, label: "Importer un modèle", path: "/contrat-generation?section=import" },
+      { icon: BookOpen, label: "Bibliothèque de modèles", path: "/contrat-generation?section=library", notificationKey: "templateAdded" },
       { icon: Droplets, label: "Mes filigranes", path: "/generateur/filigranes" },
     ],
   },
