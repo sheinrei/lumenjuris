@@ -49,6 +49,22 @@ export function loadAnalysisFromCache(
   }
 }
 
+export function clearAnalysisCache(
+  content: string,
+  context?: AnalysisContext,
+): void {
+  try {
+    const key =
+      ANALYSIS_CACHE_NS +
+      hashString(content) +
+      ":" +
+      contextCacheKeyPart(context);
+    sessionStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function saveAnalysisToCache(
   content: string,
   clauses: ClauseRisk[],

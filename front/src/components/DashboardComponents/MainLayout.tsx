@@ -13,17 +13,22 @@ import {
   PanelLeft,
   ChevronDown,
   Droplets,
+  BookOpen,
+  Upload,
 } from "lucide-react";
 
 
 
 import HeaderNavigationBar from "../MainHeader/HeaderNavigationBar";
 import { useUserStore } from "../../store/userStore";
+import { FeedbackWidget } from "../common/FeedbackWidget";
+import { useTemplateNotificationStore } from "../../store/templateNotificationStore";
 
 interface NavSubItem {
   icon: React.ElementType;
   label: string;
   path: string;
+  notificationKey?: "templateAdded";
 }
 
 interface NavItem {
@@ -40,6 +45,8 @@ const navItems: NavItem[] = [
     label: "Générateur de modèles",
     path: "/generateur",
     children: [
+      { icon: BookOpen, label: "Bibliothèque de modèles", path: "/contrat-generation?section=library", notificationKey: "templateAdded" },
+      { icon: Upload, label: "Importer un modèle", path: "/contrat-generation?section=import" },
       { icon: Droplets, label: "Mes filigranes", path: "/generateur/filigranes" },
     ],
   },
@@ -49,6 +56,40 @@ const navItems: NavItem[] = [
   { icon: Calculator, label: "Calculateur juridique", path: "/calculateur" },
   { icon: Newspaper, label: "Veille information", path: "/veille" },
 ];
+
+function NavChildLink({ child }: { child: NavSubItem }) {
+  const location = useLocation();
+  const pulse = useTemplateNotificationStore((s) => s.pulse);
+  const pendingCount = useTemplateNotificationStore((s) => s.pendingCount);
+
+  const fullPath = location.pathname + (location.search || "");
+  const isActive = fullPath === child.path;
+  const showBadge = child.notificationKey === "templateAdded" && pulse;
+
+  return (
+    <li>
+      <NavLink
+        to={child.path}
+        className={`relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
+          isActive
+            ? "text-white font-medium"
+            : "text-gray-500 hover:bg-white/5 hover:text-white"
+        }`}
+      >
+        <child.icon className="h-3.5 w-3.5 shrink-0" />
+        <span className="flex-1">{child.label}</span>
+        {showBadge && (
+          <span
+            className="text-[10px] font-bold text-white bg-emerald-500 px-1.5 py-0.5 rounded-full shadow"
+            style={{ animation: "templateAddedPulse 0.6s ease-out, templateAddedFade 3s ease-in-out" }}
+          >
+            +{pendingCount}
+          </span>
+        )}
+      </NavLink>
+    </li>
+  );
+}
 
 function NavItemRow({ item }: { item: NavItem }) {
   const location = useLocation();
@@ -77,21 +118,7 @@ function NavItemRow({ item }: { item: NavItem }) {
           {open && (
             <ul className="mt-0.5 ml-6 flex flex-col gap-0.5">
               {item.children!.map((child) => (
-                <li key={child.path}>
-                  <NavLink
-                    to={child.path}
-                    className={({ isActive }) =>
-                      `flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
-                        isActive
-                          ? "text-white font-medium"
-                          : "text-gray-500 hover:bg-white/5 hover:text-white"
-                      }`
-                    }
-                  >
-                    <child.icon className="h-3.5 w-3.5 shrink-0" />
-                    <span>{child.label}</span>
-                  </NavLink>
-                </li>
+                <NavChildLink key={child.path} child={child} />
               ))}
             </ul>
           )}
@@ -214,6 +241,23 @@ export function MainLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Feedback flottant */}
+      <FeedbackWidget />
+
+      {/* Keyframes pour l'animation du badge "+1" sur Contrat tech */}
+      <style>{`
+        @keyframes templateAddedPulse {
+          0%   { transform: scale(0.3); opacity: 0; }
+          50%  { transform: scale(1.25); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes templateAddedFade {
+          0%   { opacity: 1; }
+          80%  { opacity: 1; }
+          100% { opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }

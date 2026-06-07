@@ -17,12 +17,9 @@ front/.env.development
 front/.env.production
 front/dist/
 
-<<<<<<< HEAD
 #front proxy
 /front/server/.env
 /front/.env.development
-=======
->>>>>>> main
 
 #backend nodeJS
 backNode/.env
@@ -33,6 +30,8 @@ backNode/prisma/generated
 backNode/dist/
 gpt5_tokens_log.json
 backNode/userassets/
+backNode/templatesources/
+backNode/feedback-logs.json
 
 #proxy
 proxy/.env

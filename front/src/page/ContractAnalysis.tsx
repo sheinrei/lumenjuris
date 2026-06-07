@@ -14,7 +14,6 @@ import { EnhancedClauseDetail } from "../components/ContractAnalysis/EnhancedCla
 import { clearEnhancedClauseCaches } from "../components/ContractAnalysis/EnhancedClauseDetail/enhancedClauseCaches";
 import { ActionButtons } from "../components/ContractAnalysis/ActionButtons";
 import { ContextualAnalysisForm } from "../components/ContractAnalysis/ContextualAnalysisForm";
-import { DocumentHistorySidebar } from "../components/ContractAnalysis/DocumentHistorySidebar";
 import React, { Suspense } from "react";
 const MarketComparison = React.lazy(() =>
   import("../components/ContractAnalysis/MarketComparison").then((m) => ({
@@ -49,6 +48,7 @@ import type { AnalysisProgress } from "../types/analysisProgress";
 import {
   loadAnalysisFromCache,
   saveAnalysisToCache,
+  clearAnalysisCache,
 } from "../utils/aiAnalyser/cachedAnalysis";
 import {
   compareByUploadTimeDesc,
@@ -187,9 +187,7 @@ export default function ContractAnalysis() {
   const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
   const currentHistoryIdRef = useRef<string | null>(null);
   const [historyItems, setHistoryItems] = useState<ContractHistoryItem[]>([]);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(
-    () => typeof window !== "undefined" && window.innerWidth < 768,
-  );
+  const sidebarCollapsed = false;
 
   useEffect(() => {
     loadContractHistoryIndex()
@@ -815,7 +813,7 @@ export default function ContractAnalysis() {
   const onStandardAnalysis = () => {
     const analysisHistoryId = currentHistoryIdRef.current;
     if (!analysisHistoryId || !contract) return;
-    if (analyseCredit !== null && analyseCredit < 100) return;
+    // if (analyseCredit !== null && analyseCredit < 100) return; // bypass dev
 
     if (!temporaryHistoryEntriesRef.current[analysisHistoryId]) {
       rememberTemporaryContract(analysisHistoryId, contract);
@@ -826,10 +824,34 @@ export default function ContractAnalysis() {
     void startTemporaryAnalysis(analysisHistoryId, "standard");
   };
 
+  const handleForceRelaunchAnalysis = () => {
+    const analysisHistoryId = currentHistoryIdRef.current;
+    if (!analysisHistoryId || !contract) return;
+    // if (analyseCredit !== null && analyseCredit < 100) return; // bypass dev
+
+    if (!temporaryHistoryEntriesRef.current[analysisHistoryId]) {
+      rememberTemporaryContract(analysisHistoryId, contract);
+    }
+
+    // Vider le cache sessionStorage pour forcer une vraie nouvelle analyse
+    clearAnalysisCache(contract.content, currentAnalysisContext ?? undefined);
+    clearAllAppliedRecommendations();
+    resetAllPatches();
+    clearEnhancedClauseCaches();
+
+    // Forcer isProcessing à false pour que startTemporaryAnalysis ne s'arrête pas
+    updateTemporaryHistoryEntry(analysisHistoryId, (e) => ({
+      ...e,
+      isProcessing: false,
+    }));
+
+    void startTemporaryAnalysis(analysisHistoryId, "standard");
+  };
+
   const onContextualAnalysis = (context: AnalysisContext) => {
     const analysisHistoryId = currentHistoryIdRef.current;
     if (!analysisHistoryId || !contract) return;
-    if (analyseCredit !== null && analyseCredit < 100) return;
+    // if (analyseCredit !== null && analyseCredit < 100) return; // bypass dev
 
     if (!temporaryHistoryEntriesRef.current[analysisHistoryId]) {
       rememberTemporaryContract(analysisHistoryId, contract);
@@ -1027,23 +1049,7 @@ export default function ContractAnalysis() {
     <div className="min-h-screen bg-gray-50">
       <MainHeader onNavClick={handleNavClick} />
 
-      <DocumentHistorySidebar
-        items={visibleHistoryItems}
-        activeId={currentHistoryId}
-        onOpen={handleOpenHistoryItem}
-        onDelete={handleDeleteHistoryItem}
-        onCollapse={setSidebarCollapsed}
-        onNewAnalysis={handleNewAnalysis}
-        defaultCollapsed={
-          typeof window !== "undefined" && window.innerWidth < 768
-        }
-      />
-
-      <main
-        className={`px-4 py-8 transition-all duration-300 ease-in-out overflow-x-hidden ${
-          sidebarCollapsed ? "pl-12 md:pl-14" : "pl-12 md:pl-72"
-        }`}
-      >
+      <main className="px-4 py-8 overflow-x-hidden">
         <div className="min-w-0 w-full">
           {!contract && (
             <div className="max-w-5xl mx-auto space-y-8">
@@ -1063,7 +1069,7 @@ export default function ContractAnalysis() {
                   onTextSubmit={onTextSubmit}
                   isProcessing={displayedIsProcessing}
                   processingPhase={displayedProcessingPhase}
-                  analyseCredit={analyseCredit}
+                  analyseCredit={9999 /* bypass dev — crédits réels: analyseCredit */}
                 />
               </div>
             </div>
@@ -1164,8 +1170,6 @@ export default function ContractAnalysis() {
                     activeClauseId={selectedClause}
                     isFullscreen={sidebarCollapsed}
                     ref={documentViewerRef}
-                    onSuggestedClauses={handleMarketAnalysisClick}
-                    isLoadingSuggested={isMarketAnalysisLoading}
                   />
                 </div>
               </div>
@@ -1175,6 +1179,13 @@ export default function ContractAnalysis() {
                 <ActionButtons
                   onShareReport={handleShareReport}
                   isProcessed={Boolean(contract?.processed)}
+                  originalContent={contract?.content}
+                  htmlContent={htmlContent}
+                  fileName={contract?.fileName || "document"}
+                  onRelaunchAnalysis={handleForceRelaunchAnalysis}
+                  isRelaunchingAnalysis={displayedIsProcessing}
+                  onSuggestedClauses={handleMarketAnalysisClick}
+                  isLoadingSuggested={isMarketAnalysisLoading}
                 />
               </div>
             </div>
