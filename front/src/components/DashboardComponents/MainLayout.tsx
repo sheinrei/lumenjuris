@@ -9,6 +9,7 @@ import {
   Newspaper,
   Lock,
   Scale,
+  Settings,
   PanelLeft,
   ChevronDown,
   Droplets,
@@ -175,8 +176,24 @@ export function MainLayout() {
         </nav>
 
 
-        <div className="p-4">
-          <div className="flex items-center justify-center gap-1.5 py-2">
+        <div className="px-2 pb-2">
+          <NavLink
+            to="/mon-compte"
+            className={({ isActive }) =>
+              `flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors ${
+                isActive
+                  ? "bg-white/10 text-white font-medium"
+                  : "text-gray-400 hover:bg-white/5 hover:text-white"
+              }`
+            }
+          >
+            <Settings className="h-4 w-4 shrink-0" />
+            <span>Paramètres</span>
+          </NavLink>
+        </div>
+
+        <div className="px-4 pb-4">
+          <div className="flex items-center justify-center gap-1.5 py-2 border-t border-white/5">
             <Lock className="h-3 w-3 text-gray-500" />
             <span className="text-[10px] text-gray-500">
               Données sécurisées – Hébergement UE
