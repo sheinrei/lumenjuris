@@ -1,25 +1,25 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { MessageSquarePlus, X, Send, CheckCircle2, ChevronDown } from "lucide-react";
 import { fetchProxy } from "../../utils/fetchProxy";
+import { useDraggablePosition } from "../../hooks/useDragablePosition";
 
 const ROUTE_LABELS: Record<string, string> = {
-  "/dashboard":             "Tableau de bord",
-  "/conformite":            "Analyse de conformité",
-  "/analyzer":              "Analyse de contrat",
-  "/generateur":            "Générateur de modèles",
+  "/dashboard": "Tableau de bord",
+  "/conformite": "Analyse de conformité",
+  "/analyzer": "Analyse de contrat",
+  "/generateur": "Générateur de modèles",
   "/generateur/filigranes": "Mes filigranes",
-  "/signature":             "Signature",
-  "/chatjuridique":         "Chat juridique",
-  "/calculateur":           "Calculateur juridique",
-  "/veille":                "Veille juridique",
-  "/mon-compte":            "Mon compte",
-  "/monitoring":            "Monitoring",
-  "/souscription":          "Abonnement",
+  "/signature": "Signature",
+  "/chatjuridique": "Chat juridique",
+  "/calculateur": "Calculateur juridique",
+  "/veille": "Veille juridique",
+  "/mon-compte": "Mon compte",
+  "/monitoring": "Monitoring",
+  "/souscription": "Abonnement",
 };
 
 function getContext(pathname: string): string {
-  // Exact match first, then prefix match (longest wins)
   if (ROUTE_LABELS[pathname]) return ROUTE_LABELS[pathname];
   let best = "";
   let bestLabel = "Application";
@@ -32,6 +32,8 @@ function getContext(pathname: string): string {
   return bestLabel;
 }
 
+
+
 type Status = "idle" | "loading" | "success" | "error";
 
 export const FeedbackWidget: React.FC = () => {
@@ -43,6 +45,7 @@ export const FeedbackWidget: React.FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const context = getContext(location.pathname);
+  const { btnRef,  onMouseDown, didDrag, initialRight, initialBottom } = useDraggablePosition();
 
   // Focus textarea when panel opens
   useEffect(() => {
@@ -51,7 +54,7 @@ export const FeedbackWidget: React.FC = () => {
     }
   }, [open]);
 
-  // Reset after success
+  // Reset après success
   useEffect(() => {
     if (status === "success") {
       const t = setTimeout(() => {
@@ -115,7 +118,6 @@ export const FeedbackWidget: React.FC = () => {
           </div>
 
           {status === "success" ? (
-            /* Success state */
             <div className="flex flex-col items-center justify-center gap-2 py-8 px-4">
               <CheckCircle2 className="w-8 h-8 text-emerald-500" />
               <p className="text-sm font-medium text-gray-700">Merci pour votre retour !</p>
@@ -159,7 +161,9 @@ export const FeedbackWidget: React.FC = () => {
               <button
                 type="submit"
                 disabled={!comment.trim() || status === "loading"}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-lumenjuris text-white text-sm font-medium rounded-xl hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-lumenjuris
+                 text-white text-sm font-medium rounded-xl hover:opacity-90 transition-all 
+                 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
               >
                 {status === "loading" ? (
                   <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -175,9 +179,15 @@ export const FeedbackWidget: React.FC = () => {
 
       {/* FAB trigger */}
       <button
-        onClick={() => setOpen((v) => !v)}
+        ref={btnRef}
+        onMouseDown={onMouseDown}
+        onClick={() => {
+          if (didDrag.current) return;
+          setOpen((v) => !v);
+        }}
         title="Laisser un commentaire"
-        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 bg-lumenjuris text-white pl-3 pr-4 py-2.5 rounded-full shadow-lg hover:opacity-90 active:scale-95 transition-all text-sm font-medium"
+        className="fixed z-50 flex items-center gap-2 bg-lumenjuris text-white pl-3 pr-4 py-2.5 rounded-full shadow-lg hover:opacity-90 active:scale-95 transition-all text-sm font-medium cursor-grab active:cursor-grabbing"
+        style={{ right: initialRight, bottom: initialBottom }}
       >
         {open ? (
           <ChevronDown className="w-4 h-4" />
@@ -187,7 +197,6 @@ export const FeedbackWidget: React.FC = () => {
         <span>Feedback</span>
       </button>
 
-      {/* Keyframe animation */}
       <style>{`
         @keyframes feedbackSlideUp {
           from { opacity: 0; transform: translateY(12px); }
