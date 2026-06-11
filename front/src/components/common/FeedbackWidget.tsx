@@ -45,7 +45,7 @@ export const FeedbackWidget: React.FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const context = getContext(location.pathname);
-  const { btnRef,  onMouseDown, didDrag, initialRight, initialBottom } = useDraggablePosition();
+  const { btnRef, onMouseDown, didDrag, initialRight, initialBottom } = useDraggablePosition();
 
   // Focus textarea when panel opens
   useEffect(() => {
@@ -178,24 +178,26 @@ export const FeedbackWidget: React.FC = () => {
       )}
 
       {/* FAB trigger */}
-      <button
-        ref={btnRef}
-        onMouseDown={onMouseDown}
-        onClick={() => {
-          if (didDrag.current) return;
-          setOpen((v) => !v);
-        }}
-        title="Laisser un commentaire"
-        className="fixed z-50 flex items-center gap-2 bg-lumenjuris text-white pl-3 pr-4 py-2.5 rounded-full shadow-lg hover:opacity-90 active:scale-95 transition-all text-sm font-medium cursor-grab active:cursor-grabbing"
-        style={{ right: initialRight, bottom: initialBottom }}
-      >
-        {open ? (
-          <ChevronDown className="w-4 h-4" />
-        ) : (
-          <MessageSquarePlus className="w-4 h-4" />
-        )}
-        <span>Feedback</span>
-      </button>
+      {import.meta.env.VITE_FEEDBACK_ENABLE == "true" &&(
+        <button
+          ref={btnRef}
+          onMouseDown={onMouseDown}
+          onClick={() => {
+            if (didDrag.current) return;
+            setOpen((v) => !v);
+          }}
+          title="Laisser un commentaire"
+          className="fixed z-50 flex items-center gap-2 bg-lumenjuris text-white pl-3 pr-4 py-2.5 rounded-full shadow-lg hover:opacity-90 active:scale-95 transition-all text-sm font-medium cursor-grab active:cursor-grabbing"
+          style={{ right: initialRight, bottom: initialBottom }}
+        >
+          {open ? (
+            <ChevronDown className="w-4 h-4" />
+          ) : (
+            <MessageSquarePlus className="w-4 h-4" />
+          )}
+          <span>Feedback</span>
+        </button>
+      )}
 
       <style>{`
         @keyframes feedbackSlideUp {
