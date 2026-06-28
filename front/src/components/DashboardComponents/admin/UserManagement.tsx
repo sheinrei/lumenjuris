@@ -39,6 +39,7 @@ export function UserManagement() {
   const role = useUserStore((s) => s.userData?.profile?.role);
   const myId = useUserStore((s) => s.userData?.profile?.idUser);
 
+  //console.log(useUserStore())
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

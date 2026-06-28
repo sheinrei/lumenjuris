@@ -5,7 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 import { authMiddleware } from "../middleware/authMiddleware.js";
-
+import { feedBackLimiter } from "../securite/limiter.js";
 const routerFeedback: Router = express.Router();
 
 // Chemin absolu : lumenjuris/backNode/feedback-logs.json
@@ -39,6 +39,7 @@ function writeLog(entries: FeedbackEntry[]): void {
 // POST /feedback — soumettre un commentaire
 routerFeedback.post(
   "/",
+  feedBackLimiter,
   authMiddleware,
   (req: Request, res: Response) => {
     try {

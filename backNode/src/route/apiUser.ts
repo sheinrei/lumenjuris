@@ -12,6 +12,7 @@ import { Subscription } from "../services/classSubscription.js";
 import { normalizeAccountParameters } from "../utils/normalizeAccountParameters.js";
 import { normalizePreferenceUI } from "../utils/normalizePreferenceUI.js";
 
+import { loginLimiter, registerLimiter, forgotPasswordLimiter } from "../securite/limiter.js";
 const routerUser: Router = express.Router();
 
 type TokenValidationResult =
@@ -60,7 +61,7 @@ async function validateToken(
   return { valid: true, tokenEntry };
 }
 
-routerUser.post("/create", async (req: Request, res: Response) => {
+routerUser.post("/create", registerLimiter, async (req: Request, res: Response) => {
   try {
     const { email, nom, prenom, password, cgu, enterprise } = req.body;
 
@@ -212,7 +213,7 @@ routerUser.post(
  * Necessite email et password accesseible dans req.body
  */
 
-routerUser.post("/auth/login", async (req: Request, res: Response) => {
+routerUser.post("/auth/login", loginLimiter, async (req: Request, res: Response) => {
   try {
     const { password, email } = req.body;
     const logUser = await new User().authenticate(password, email);
@@ -270,7 +271,7 @@ routerUser.post("/auth/login", async (req: Request, res: Response) => {
 routerUser.get("/get", authMiddleware, async (req: Request, res: Response) => {
   try {
     const idUser = Number(req.idUser);
-
+    console.log(req)
     const user = await new User().get(idUser);
 
     if (!user.success || !user.data) {
@@ -282,6 +283,7 @@ routerUser.get("/get", authMiddleware, async (req: Request, res: Response) => {
 
     const dataReturn = {
       profile: {
+        id: idUser,
         email: user.data.email,
         nom: user.data.nom,
         prenom: user.data.prenom,
@@ -660,7 +662,7 @@ routerUser.delete(
 );
 
 // Route forgot password pour l'envoi du mail de réinitialisation
-routerUser.post("/forgotpassword", async (req: Request, res: Response) => {
+routerUser.post("/forgotpassword", forgotPasswordLimiter, async (req: Request, res: Response) => {
   const { email } = req.body;
 
   if (!email) {

@@ -24,6 +24,8 @@ import routerNegotiation from "./src/route/apiNegotiation.js";
 import cors from "cors";
 import { seedBootstrapUsers } from "./src/services/bootstrapUsers.js";
 import { seedPlans } from "./src/services/planSeeder.js";
+
+import { globalLimiter } from "./src/securite/limiter.js";
 // import { internalApiKeyMiddleware } from "./middleware/internalApiKeyMiddleware";
 /**
  * Préparation du serveur nodejs/express pour ce backend
@@ -37,6 +39,9 @@ const HOST_PROXY: string =
     : "https://proxy.lumenjuris.com");
 
 const app = express();
+
+
+//SECURITE
 app.set("etag", false);
 const port = process.env.PORT || 3020;
 app.use(express.json({ limit: "20mb" }));
@@ -45,11 +50,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:3020", HOST_PROXY],
+    origin: process.env.NODE_ENV === "dev" ? ["http://localhost:5173", "http://localhost:3020", HOST_PROXY] : HOST_PROXY,
     credentials: true,
   }),
 );
-
+app.use(globalLimiter)
+app.set("trust-proxy", 1)
 // app.use(internalApiKeyMiddleware);
 
 app.use("/userassets", express.static(path.join(process.cwd(), "userassets")));
