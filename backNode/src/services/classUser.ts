@@ -194,6 +194,7 @@ export class User {
         success: true,
         message: "Utilisateur récupéré avec succès.",
         data: {
+          id: user.idUser,
           email: user.email,
           nom: user.nom,
           prenom: user.prenom,
