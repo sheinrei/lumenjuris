@@ -31,7 +31,7 @@ interface AppliedRecommendationsState {
   ) => boolean;
   clearAllAppliedRecommendations: () => void;
   hasAnyAppliedRecommendations: () => boolean;
-  generateWordDocument: (originalContent?: string, fileName?: string) => void;
+  generateWordDocument: (originalContent?: string, fileName?: string, htmlContent?: string) => void;
   generatePDFDocument: (originalContent?: string, fileName?: string) => void;
 }
 
@@ -130,253 +130,151 @@ export const useAppliedRecommendationsStore =
     generateWordDocument: async (
       originalContent?: string,
       fileName?: string,
+      htmlContent?: string,
     ) => {
+      if (!originalContent && !htmlContent) return;
+
       const appliedRecommendations = get().appliedRecommendations;
+      const baseName = fileName ? fileName.replace(/\.[^/.]+$/, "") : "document";
 
       try {
-        // Importer dynamiquement docx et file-saver
         const docx = await import("docx");
         const { saveAs } = await import("file-saver");
-        const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType } =
-          docx;
+        const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType } = docx;
 
-        if (originalContent && appliedRecommendations.length > 0) {
-          // Générer le document modifié avec les recommandations appliquées
-          const modifiedContent = applyRecommendationsToContent(
-            originalContent,
-            appliedRecommendations,
-          );
+        const BLOCK_TAGS = new Set(["h1","h2","h3","h4","h5","h6","p","li","blockquote","pre","hr","table","tr","td","th"]);
+        const INLINE_TAGS = new Set(["span","a","strong","b","em","i","u","s","mark","code","small","sup","sub","label"]);
+        const CONTAINER_TAGS = new Set(["div","section","article","main","header","footer","ul","ol","body","figure","figcaption"]);
 
-          // Créer le document Word
-          const doc = new Document({
-            sections: [
-              {
-                properties: {},
-                children: [
-                  // Titre principal
-                  new Paragraph({
-                    text: "DOCUMENT MODIFIÉ AVEC RECOMMANDATIONS APPLIQUÉES",
-                    heading: HeadingLevel.HEADING_1,
-                    alignment: AlignmentType.CENTER,
-                    spacing: { after: 300 },
-                  }),
-
-                  // Informations du document
-                  new Paragraph({
-                    children: [
-                      new TextRun({ text: "Document original : ", bold: true }),
-                      new TextRun({ text: fileName || "Document" }),
-                    ],
-                    spacing: { after: 120 },
-                  }),
-
-                  new Paragraph({
-                    children: [
-                      new TextRun({
-                        text: "Date de modification : ",
-                        bold: true,
-                      }),
-                      new TextRun({ text: new Date().toLocaleString("fr-FR") }),
-                    ],
-                    spacing: { after: 120 },
-                  }),
-
-                  new Paragraph({
-                    children: [
-                      new TextRun({
-                        text: "Nombre de modifications appliquées : ",
-                        bold: true,
-                      }),
-                      new TextRun({
-                        text: appliedRecommendations.length.toString(),
-                      }),
-                    ],
-                    spacing: { after: 400 },
-                  }),
-
-                  // Section des modifications
-                  new Paragraph({
-                    text: "MODIFICATIONS APPLIQUÉES",
-                    heading: HeadingLevel.HEADING_2,
-                    spacing: { before: 300, after: 200 },
-                  }),
-
-                  // Liste des modifications
-                  ...appliedRecommendations.map(
-                    (applied, idx) =>
-                      new Paragraph({
-                        text: `${idx + 1}. ${applied.originalClause.type} - ${applied.recommendation.title}`,
-                        bullet: { level: 0 },
-                        spacing: { after: 120 },
-                      }),
-                  ),
-
-                  // Section du contenu modifié
-                  new Paragraph({
-                    text: "CONTENU MODIFIÉ",
-                    heading: HeadingLevel.HEADING_2,
-                    spacing: { before: 400, after: 300 },
-                  }),
-
-                  // Contenu modifié (diviser par paragraphes)
-                  ...modifiedContent.split("\n\n").map(
-                    (para) =>
-                      new Paragraph({
-                        text: para.trim(),
-                        spacing: { after: 200 },
-                      }),
-                  ),
-                ],
-              },
-            ],
-          });
-
-          // Générer et sauvegarder le fichier
-          const blob = await docx.Packer.toBlob(doc);
-          saveAs(
-            blob,
-            `${fileName ? fileName.replace(/\.[^/.]+$/, "") : "document"}_modifie.docx`,
-          );
-        } else {
-          // Fallback : générer un rapport des recommandations seulement
-          const doc = new Document({
-            sections: [
-              {
-                properties: {},
-                children: [
-                  new Paragraph({
-                    text: "Rapport des recommandations appliquées",
-                    heading: HeadingLevel.HEADING_1,
-                    alignment: AlignmentType.CENTER,
-                    spacing: { after: 300 },
-                  }),
-
-                  new Paragraph({
-                    children: [
-                      new TextRun({ text: "Généré le : ", bold: true }),
-                      new TextRun({ text: new Date().toLocaleString("fr-FR") }),
-                    ],
-                    spacing: { after: 200 },
-                  }),
-
-                  new Paragraph({
-                    children: [
-                      new TextRun({ text: "Nombre total : ", bold: true }),
-                      new TextRun({
-                        text: appliedRecommendations.length.toString(),
-                      }),
-                    ],
-                    spacing: { after: 400 },
-                  }),
-
-                  // Recommandations
-                  ...appliedRecommendations.flatMap((item, idx) => [
-                    new Paragraph({
-                      text: `Recommandation ${idx + 1}`,
-                      heading: HeadingLevel.HEADING_2,
-                      spacing: { before: 300, after: 200 },
-                    }),
-
-                    new Paragraph({
-                      children: [
-                        new TextRun({
-                          text: "Clause originale : ",
-                          bold: true,
-                        }),
-                        new TextRun({ text: item.originalClause.type }),
-                      ],
-                      spacing: { after: 120 },
-                    }),
-
-                    new Paragraph({
-                      children: [
-                        new TextRun({
-                          text: "Problème identifié : ",
-                          bold: true,
-                        }),
-                        new TextRun({
-                          text: item.originalClause.justification,
-                        }),
-                      ],
-                      spacing: { after: 120 },
-                    }),
-
-                    new Paragraph({
-                      children: [
-                        new TextRun({ text: "Recommandation : ", bold: true }),
-                        new TextRun({ text: item.recommendation.title }),
-                      ],
-                      spacing: { after: 120 },
-                    }),
-
-                    new Paragraph({
-                      text: "Texte suggéré :",
-                      spacing: { after: 120 },
-                    }),
-
-                    new Paragraph({
-                      text: item.recommendation.clauseText,
-                      indent: { left: 567 }, // 1cm indent
-                      spacing: { after: 120 },
-                    }),
-
-                    new Paragraph({
-                      children: [
-                        new TextRun({ text: "Avantages : ", bold: true }),
-                        new TextRun({ text: item.recommendation.benefits }),
-                      ],
-                      spacing: { after: 120 },
-                    }),
-
-                    new Paragraph({
-                      children: [
-                        new TextRun({
-                          text: "Réduction des risques : ",
-                          bold: true,
-                        }),
-                        new TextRun({
-                          text: item.recommendation.riskReduction,
-                        }),
-                      ],
-                      spacing: { after: 120 },
-                    }),
-
-                    new Paragraph({
-                      children: [
-                        new TextRun({ text: "Appliquée le : ", bold: true }),
-                        new TextRun({
-                          text: item.appliedAt.toLocaleString("fr-FR"),
-                        }),
-                      ],
-                      spacing: { after: 400 },
-                    }),
-                  ]),
-                ],
-              },
-            ],
-          });
-
-          const blob = await docx.Packer.toBlob(doc);
-          saveAs(blob, "recommandations-appliquees.docx");
+        // Collecte tous les runs inline d'un nœud (récursif)
+        function nodeToRuns(node: Node, bold = false, italic = false, underline = false): InstanceType<typeof TextRun>[] {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const text = (node.textContent || "").replace(/\n/g, " ").replace(/\s{2,}/g, " ");
+            if (!text.trim()) return [];
+            return [new TextRun({ text, bold, italic, underline: underline ? {} : undefined })];
+          }
+          if (node.nodeType !== Node.ELEMENT_NODE) return [];
+          const el = node as HTMLElement;
+          const tag = el.tagName.toLowerCase();
+          const isBold = bold || tag === "strong" || tag === "b";
+          const isItalic = italic || tag === "em" || tag === "i";
+          const isUnderline = underline || tag === "u";
+          return Array.from(el.childNodes).flatMap((c) => nodeToRuns(c, isBold, isItalic, isUnderline));
         }
+
+        // Vérifie si un élément contient au moins un enfant block-level
+        function hasBlockChild(el: HTMLElement): boolean {
+          return Array.from(el.children).some((c) => BLOCK_TAGS.has(c.tagName.toLowerCase()) || CONTAINER_TAGS.has(c.tagName.toLowerCase()));
+        }
+
+        function htmlToDocxParagraphs(html: string): InstanceType<typeof Paragraph>[] {
+          const parser = new DOMParser();
+          const parsed = parser.parseFromString(html, "text/html");
+          const paragraphs: InstanceType<typeof Paragraph>[] = [];
+
+          function pushParagraph(el: HTMLElement, opts?: { heading?: (typeof HeadingLevel)[keyof typeof HeadingLevel]; bullet?: boolean }): void {
+            const runs = nodeToRuns(el);
+            const text = el.textContent?.replace(/\n/g, " ").replace(/\s{2,}/g, " ").trim() || "";
+            if (!text) return;
+            if (opts?.heading !== undefined) {
+              paragraphs.push(new Paragraph({ text, heading: opts.heading, spacing: { before: 200, after: 100 } }));
+            } else if (opts?.bullet) {
+              paragraphs.push(new Paragraph({ children: runs.length ? runs : [new TextRun({ text })], bullet: { level: 0 }, spacing: { after: 80 } }));
+            } else {
+              paragraphs.push(new Paragraph({ children: runs.length ? runs : [new TextRun({ text })], spacing: { after: 120 } }));
+            }
+          }
+
+          function processNode(node: Node): void {
+            if (node.nodeType === Node.TEXT_NODE) {
+              const text = (node.textContent || "").replace(/\n/g, " ").trim();
+              if (text) paragraphs.push(new Paragraph({ children: [new TextRun({ text })], spacing: { after: 80 } }));
+              return;
+            }
+            if (node.nodeType !== Node.ELEMENT_NODE) return;
+            const el = node as HTMLElement;
+            const tag = el.tagName.toLowerCase();
+
+            if (tag === "h1") { pushParagraph(el, { heading: HeadingLevel.HEADING_1 }); }
+            else if (tag === "h2") { pushParagraph(el, { heading: HeadingLevel.HEADING_2 }); }
+            else if (tag === "h3" || tag === "h4" || tag === "h5" || tag === "h6") { pushParagraph(el, { heading: HeadingLevel.HEADING_3 }); }
+            else if (tag === "p") { pushParagraph(el); }
+            else if (tag === "li") { pushParagraph(el, { bullet: true }); }
+            else if (tag === "hr") { paragraphs.push(new Paragraph({ text: "", spacing: { before: 100, after: 100 } })); }
+            else if (CONTAINER_TAGS.has(tag)) {
+              // Si le div/section contient des blocs enfants, on descend dedans
+              if (hasBlockChild(el)) {
+                Array.from(el.childNodes).forEach(processNode);
+              } else {
+                // Div avec uniquement du texte/spans inline → un seul paragraphe
+                pushParagraph(el);
+              }
+            } else if (INLINE_TAGS.has(tag)) {
+              // Span/a orphelin au niveau racine → paragraphe simple
+              pushParagraph(el);
+            }
+          }
+
+          Array.from(parsed.body.childNodes).forEach(processNode);
+          return paragraphs;
+        }
+
+        // Texte brut → paragraphes en respectant les doubles sauts de ligne
+        function textToDocxParagraphs(text: string): InstanceType<typeof Paragraph>[] {
+          return text
+            .split(/\n{2,}/)
+            .map((block) => block.replace(/\n/g, " ").replace(/\s{2,}/g, " ").trim())
+            .filter(Boolean)
+            .map((line) => new Paragraph({ children: [new TextRun({ text: line })], spacing: { after: 160 } }));
+        }
+
+        let children: InstanceType<typeof Paragraph>[];
+
+        if (htmlContent) {
+          if (appliedRecommendations.length > 0 && originalContent) {
+            const modifiedText = applyRecommendationsToContent(originalContent, appliedRecommendations);
+            children = textToDocxParagraphs(modifiedText);
+          } else {
+            children = htmlToDocxParagraphs(htmlContent);
+          }
+        } else if (originalContent) {
+          const exportText = appliedRecommendations.length > 0
+            ? applyRecommendationsToContent(originalContent, appliedRecommendations)
+            : originalContent;
+          children = textToDocxParagraphs(exportText);
+        } else {
+          return;
+        }
+
+        const wordDoc = new Document({
+          styles: {
+            default: {
+              document: {
+                run: { font: "Calibri", size: 22 },
+                paragraph: { spacing: { line: 276 } },
+              },
+            },
+          },
+          sections: [{
+            properties: {
+              page: {
+                margin: { top: 1440, bottom: 1440, left: 1800, right: 1800 },
+              },
+            },
+            children,
+          }],
+        });
+
+        const blob = await docx.Packer.toBlob(wordDoc);
+        saveAs(blob, `${baseName}.docx`);
       } catch (error) {
         console.error("Erreur lors de la génération du document Word:", error);
-        let content = `DOCUMENT MODIFIÉ AVEC RECOMMANDATIONS APPLIQUÉES\n\n`;
-
-        if (originalContent && appliedRecommendations.length > 0) {
-          content += applyRecommendationsToContent(
-            originalContent,
-            appliedRecommendations,
-          );
-        } else {
-          content += "Aucune recommandation appliquée";
-        }
-
-        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+        const fallbackText = originalContent || "";
+        const blob = new Blob([fallbackText], { type: "text/plain;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `${fileName ? fileName.replace(/\.[^/.]+$/, "") : "document"}_modifie.txt`;
+        a.download = `${baseName}.txt`;
         document.body.appendChild(a);
         a.click();
         a.remove();

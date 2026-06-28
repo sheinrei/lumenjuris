@@ -7,12 +7,18 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "db:sync": "prisma migrate dev && prisma generate"
+    "db:sync": "prisma migrate dev && prisma generate",
+    "seed:contratheque": "tsx prisma/seedContratheque.ts",
+    "test:contract": "tsx tests/contract.integration.ts",
+    "test:negotiation": "tsx tests/negotiation.stateMachine.test.ts && tsx tests/negotiation.integration.ts"
   },
   "devDependencies": {
+    "@prisma/adapter-mariadb": "^7.6.0",
+    "@prisma/client": "^7.6.0",
+    "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
@@ -25,9 +31,6 @@
     "typescript": "^6.0.2"
   },
   "dependencies": {
-    "@prisma/adapter-mariadb": "^7.6.0",
-    "@prisma/client": "^7.6.0",
-    "@types/bcrypt": "^6.0.0",
     "axios": "^1.14.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
