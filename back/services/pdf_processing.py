@@ -40,6 +40,7 @@ except ImportError:
 try:
     import fitz  # PyMuPDF
     PYMUPDF_AVAILABLE = True
+
 except ImportError:
     PYMUPDF_AVAILABLE = False
     print("⚠️ PyMuPDF non installé - utilisation de pdfplumber uniquement")
@@ -178,6 +179,7 @@ def extract_text_from_word(content: bytes) -> tuple:
                 return text, html
         except Exception as e:
             print(f"⚠️ mammoth échoué: {e}")
+
 
     if DOCX_AVAILABLE:
         try:

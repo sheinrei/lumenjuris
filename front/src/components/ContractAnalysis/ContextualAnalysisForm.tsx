@@ -26,7 +26,7 @@ export const ContextualAnalysisForm: React.FC<ContextualAnalysisFormProps> = ({
     interestOrientation: 'balanced',
     mission: '',
     legalRegime: "",
-    contractObjective : "",
+    contractObjective: "",
   });
 
 
@@ -37,7 +37,7 @@ export const ContextualAnalysisForm: React.FC<ContextualAnalysisFormProps> = ({
   const isEquitable = context.interestOrientation === 'balanced';
 
 
-  
+
   // Détection automatique au chargement du formulaire - 100% IA
   useEffect(() => {
     if (!extractedText || extractedText.length < 100) {
@@ -132,11 +132,15 @@ export const ContextualAnalysisForm: React.FC<ContextualAnalysisFormProps> = ({
         <h3 className="text-xl font-semibold mb-4">📋 Questions d'analyse personnalisée</h3>
 
         {isDetecting && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-sm text-blue-700">
-            <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full"></div>
-            Analyse du document pour pré-remplir le formulaire...
-          </div>
-        )}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-sm text-blue-700">
+              <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full"></div>
+              Le document est en cours d'analyse pour vous aider à remplir automatiquement les champs.
+              Vous pouvez les modifier comme vous le souhaitez
+            </div>
+          )
+
+
+        }
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Type de contrat - maintenant en texte libre */}
@@ -276,7 +280,7 @@ export const ContextualAnalysisForm: React.FC<ContextualAnalysisFormProps> = ({
               className="w-full mt-2 p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
               id="legalRegim"
               name="legalRegim"
-              onChange={(e)=> setContext(prev => ({...prev, legalRegime: e.target.value}))}
+              onChange={(e) => setContext(prev => ({ ...prev, legalRegime: e.target.value }))}
               required
             />
           </div>
@@ -294,7 +298,7 @@ export const ContextualAnalysisForm: React.FC<ContextualAnalysisFormProps> = ({
               className="w-full mt-2 p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
               id="contractGoal"
               name="contractGoal"
-              onChange={(e)=> setContext(prev => ({...prev , contractObjective : e.target.value}) )}
+              onChange={(e) => setContext(prev => ({ ...prev, contractObjective: e.target.value }))}
               required
             />
           </div>

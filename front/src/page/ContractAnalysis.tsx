@@ -63,36 +63,9 @@ import {
 import type { MarketAnalysisResult } from "../utils/marketAnalysis";
 
 import { fetchProxy } from "../utils/fetchProxy";
-function getProcessingStatusLines(
-  phase: string,
-  analysisProgress?: AnalysisProgress | null,
-): string[] {
-  const lines: string[] = ["Préparation du document"];
 
-  if (phase === "analysis" || phase === "scoring" || phase === "enhanced") {
-    lines.push("Analyse des clauses");
-  }
+import { LoadingZoneAnalyzer } from "../components/common/LoadingZoneAnalyzer";
 
-  if ((analysisProgress?.currentAttempt ?? 1) > 1) {
-    lines.push(
-      `Essai ${analysisProgress?.currentAttempt}/${analysisProgress?.totalAttempts}`,
-    );
-  }
-
-  if (phase === "scoring" || phase === "enhanced") {
-    lines.push("Évaluation des risques");
-  }
-
-  if (phase === "enhanced") {
-    lines.push("Finalisation du rapport");
-  }
-
-  if (analysisProgress?.message) {
-    lines.push(analysisProgress.message);
-  }
-
-  return lines;
-}
 
 type EnterpriseGetData = EnterpriseSettings & {
   selectedIdcc?: ConventionCollectiveOption | null;
@@ -169,6 +142,8 @@ function mapEnterpriseToAnalysisContext(
     : undefined;
 }
 
+// ─── Page principale ──────────────────────────────────────────────────────────
+
 export default function ContractAnalysis() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -176,7 +151,6 @@ export default function ContractAnalysis() {
   // États locaux
   const [selectedClause, setSelectedClause] = useState<string | null>(null);
   const [showAnalysisForm, setShowAnalysisForm] = useState(false);
-  //const [contextualAnalysis, setContextualAnalysis] = useState<any>(null);
   const [reviewedClauses, setReviewedClauses] = useState<Set<string>>(
     new Set(),
   );
@@ -190,7 +164,7 @@ export default function ContractAnalysis() {
   useEffect(() => {
     loadContractHistoryIndex()
       .then(setHistoryItems)
-      .catch(() => {});
+      .catch(() => { });
   }, []);
   const [temporaryHistoryEntries, setTemporaryHistoryEntries] = useState<
     Record<string, TemporaryHistoryEntry>
@@ -308,7 +282,6 @@ export default function ContractAnalysis() {
     resetAnalysis,
   } = useContractAnalysis();
 
-  // Statistiques de risque supprimées (plus de tableau de bord) – on garde seulement les clauses triées
   const { sortedClauses } = useRiskStats(contract);
 
   const activeTemporaryEntry = currentHistoryId
@@ -497,10 +470,6 @@ export default function ContractAnalysis() {
         analysisProgress: null,
       };
 
-      // htmlContent intentionnellement null : resetAll() vide le htmlContent avant toute analyse,
-      // donc le flux normal sauvegarde aussi avec null. Forcer null ici aligne le flux background
-      // sur ce comportement -> au rechargement, DocumentViewer utilise le fallback formatContentToHtml
-      // (qui fonctionne) plutôt que injectClausesIntoHtml (qui échoue sur le HTML brut Python).
       const savedItem = await saveContractHistorySnapshot(
         createTemporaryHistorySnapshot({
           ...completedEntry,
@@ -522,7 +491,6 @@ export default function ContractAnalysis() {
         });
         setShowAnalysisForm(false);
 
-        // Fetch destiné à retirer des crédits à l'utilisateur après une analyse de document ayant abouti
         fetchProxy("/api/billing/remove-credits", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -551,17 +519,14 @@ export default function ContractAnalysis() {
     contract,
     reviewedClauses,
     (_, loadedReviewedClauses) => {
-      // Cette fonction sera appelée quand des données partagées sont chargées
       setReviewedClauses(new Set(loadedReviewedClauses));
     },
   );
 
-  // Chargement des données partagées au démarrage
   useEffect(() => {
     loadSharedData();
   }, [loadSharedData]);
 
-  // Injection du texte original dans le nouveau store (étapes 1 & 2 – non invasif)
   useEffect(() => {
     if (contract?.content && originalText !== contract.content) {
       setOriginalText(contract.content);
@@ -684,32 +649,25 @@ export default function ContractAnalysis() {
     };
   }, [shouldWarnBeforeLeaving]);
 
-  // Gestionnaires d'événements locaux (non extraits dans les hooks)
   const handleClauseClick = (clauseId: string) => {
-    // Dimming immédiat + scroll
     setSelectedClause(clauseId);
-
     if (documentViewerRef.current) {
       documentViewerRef.current.scrollToClause(clauseId);
     }
   };
 
-  // Handler pour fermer la modale et revenir au début de la zone PDF
   const handleCloseModal = () => {
     setSelectedClause(null);
   };
 
-  // Réinitialise tous les états locaux et stores (nouvelle analyse ou navigation)
   const resetPageState = () => {
     documentPreparationRef.current = null;
     temporaryHistoryEntriesRef.current = {};
     setTemporaryHistoryEntries({});
     setActiveHistoryId(null);
-    // Vider les stores partagés (recommandations, patches, caches)
     clearAllAppliedRecommendations();
     resetAllPatches();
     clearEnhancedClauseCaches();
-    // Réinitialiser le hook d'analyse et les états UI
     resetAnalysis();
     setSelectedClause(null);
     setShowAnalysisForm(false);
@@ -722,7 +680,6 @@ export default function ContractAnalysis() {
     resetPageState();
   };
 
-  // Handlers avec intégration des hooks
   const onFileUpload = async (file: File) => {
     const preparationKey = `file:${getFileUploadKey(file)}`;
 
@@ -756,7 +713,6 @@ export default function ContractAnalysis() {
     }
   };
 
-  // Déclenche automatiquement l'upload si un fichier est passé via navigation state (autre page)
   useEffect(() => {
     const file = (location.state as { file?: File } | null)?.file;
     if (file) {
@@ -770,8 +726,6 @@ export default function ContractAnalysis() {
       navigate(".", { replace: true, state: null });
       onFileUpload(file);
     }
-    // Tableau vide intentionnel : on veut s'exécuter une seule fois au montage.
-    // Ajouter onFileUpload en dépendance causerait une boucle infinie (sa référence change à chaque render).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -811,7 +765,6 @@ export default function ContractAnalysis() {
   const onStandardAnalysis = () => {
     const analysisHistoryId = currentHistoryIdRef.current;
     if (!analysisHistoryId || !contract) return;
-    // if (analyseCredit !== null && analyseCredit < 100) return; // bypass dev
 
     if (!temporaryHistoryEntriesRef.current[analysisHistoryId]) {
       rememberTemporaryContract(analysisHistoryId, contract);
@@ -825,19 +778,16 @@ export default function ContractAnalysis() {
   const handleForceRelaunchAnalysis = () => {
     const analysisHistoryId = currentHistoryIdRef.current;
     if (!analysisHistoryId || !contract) return;
-    // if (analyseCredit !== null && analyseCredit < 100) return; // bypass dev
 
     if (!temporaryHistoryEntriesRef.current[analysisHistoryId]) {
       rememberTemporaryContract(analysisHistoryId, contract);
     }
 
-    // Vider le cache sessionStorage pour forcer une vraie nouvelle analyse
     clearAnalysisCache(contract.content, currentAnalysisContext ?? undefined);
     clearAllAppliedRecommendations();
     resetAllPatches();
     clearEnhancedClauseCaches();
 
-    // Forcer isProcessing à false pour que startTemporaryAnalysis ne s'arrête pas
     updateTemporaryHistoryEntry(analysisHistoryId, (e) => ({
       ...e,
       isProcessing: false,
@@ -849,7 +799,6 @@ export default function ContractAnalysis() {
   const onContextualAnalysis = (context: AnalysisContext) => {
     const analysisHistoryId = currentHistoryIdRef.current;
     if (!analysisHistoryId || !contract) return;
-    // if (analyseCredit !== null && analyseCredit < 100) return; // bypass dev
 
     if (!temporaryHistoryEntriesRef.current[analysisHistoryId]) {
       rememberTemporaryContract(analysisHistoryId, contract);
@@ -875,7 +824,6 @@ export default function ContractAnalysis() {
 
   const handleMarketAnalysisClick = async () => {
     try {
-      // Si déjà calculée, on n'appelle pas à nouveau l'analyse
       if (marketAnalysis) {
         setShowMarketAnalysis(true);
         return;
@@ -890,9 +838,7 @@ export default function ContractAnalysis() {
   const handleOpenHistoryItem = async (historyId: string) => {
     if (historyId === currentHistoryId) return;
 
-    // Gestion de l'entrée courante avant de changer de vue
     if (documentPreparationRef.current) {
-      // Préparation PDF/texte en cours -> confirmation requise avant d'annuler
       if (!confirmLeavingUnfinishedAnalysis()) return;
       documentPreparationRef.current = null;
     } else if (currentHistoryId) {
@@ -902,15 +848,12 @@ export default function ContractAnalysis() {
         !currentEntry.isProcessing &&
         !currentEntry.contract.processed
       ) {
-        // Formulaire en cours -> confirmation requise avant de supprimer
         if (!confirmLeavingUnfinishedAnalysis()) return;
         documentPreparationRef.current = null;
         removeTemporaryHistoryEntry(currentHistoryId);
       }
-      // Si isProcessing: true -> analyse en fond, pas de dialogue, on laisse tourner
     }
 
-    // Annule la phase de préparation en cours (les callbacks async abandonnent d'eux-mêmes)
     documentPreparationRef.current = null;
 
     const temporaryEntry = temporaryHistoryEntriesRef.current[historyId];
@@ -1028,10 +971,6 @@ export default function ContractAnalysis() {
   };
 
   const clauseData = contract?.clauses.find((c) => c.id === selectedClause);
-  const processingStatusLines = getProcessingStatusLines(
-    displayedProcessingPhase,
-    displayedAnalysisProgress,
-  );
 
   return (
     <>
@@ -1072,64 +1011,22 @@ export default function ContractAnalysis() {
             </div>
           )}
 
-          {/* Zone de chargement pour l'analyse approfondie */}
-          {displayedIsProcessing &&
-            (displayedProcessingPhase === "enhanced" ||
-              displayedProcessingPhase === "analysis" ||
-              displayedProcessingPhase === "scoring") &&
-            contract && (
-              <div className="max-w-4xl mx-auto mb-8">
-                <div className="bg-white border border-blue-200 rounded-xl p-8 shadow-lg">
-                  {/* Barre de progression en temps réel */}
-                  <div className="mb-8">
-                    <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-                      <div className="bg-gradient-to-r from-blue-400 via-purple-500 to-green-500 h-4 rounded-full transition-all duration-1000 ease-out relative">
-                        {/* Animation de progression continue */}
-                        <div
-                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-40 animate-pulse"
-                          style={{
-                            animation: "shimmer 2s ease-in-out infinite",
-                          }}
-                        ></div>
-                        <div
-                          className="h-full bg-gradient-to-r from-blue-500 via-purple-600 to-green-600 transition-all duration-500 ease-out"
-                          style={{
-                            width: "100%",
-                            animation: "fillProgress 15s ease-out forwards",
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div className="flex justify-center mt-3">
-                      <span className="text-sm text-gray-700 font-medium">
-                        {displayedProcessingPhase === "analysis"
-                          ? "🔍 Analyse des clauses..."
-                          : displayedProcessingPhase === "scoring"
-                            ? "⚖️ Évaluation des risques..."
-                            : "💡 Finalisation du rapport..."}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 text-sm text-slate-600">
-                    {processingStatusLines.map((line) => (
-                      <p key={line}>{line}</p>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+          {/* Zone de chargement dynamique */}
+          {displayedIsProcessing && contract && (
+            <div className="max-w-4xl mx-auto mb-8">
+              <LoadingZoneAnalyzer
+                phase={displayedProcessingPhase}
+                analysisProgress={displayedAnalysisProgress}
+              />
+            </div>
+          )}
 
           {contract?.processed && !displayedIsProcessing && (
             <div
               className={sidebarCollapsed ? "w-full px-3" : "max-w-7xl mx-auto"}
             >
-              {/* Tableau de bord des risques supprimé (allègement UI) */}
-
-              {/* Zone principale - Document avec sidebar intégrée */}
               <div id="clauses-section" className="mb-6">
                 <div className="bg-white rounded-lg shadow-lg">
-                  {/* Message informatif si pas encore d'analyse */}
                   {contract.clauses.length === 0 && (
                     <div className="p-4 bg-blue-50 border-b border-blue-200">
                       <div className="flex items-center gap-2 text-blue-800">
@@ -1160,7 +1057,6 @@ export default function ContractAnalysis() {
                 </div>
               </div>
 
-              {/* Boutons d'action - Centrés */}
               <div className="flex justify-center">
                 <ActionButtons
                   onShareReport={handleShareReport}
@@ -1179,7 +1075,6 @@ export default function ContractAnalysis() {
         </div>
       </div>
 
-      {/* Détails de la clause sélectionnée */}
       {selectedClause && clauseData && (
         <EnhancedClauseDetail
           clause={clauseData}
@@ -1191,8 +1086,6 @@ export default function ContractAnalysis() {
         />
       )}
 
-
-      {/* Clauses suggérées */}
       {showMarketAnalysis && marketAnalysis && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">

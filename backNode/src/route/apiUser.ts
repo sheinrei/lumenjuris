@@ -271,7 +271,6 @@ routerUser.post("/auth/login", loginLimiter, async (req: Request, res: Response)
 routerUser.get("/get", authMiddleware, async (req: Request, res: Response) => {
   try {
     const idUser = Number(req.idUser);
-    console.log(req)
     const user = await new User().get(idUser);
 
     if (!user.success || !user.data) {

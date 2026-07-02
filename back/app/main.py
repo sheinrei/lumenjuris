@@ -7,7 +7,7 @@ import os
 import requests
 import asyncio
 from starlette.concurrency import run_in_threadpool
-
+from datetime import datetime
 
 #Max de requette en simultané
 semaphore = asyncio.Semaphore(5)
@@ -150,34 +150,62 @@ async def extract_pdf_text(file: UploadFile = File(...), scan: bool = Form(False
     if file.filename == "" or not allowed_file(file.filename):
         raise HTTPException(status_code=400, detail="Type de fichier non autorisé (PDF ou WORD requis)")
 
+
+    t0 = datetime.now()
+    print(t0)
     content = await file.read()
 
+
+
     if is_word_file(file.filename):
+        t1 = datetime.now()
+
         try:
             texte_brut, html_formatte = extract_text_from_word(content)
+            t2 = datetime.now()
         except ValueError as e:
             raise HTTPException(status_code=422, detail=str(e))
         texte_corrige = corriger_espaces(texte_brut)
         extraction_method = "word"
     else:
-        try :html_formatte = _extract_html_from_pdf_dict(content)
-        except ValueError as e: raise HTTPException(status_code=422, detail=str(e))
+        t1 = datetime.now()
+        try :
+            html_formatte = _extract_html_from_pdf_dict(content)
+            print(html_formatte)
+            t2 = datetime.now()
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=str(e))
+        """        
         print("EXTRACT PDF CONTENT IN HTML : ", html_formatte[:1000])
+        """        
+
+        print()
         texte_brut = _extract_text_from_pdf_content(content, scan)
         texte_corrige = corriger_espaces(texte_brut)
         extraction_method = "server"
 
-    clauses_detectees = extract_clauses_ia_robuste(texte_corrige)
-    texte_des_clauses = " ".join(c.get("text", "") for c in clauses_detectees)
-    keywords = _extract_keywords_basic(texte_des_clauses, max_terms=10)
+    
+    """ clauses_detectees = extract_clauses_ia_robuste(texte_corrige) """
+    t3 = datetime.now()
+    """ texte_des_clauses = " ".join(c.get("text", "") for c in clauses_detectees) """
+    t4 = datetime.now()
+    """ keywords = _extract_keywords_basic(texte_des_clauses, max_terms=10) """
+    t5 = datetime.now()
 
+
+    print(f"T0 {t0}")
+    print(f"T1 {t1}")
+    print(f"T2 {t2}")
+    print(f"T3 {t3}")
+    print(f"T4 {t4}")
+    print(f"T5 {t5}")
 
     return {
         "success": True,
         "text": texte_corrige,
         "html": html_formatte,
-        "clauses": clauses_detectees,
-        "keywords": keywords or [],
+        """ "clauses": clauses_detectees, """
+        """ "keywords": keywords or [], """
         "filename": file.filename,
         "extraction_method": extraction_method,
         "extraction_quality": "high" if len(texte_corrige) > 1000 else "medium",

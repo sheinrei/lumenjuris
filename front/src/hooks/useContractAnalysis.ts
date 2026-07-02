@@ -16,6 +16,7 @@ import { useDocumentTextStore } from "../store/documentTextStore";
 // import { triggerPostAnalysisJournal } from '../utils/analysisLogger';
 
 export type ProcessingPhase =
+  | "upload"
   | "extraction"
   | "analysis"
   | "scoring"
