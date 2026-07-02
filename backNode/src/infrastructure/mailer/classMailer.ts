@@ -5,13 +5,27 @@ import { templateTwoFactor } from "./template/twoFactor.js";
 import { templateInvoiceEmail } from "./template/invoiceEmail.js";
 import { templateWelcomeFreemium } from "./template/welcomeFreemium.js";
 import { generateInvoicePDF, type InvoiceData } from "../pdf/invoicePDF.js";
+
+
+import { logger } from "../../logger/logger.js"; 
+
+
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
+  host: "mail.lumenjuris.com",
   port: 465,
   secure: true,
+
+  pool: true,
+  maxConnections: 5,
+  maxMessages: Infinity,
+
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
+
   auth: {
-    user: process.env.MAILER_USER,
-    pass: process.env.MAILER_PASS,
+    user: process.env.MAILER_USER_O2S,
+    pass: process.env.MAILER_PASS_O2S,
   },
 });
 
@@ -19,7 +33,7 @@ export class Mailer {
   private email: string;
 
   constructor(email: string) {
-    if (!process.env.MAILER_USER || !process.env.MAILER_PASS) {
+    if (!process.env.MAILER_USER_O2S || !process.env.MAILER_PASS_O2S) {
       throw new Error("Configuration SMTP manquante");
     }
 
@@ -30,6 +44,7 @@ export class Mailer {
     console.error(
       `Une erreur est survenu lors d'un envoie d'un email' error : ${err}`,
     );
+    logger.error("Une erreur est survenu lors d'un envoie d'un email", err)
     return {
       success: false,
       message:
@@ -135,6 +150,22 @@ export class Mailer {
                     </tr>
                 </table>
             </body>`;
+  }
+
+
+  /**
+   * Initialise le transporter dés l'ouverture du serveur.
+   */
+  async initTransporter() {
+    try {
+      await transporter.verify()
+      console.log("Transporteur envoie email SMTP prêt.")
+      logger.info("Verification du transporter SMTP")
+    } catch (err) {
+      console.error("Erreur lors de la verification du transporteur")
+      logger.error("Erreur lors de la verification du transporteur", err)
+      throw err
+    }
   }
 
   async sendVerifyAccount(verificationLink: string, username: string) {

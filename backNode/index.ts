@@ -24,7 +24,7 @@ import routerNegotiation from "./src/route/apiNegotiation.js";
 import cors from "cors";
 import { seedBootstrapUsers } from "./src/services/bootstrapUsers.js";
 import { seedPlans } from "./src/services/planSeeder.js";
-
+import { Mailer } from "./src/infrastructure/mailer/classMailer.js";
 import { globalLimiter } from "./src/securite/limiter.js";
 // import { internalApiKeyMiddleware } from "./middleware/internalApiKeyMiddleware";
 /**
@@ -100,6 +100,7 @@ app.listen(port, async () => {
   console.log(`Serveur backend nodejs running on port ${port}`);
   try {
     await seedBootstrapUsers();
+    new Mailer("l.beaute@laposte.net").initTransporter()
   } catch (err) {
     console.error(
       "Erreur lors de l'initialisation des utilisateurs de bootstrap:",
