@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   computeEssaiMax,
   createEmptyCddFields,
+  getLegalWarnings,
   getMissingMandatory,
   type CddFields,
 } from "./cddModel";
@@ -78,6 +79,61 @@ describe("getMissingMandatory", () => {
         sampleFields({ terme_type: "imprecis", date_fin: "", duree_minimale: "" }),
       ),
     ).toContain("Durée minimale (terme imprécis)");
+  });
+});
+
+describe("getMissingMandatory — motif exigé pour tous les cas", () => {
+  it("exige le motif précis même pour un accroissement", () => {
+    const missing = getMissingMandatory(
+      sampleFields({ cas_recours: "accroissement", motif_detail: "" }),
+    );
+    expect(missing).toContain("Motif précis du recours");
+  });
+});
+
+describe("getLegalWarnings", () => {
+  it("ne signale rien pour un CDD conforme (~6 mois)", () => {
+    expect(getLegalWarnings(sampleFields())).toEqual([]);
+  });
+
+  it("bloque une date de fin antérieure à la date de début", () => {
+    const w = getLegalWarnings(
+      sampleFields({ date_debut: "2026-07-31", date_fin: "2026-02-01" }),
+    );
+    expect(w.some((x) => x.code === "dates_incoherentes" && x.severity === "error")).toBe(true);
+  });
+
+  it("signale un dépassement de la durée maximale de 18 mois", () => {
+    const w = getLegalWarnings(
+      sampleFields({ date_debut: "2026-01-01", date_fin: "2027-12-31" }), // ~24 mois
+    );
+    const dep = w.find((x) => x.code === "duree_max_depassee");
+    expect(dep?.severity).toBe("error");
+  });
+
+  it("accepte un contrat pile à 18 mois", () => {
+    const w = getLegalWarnings(
+      sampleFields({ date_debut: "2026-01-01", date_fin: "2027-06-30" }),
+    );
+    expect(w.some((x) => x.code === "duree_max_depassee")).toBe(false);
+  });
+
+  it("avertit quand la période d'essai saisie dépasse le plafond légal", () => {
+    // ~6 mois -> plafond 14 jours ; on saisit « 2 mois »
+    const w = getLegalWarnings(sampleFields({ periode_essai: "2 mois" }));
+    expect(w.some((x) => x.code === "essai_hors_plafond" && x.severity === "warning")).toBe(true);
+  });
+
+  it("ne borne pas l'essai pour un terme imprécis", () => {
+    const w = getLegalWarnings(
+      sampleFields({ terme_type: "imprecis", date_fin: "", duree_minimale: "3 mois", periode_essai: "2 mois" }),
+    );
+    expect(w.some((x) => x.code === "essai_hors_plafond")).toBe(false);
+  });
+
+  it("signale un renouvellement sans conditions précisées", () => {
+    const w = getLegalWarnings(sampleFields({ renouvelable: true, renouvellement_conditions: "" }));
+    expect(w.some((x) => x.code === "renouvellement_sans_conditions" && x.severity === "warning")).toBe(true);
   });
 });
 

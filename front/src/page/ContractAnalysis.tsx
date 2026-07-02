@@ -756,19 +756,23 @@ export default function ContractAnalysis() {
     }
   };
 
-  // Déclenche automatiquement l'upload si un fichier est passé via navigation state (autre page)
+  // Déclenche automatiquement l'analyse si un fichier OU un texte est passé via navigation state
+  // (ex. depuis la génération de contrats : « Réviser (risques) »).
   useEffect(() => {
-    const file = (location.state as { file?: File } | null)?.file;
-    if (file) {
-      const navigationUploadKey = `${location.key}:${getFileUploadKey(file)}`;
-
-      if (consumedNavigationUploadKeys.has(navigationUploadKey)) {
-        return;
-      }
-
+    const state = location.state as { file?: File; text?: string; fileName?: string } | null;
+    if (state?.file) {
+      const navigationUploadKey = `${location.key}:${getFileUploadKey(state.file)}`;
+      if (consumedNavigationUploadKeys.has(navigationUploadKey)) return;
       consumedNavigationUploadKeys.add(navigationUploadKey);
       navigate(".", { replace: true, state: null });
-      onFileUpload(file);
+      onFileUpload(state.file);
+    } else if (state?.text && state.text.trim()) {
+      const fileName = state.fileName || "Contrat généré";
+      const navigationTextKey = `${location.key}:text:${fileName}:${state.text.length}`;
+      if (consumedNavigationUploadKeys.has(navigationTextKey)) return;
+      consumedNavigationUploadKeys.add(navigationTextKey);
+      navigate(".", { replace: true, state: null });
+      void onTextSubmit(state.text, fileName);
     }
     // Tableau vide intentionnel : on veut s'exécuter une seule fois au montage.
     // Ajouter onFileUpload en dépendance causerait une boucle infinie (sa référence change à chaque render).

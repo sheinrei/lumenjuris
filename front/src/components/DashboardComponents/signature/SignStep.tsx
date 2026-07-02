@@ -1,4 +1,4 @@
-import { ChevronLeft, Send, MailPlus, Loader2 } from "lucide-react";
+import { ChevronLeft, Send, MailPlus, Loader2, AlertCircle, Clock, MousePointerClick, CheckCircle2 } from "lucide-react";
 import { PdfViewer } from "./PdfViewer";
 import { SignProgress } from "./SignProgress";
 import type { Field, Signer } from "./types";
@@ -97,19 +97,41 @@ export function SignStep(props: Props) {
           disabled={sending}
           className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-gray-500 hover:text-gray-700 disabled:opacity-40 transition-colors"
         >
-          <ChevronLeft className="w-3.5 h-3.5" /> Modifier les champs
+          <ChevronLeft className="w-3.5 h-3.5" /> Revenir aux zones de signature
         </button>
       </aside>
 
-      <div className="lg:col-span-3 bg-gray-50 rounded-xl p-4">
-        <PdfViewer
-          file={file}
-          fields={fields}
-          signers={signers}
-          mode="sign"
-          onFieldClick={props.onFieldClick}
-          onLoaded={props.onNumPagesLoaded}
-        />
+      <div className="lg:col-span-3 space-y-3">
+        {/* Guidage : une consigne à la fois, selon l'avancement */}
+        {!allSelfSigned && (
+          <div className="flex items-center gap-2.5 rounded-xl border px-4 py-3 text-sm text-gray-800"
+            style={{ borderColor: selfColor + "55", backgroundColor: selfColor + "10" }}>
+            <MousePointerClick className="w-4 h-4 shrink-0" style={{ color: selfColor }} />
+            <span><strong>Signez d'abord :</strong>&nbsp;cliquez sur votre zone de signature dans le document.</span>
+          </div>
+        )}
+        {allSelfSigned && !recipientFormValid && (
+          <div className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span><strong>Signé !</strong>&nbsp;Renseignez maintenant le nom et l'email du cocontractant (à gauche) pour lui envoyer le contrat.</span>
+          </div>
+        )}
+        {canSend && (
+          <div className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            <Send className="w-4 h-4 shrink-0" />
+            <span><strong>Tout est prêt :</strong>&nbsp;cliquez sur « Envoyer au cocontractant ». Il recevra un email pour signer à son tour.</span>
+          </div>
+        )}
+        <div className="bg-gray-50 rounded-xl p-4">
+          <PdfViewer
+            file={file}
+            fields={fields}
+            signers={signers}
+            mode="sign"
+            onFieldClick={props.onFieldClick}
+            onLoaded={props.onNumPagesLoaded}
+          />
+        </div>
       </div>
     </div>
   );
@@ -131,13 +153,15 @@ function ProgressCard({
     <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
       <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Votre progression</p>
       <SignProgress title="Vous" done={selfSigned} total={selfTotal} color={selfColor} />
-      <SignProgress
-        title="Cocontractant"
-        done={0}
-        total={counterTotal}
-        color={counterColor}
-        muted
-      />
+      {/* Le cocontractant ne signe pas ici : il recevra un email après l'envoi. */}
+      <div className="flex items-start gap-2 rounded-lg bg-gray-50 px-2.5 py-2">
+        <Clock className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: counterColor }} />
+        <p className="text-[11px] leading-snug text-gray-500">
+          <span className="font-semibold text-gray-700">Cocontractant</span>
+          {counterTotal > 0 ? ` — ${counterTotal} zone${counterTotal > 1 ? "s" : ""} à signer.` : " — "}
+          Il signera de son côté, après réception de l'email.
+        </p>
+      </div>
     </div>
   );
 }

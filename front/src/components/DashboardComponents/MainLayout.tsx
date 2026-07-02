@@ -22,6 +22,7 @@ import { useUserStore } from "../../store/userStore";
 import { FeedbackWidget } from "../common/FeedbackWidget";
 import { useTemplateNotificationStore } from "../../store/templateNotificationStore";
 import { LumenJurisLogo } from "../common/LumenJurisLogo";
+import { ErrorBoundary } from "../ContractAnalysis/ErrorBoundary";
 
 interface NavSubItem {
   icon: React.ElementType;
@@ -155,6 +156,7 @@ export function MainLayout() {
   const userData = useUserStore((s) => s.userData);
   const isAdmin = userData?.profile?.role === "ADMIN";
   const [collapsed, setCollapsed] = useState(false);
+  const location = useLocation();
 
   return (
     <div className="flex min-h-screen w-full bg-white">
@@ -195,9 +197,12 @@ export function MainLayout() {
           <HeaderNavigationBar />
         </header>
 
-        {/* Contenu des pages */}
+        {/* Contenu des pages — isolé par un ErrorBoundary re-monté à chaque route :
+            un crash d'écran n'emporte plus toute l'app, et changer de page le réinitialise. */}
         <main className="flex-1 overflow-auto p-5 lg:p-7">
-          <Outlet />
+          <ErrorBoundary key={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
 

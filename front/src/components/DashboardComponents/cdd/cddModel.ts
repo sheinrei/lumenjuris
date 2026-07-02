@@ -166,7 +166,9 @@ export function getMissingMandatory(fields: CddFields): string[] {
 
   req(!!fields.emp_denomination.trim(), "Dénomination de l'employeur");
   req(!!fields.sal_nom.trim(), "Nom du salarié");
-  req(!!fields.motif_detail.trim() || fields.cas_recours === "accroissement", "Motif précis du recours");
+  // Le motif circonstancié est requis pour TOUS les cas de recours, y compris
+  // l'accroissement (art. L1242-12, 1°) : son absence entraîne la requalification.
+  req(!!fields.motif_detail.trim(), "Motif précis du recours");
   if (fields.cas_recours === "remplacement") {
     req(!!fields.remplace_nom.trim(), "Nom du salarié remplacé");
     req(!!fields.remplace_qualification.trim(), "Qualification du salarié remplacé");
@@ -185,4 +187,101 @@ export function getMissingMandatory(fields: CddFields): string[] {
   req(!!fields.organisme_prevoyance.trim(), "Organisme de prévoyance");
 
   return missing;
+}
+
+/**
+ * Durée maximale légale du CDD, en mois, selon le cas de recours
+ * (art. L1242-8-1 du Code du travail, à défaut d'accord de branche étendu
+ * dérogatoire). Renouvellement(s) inclus.
+ */
+export const DUREE_MAX_MOIS: Record<CasRecours, number> = {
+  accroissement: 18,
+  remplacement: 18,
+  saisonnier: 18,
+  usage: 18,
+};
+
+export type LegalSeverity = "error" | "warning";
+export type LegalWarning = {
+  severity: LegalSeverity;
+  code: string;
+  message: string;
+};
+
+/** Durée du contrat en mois (approximation calendaire), ou null si indéterminable. */
+function dureeMois(startISO: string, endISO: string): number | null {
+  const days = diffDays(startISO, endISO);
+  return days === null ? null : days / 30.4375;
+}
+
+/**
+ * Contrôles de légalité au-delà des simples champs manquants : cohérence des
+ * dates, durée maximale par cas de recours, borne de la période d'essai.
+ * Fonction pure et testable, sans dépendance UI.
+ */
+export function getLegalWarnings(fields: CddFields): LegalWarning[] {
+  const warnings: LegalWarning[] = [];
+
+  if (fields.terme_type === "precis" && fields.date_debut && fields.date_fin) {
+    const days = diffDays(fields.date_debut, fields.date_fin);
+    if (days === null) {
+      warnings.push({
+        severity: "error",
+        code: "dates_incoherentes",
+        message:
+          "La date de fin doit être postérieure à la date de début du contrat.",
+      });
+    } else {
+      const mois = dureeMois(fields.date_debut, fields.date_fin);
+      const maxMois = DUREE_MAX_MOIS[fields.cas_recours];
+      if (mois !== null && mois > maxMois + 1e-6) {
+        warnings.push({
+          severity: "error",
+          code: "duree_max_depassee",
+          message:
+            `La durée du contrat (~${mois.toFixed(1)} mois) dépasse le plafond légal ` +
+            `de ${maxMois} mois pour ce cas de recours (art. L1242-8-1). ` +
+            `Risque de requalification en CDI.`,
+        });
+      }
+
+      // La période d'essai saisie ne doit pas excéder le plafond légal (L1242-10).
+      const essaiMax = computeEssaiMax(fields.date_debut, fields.date_fin);
+      const essaiSaisiJours = parseEssaiJours(fields.periode_essai);
+      if (essaiMax && essaiSaisiJours !== null && essaiSaisiJours > essaiMax.days) {
+        warnings.push({
+          severity: "warning",
+          code: "essai_hors_plafond",
+          message:
+            `La période d'essai saisie (~${essaiSaisiJours} jours) dépasse le plafond ` +
+            `légal de ${essaiMax.days} jours (art. L1242-10, non renouvelable).`,
+        });
+      }
+    }
+  }
+
+  if (fields.renouvelable && !fields.renouvellement_conditions.trim()) {
+    warnings.push({
+      severity: "warning",
+      code: "renouvellement_sans_conditions",
+      message:
+        "Le renouvellement est prévu sans en préciser les conditions " +
+        "(art. L1243-13). Précisez-les ou retirez la clause.",
+    });
+  }
+
+  return warnings;
+}
+
+/** Extrait un nombre de jours d'une saisie libre de période d'essai (« 2 semaines », « 1 mois », « 14 j »…). */
+function parseEssaiJours(raw: string): number | null {
+  const s = raw.trim().toLowerCase();
+  if (!s) return null;
+  const m = s.match(/(\d+(?:[.,]\d+)?)/);
+  if (!m) return null;
+  const n = parseFloat(m[1].replace(",", "."));
+  if (Number.isNaN(n)) return null;
+  if (/sem/.test(s)) return Math.round(n * 7);
+  if (/mois/.test(s)) return Math.round(n * 30.4375);
+  return Math.round(n); // jours par défaut
 }

@@ -15,6 +15,7 @@ import {
   type CddFields,
   computeEssaiMax,
   createEmptyCddFields,
+  getLegalWarnings,
   getMissingMandatory,
 } from "./cddModel";
 import {
@@ -183,6 +184,7 @@ export function CddForm({ onBack }: { onBack: () => void }) {
   );
 
   const missing = useMemo(() => getMissingMandatory(fields), [fields]);
+  const legalWarnings = useMemo(() => getLegalWarnings(fields), [fields]);
   const doc = useMemo(() => buildCddContract(fields), [fields]);
 
   const last = STEPS.length - 1;
@@ -398,7 +400,7 @@ export function CddForm({ onBack }: { onBack: () => void }) {
         {/* 7 — Aperçu & génération */}
         {step === last && (
           <div className="flex flex-col gap-5">
-            {missing.length > 0 ? (
+            {missing.length > 0 && (
               <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
                 <p className="flex items-center gap-2 text-sm font-semibold text-amber-800">
                   <AlertTriangle className="h-4 w-4" />
@@ -413,7 +415,39 @@ export function CddForm({ onBack }: { onBack: () => void }) {
                   ))}
                 </ul>
               </div>
-            ) : (
+            )}
+
+            {legalWarnings.map((w) => {
+              const error = w.severity === "error";
+              return (
+                <div
+                  key={w.code}
+                  className={`rounded-xl border p-4 ${
+                    error
+                      ? "border-red-300 bg-red-50"
+                      : "border-amber-300 bg-amber-50"
+                  }`}
+                >
+                  <p
+                    className={`flex items-center gap-2 text-sm font-semibold ${
+                      error ? "text-red-800" : "text-amber-800"
+                    }`}
+                  >
+                    <AlertTriangle className="h-4 w-4" />
+                    {error ? "Anomalie de conformité" : "Point de vigilance"}
+                  </p>
+                  <p
+                    className={`mt-1 text-xs ${
+                      error ? "text-red-700" : "text-amber-700"
+                    }`}
+                  >
+                    {w.message}
+                  </p>
+                </div>
+              );
+            })}
+
+            {missing.length === 0 && legalWarnings.length === 0 && (
               <div className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-sm font-medium text-emerald-800">
                 <Check className="h-4 w-4" /> Toutes les mentions obligatoires sont renseignées.
               </div>

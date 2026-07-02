@@ -13,6 +13,8 @@ export function clauseInstructionPrompt(
     `Tu es juriste expert en droit du travail français, spécialisé dans le CDD. ` +
     `Modifie la clause ci-dessous selon la consigne de l'utilisateur, en conservant ` +
     `la conformité légale (mentions obligatoires du CDD). ` +
+    `Conserve TELS QUELS les marqueurs de variables au format {{NOM}} présents dans la clause ` +
+    `(ne les traduis pas, ne les remplis pas, ne les supprime pas). ` +
     `Consigne : « ${instruction.trim()} ». ` +
     `Réponds UNIQUEMENT avec le texte de la clause, sans préambule ni explication.\n\n` +
     `Clause :\n"""\n${clauseText}\n"""`
@@ -28,6 +30,38 @@ export async function instructClause(
     "none",
     "medium",
     "gpt-5.4-nano",
+  );
+  return out.trim();
+}
+
+export function contractInstructionPrompt(
+  contractText: string,
+  instruction: string,
+): string {
+  return (
+    `Tu es juriste expert en droit français des contrats. ` +
+    `Modifie le contrat ci-dessous selon la consigne de l'utilisateur. ` +
+    `Ne modifie QUE ce que la consigne demande ; conserve tout le reste STRICTEMENT à l'identique. ` +
+    `Conserve TELS QUELS les marqueurs de variables au format {{nom_variable}} ` +
+    `(ne les traduis pas, ne les remplis pas, ne les supprime pas, sauf si la consigne l'exige). ` +
+    `Conserve le format du document : une ligne « # » pour le titre, « ### » pour chaque intitulé ` +
+    `d'article, paragraphes séparés par une ligne vide. ` +
+    `Consigne : « ${instruction.trim()} ». ` +
+    `Réponds UNIQUEMENT avec le contrat complet au même format, sans préambule ni commentaire.\n\n` +
+    `Contrat :\n"""\n${contractText}\n"""`
+  );
+}
+
+/** Modification globale du contrat selon une consigne libre (tout ou partie). */
+export async function instructContract(
+  contractText: string,
+  instruction: string,
+): Promise<string> {
+  const out = await callOpenAi52(
+    contractInstructionPrompt(contractText, instruction),
+    "medium",
+    "medium",
+    "gpt-5.2",
   );
   return out.trim();
 }

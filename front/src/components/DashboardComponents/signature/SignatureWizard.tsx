@@ -73,7 +73,16 @@ export function SignatureWizard({ initialFile, onSent, onExit }: Props = {}) {
   /** Ajoute un champ — reste armé sur "signature" pour permettre de placer plusieurs champs. */
   function addField(f: Omit<Field, "id">) {
     const id = "f_" + Math.random().toString(36).slice(2, 10);
-    setFields((prev) => [...prev, { ...f, id }]);
+    setFields((prev) => {
+      const next = [...prev, { ...f, id }];
+      // Guidage naturel : dès que VOTRE zone est posée et qu'aucune zone
+      // cocontractant n'existe, on bascule automatiquement sur « Cocontractant »
+      // — l'utilisateur enchaîne sans avoir à comprendre le sélecteur.
+      if (f.signer === "self" && !next.some((x) => x.signer === "counterparty")) {
+        setActiveSignerRole("counterparty");
+      }
+      return next;
+    });
     // On reste armé : l'utilisateur peut placer autant de champs qu'il veut
     setArmedFieldType("signature");
   }

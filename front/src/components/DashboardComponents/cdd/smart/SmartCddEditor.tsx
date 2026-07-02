@@ -1,6 +1,7 @@
-// Éditeur de contrat « document d'abord » — CDD accroissement.
+// Éditeur de contrat « document d'abord » — générique (piloté par un ContractModel).
 // Un seul éditeur : tout le texte est librement éditable, les variables sont
 // surlignées et remplies d'un seul clic. Export en bas.
+// Utilisé pour tous les types de contrat (CDD, CDI, avenant, disciplinaire, rupture).
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -8,9 +9,10 @@ import StarterKit from "@tiptap/starter-kit";
 import { jsPDF } from "jspdf";
 import {
   ArrowLeft, Download, FileText, FileSignature, Bold, Italic, List,
-  Sparkles, X, Loader2, ShieldCheck, ChevronDown,
+  Sparkles, X, Loader2, ShieldCheck, ChevronDown, ShieldAlert, MessagesSquare,
 } from "lucide-react";
-import { cddAccroissementModel as MODEL } from "../../../../contractEngine/models/cddAccroissement";
+import { cddAccroissementModel } from "../../../../contractEngine/models/cddAccroissement";
+import type { ContractModel } from "../../../../contractEngine/types";
 import { createInitialState } from "../../../../contractEngine/state";
 import { splitSegments } from "../../../../contractEngine/segments";
 import { Variable } from "./VariableNode";
@@ -18,35 +20,43 @@ import { CompanySearchField } from "../../../common/CompanySearchField";
 import { mapCompanyToContractParty, formatConventionFromCompany } from "../../../../utils/companyLookup";
 import type { CompanyResult } from "../../../../types/companySearch";
 import ReactMarkdown from "react-markdown";
-import { instructClause, verifyConvention } from "./clauseAi";
+import { instructClause, instructContract, verifyConvention } from "./clauseAi";
+import { contractApi } from "../../contratheque/api";
+import { negotiationApi } from "../../negotiation/api";
 
-const VAR_LABEL = new Map(MODEL.variables.map((v) => [v.id, v.label]));
 const isEmptyClause = (c: string) => c.trim() === "Sans objet.";
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/** Convertit un contenu modèle (avec {{var}}) en HTML (texte + spans variables). */
-function segmentsToHtml(content: string): string {
+/**
+ * Convertit un contenu modèle (avec {{var}}) en HTML (texte + spans variables).
+ * `values` permet de restaurer les valeurs déjà saisies (ex. après réécriture IA).
+ */
+function segmentsToHtml(
+  content: string,
+  varLabel: Map<string, string>,
+  values?: Record<string, string>,
+): string {
   return splitSegments(content)
     .map((seg) =>
       seg.type === "text"
         ? escapeHtml(seg.text)
-        : `<span data-variable="${seg.name}" data-label="${escapeHtml(VAR_LABEL.get(seg.name) ?? seg.name)}" data-value=""></span>`,
+        : `<span data-variable="${seg.name}" data-label="${escapeHtml(varLabel.get(seg.name) ?? seg.name)}" data-value="${escapeHtml(values?.[seg.name] ?? "")}"></span>`,
     )
     .join("");
 }
 
 /** Document de départ : contrat complet par défaut, variables vides surlignées. */
-function buildInitialHtml(): string {
-  const state = createInitialState(MODEL);
+function buildInitialHtml(model: ContractModel, varLabel: Map<string, string>): string {
+  const state = createInitialState(model);
   let html = "";
-  for (const block of MODEL.blocks) {
+  for (const block of model.blocks) {
     let content = block.content;
     if (block.alternativeId) {
       const altId = block.alternativeId;
-      const alt = MODEL.alternatives.find((a) => a.id === altId);
+      const alt = model.alternatives.find((a) => a.id === altId);
       const opt = alt?.options.find((o) => o.id === state.alternatives[altId]);
       content = opt?.content ?? content;
     }
@@ -56,7 +66,12 @@ function buildInitialHtml(): string {
       continue;
     }
     if (block.heading) html += `<h3>${escapeHtml(block.heading)}</h3>`;
-    html += `<p>${segmentsToHtml(content)}</p>`;
+    // Respecte la structure : double saut de ligne = nouveau paragraphe, simple = <br>.
+    // (Sans cela, ProseMirror écrase tous les \n et affiche la section en un seul bloc.)
+    for (const para of content.split(/\n{2,}/)) {
+      if (!para.trim()) continue;
+      html += `<p>${segmentsToHtml(para, varLabel).replace(/\n/g, "<br>")}</p>`;
+    }
   }
   return html;
 }
@@ -74,14 +89,47 @@ function inlineText(nodes?: JNode[]): string {
     .join("");
 }
 
-export function SmartCddEditor({ onBack }: { onBack: () => void }) {
-  const navigate = useNavigate();
-  const initialHtml = useMemo(buildInitialHtml, []);
+/** Sérialisation pour l'IA : les variables restent des marqueurs {{nom}}. */
+function markerText(nodes?: JNode[]): string {
+  if (!nodes) return "";
+  return nodes
+    .map((n) =>
+      n.type === "text" ? n.text ?? ""
+      : n.type === "variable" ? `{{${String(n.attrs?.name ?? "")}}}`
+      : markerText(n.content),
+    )
+    .join("");
+}
 
-  const editor = useEditor({
-    extensions: [StarterKit, Variable],
-    content: initialHtml,
-  });
+interface Props {
+  onBack: () => void;
+  /** Modèle de contrat à éditer. Par défaut : CDD accroissement (rétro-compat). */
+  model?: ContractModel;
+  /** Base du nom de fichier exporté (sans extension). */
+  fileBase?: string;
+}
+
+export function SmartCddEditor({ onBack, model = cddAccroissementModel, fileBase = "CDD-accroissement" }: Props) {
+  const navigate = useNavigate();
+  const varLabel = useMemo(() => new Map(model.variables.map((v) => [v.id, v.label])), [model]);
+  const initialHtml = useMemo(() => buildInitialHtml(model, varLabel), [model, varLabel]);
+  const hasConvention = useMemo(
+    () => model.variables.some((v) => v.id === "convention_collective"),
+    [model],
+  );
+  // Pré-remplissage employeur : pertinent seulement pour les modèles « employeur ».
+  const hasEmployer = useMemo(
+    () => model.variables.some((v) => v.id === "emp_denomination"),
+    [model],
+  );
+
+  const editor = useEditor(
+    {
+      extensions: [StarterKit, Variable],
+      content: initialHtml,
+    },
+    [initialHtml],
+  );
 
   const setVar = (name: string, value: string) => {
     editor?.commands.command(({ tr, state }) => {
@@ -151,7 +199,21 @@ export function SmartCddEditor({ onBack }: { onBack: () => void }) {
 
   const openAi = () => {
     if (!hover) return;
-    setAi({ el: hover.el, top: hover.top, original: hover.el.textContent ?? "", instruction: "", loading: false, result: null, error: null });
+    // Sérialise la clause en conservant les variables sous forme {{NOM}}, afin que
+    // l'IA les préserve et qu'on puisse les recréer ensuite (sinon elles sont perdues).
+    let original = hover.el.textContent ?? "";
+    if (editor) {
+      try {
+        const pos = editor.view.posAtDOM(hover.el, 0);
+        const node = editor.state.doc.resolve(pos).parent;
+        let out = "";
+        node.forEach((child) => {
+          out += child.type.name === "variable" ? `{{${child.attrs.name}}}` : child.textContent;
+        });
+        if (out.trim()) original = out;
+      } catch { /* repli sur textContent */ }
+    }
+    setAi({ el: hover.el, top: hover.top, original, instruction: "", loading: false, result: null, error: null });
   };
 
   const runInstruction = async () => {
@@ -170,11 +232,10 @@ export function SmartCddEditor({ onBack }: { onBack: () => void }) {
     const pos = editor.view.posAtDOM(ai.el, 0);
     const $p = editor.state.doc.resolve(pos);
     const from = $p.before(1), to = $p.after(1);
-    const text = ai.result;
-    editor.chain().focus().command(({ tr, state }) => {
-      tr.replaceWith(from, to, state.schema.nodes.paragraph.create(null, text ? state.schema.text(text) : undefined));
-      return true;
-    }).run();
+    // Reconstruit le paragraphe en re-parsant les {{NOM}} en variables surlignées
+    // (au lieu d'un texte brut qui supprimerait les variables de la clause).
+    const html = `<p>${segmentsToHtml(ai.result, varLabel).replace(/\n/g, "<br>")}</p>`;
+    editor.chain().focus().insertContentAt({ from, to }, html).run();
     setAi(null);
     setHover(null);
   };
@@ -203,6 +264,69 @@ export function SmartCddEditor({ onBack }: { onBack: () => void }) {
   const [exportOpen, setExportOpen] = useState(false);
   const [ccPanel, setCcPanel] = useState(false);
   const [ccFinderMsg, setCcFinderMsg] = useState<string | null>(null);
+  const [negoLoading, setNegoLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // ── Modification globale par l'IA (barre sticky sous le contrat) ─────────
+  const [globalAi, setGlobalAi] = useState<{
+    instruction: string;
+    loading: boolean;
+    error: string | null;
+    applied: boolean;
+  }>({ instruction: "", loading: false, error: null, applied: false });
+
+  /** Sérialise le document complet pour l'IA (# titre, ### articles, {{variables}}). */
+  const serializeDoc = (): string => {
+    if (!editor) return "";
+    const json = editor.getJSON() as JNode;
+    const lines: string[] = [];
+    for (const n of json.content ?? []) {
+      const txt = markerText(n.content);
+      if (!txt.trim()) continue;
+      if (n.type === "heading") lines.push((n.attrs?.level === 2 ? "# " : "### ") + txt);
+      else lines.push(txt);
+    }
+    return lines.join("\n\n");
+  };
+
+  /** Remplace tout le document par la version réécrite (annulable via Ctrl+Z). */
+  const applyRewrite = (newText: string) => {
+    if (!editor) return;
+    // Conserve les valeurs déjà saisies dans les variables.
+    const values: Record<string, string> = {};
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === "variable" && node.attrs.value) {
+        values[node.attrs.name as string] = node.attrs.value as string;
+      }
+    });
+    let html = "";
+    for (const block of newText.split(/\n{2,}/)) {
+      const t = block.trim();
+      if (!t) continue;
+      if (t.startsWith("# ")) html += `<h2 style="text-align:center">${escapeHtml(t.slice(2))}</h2>`;
+      else if (t.startsWith("### ")) html += `<h3>${segmentsToHtml(t.slice(4), varLabel, values)}</h3>`;
+      else html += `<p>${segmentsToHtml(t, varLabel, values).replace(/\n/g, "<br>")}</p>`;
+    }
+    if (!html) return;
+    // insertContentAt sur toute la plage = transaction annulable (contrairement à setContent).
+    editor.chain().focus().insertContentAt({ from: 0, to: editor.state.doc.content.size }, html).run();
+  };
+
+  const runGlobalAi = async () => {
+    if (!editor || !globalAi.instruction.trim() || globalAi.loading) return;
+    setGlobalAi((g) => ({ ...g, loading: true, error: null, applied: false }));
+    try {
+      const rewritten = await instructContract(serializeDoc(), globalAi.instruction);
+      applyRewrite(rewritten);
+      setGlobalAi({ instruction: "", loading: false, error: null, applied: true });
+    } catch {
+      setGlobalAi((g) => ({
+        ...g,
+        loading: false,
+        error: "IA indisponible. Vérifiez que le service est lancé.",
+      }));
+    }
+  };
 
   /** Identifie la convention via l'entreprise (open data : IDCC). */
   const pickConvention = (result: CompanyResult, siret?: string) => {
@@ -239,14 +363,57 @@ export function SmartCddEditor({ onBack }: { onBack: () => void }) {
 
   const exportPdf = () => {
     if (!editor) return;
-    buildPdfDoc().save("CDD-accroissement.pdf");
+    buildPdfDoc().save(`${fileBase}.pdf`);
   };
 
   /** Génère le PDF et l'envoie directement dans le module Signature. */
   const goSignature = () => {
     if (!editor) { navigate("/signature"); return; }
     const incomingPdf = buildPdfDoc().output("datauristring");
-    navigate("/signature", { state: { incomingPdf, incomingName: "CDD-accroissement.pdf" } });
+    navigate("/signature", { state: { incomingPdf, incomingName: `${fileBase}.pdf` } });
+  };
+
+  /** Texte brut du contrat (paragraphes séparés) pour la révision / négociation. */
+  const getContractText = () => {
+    if (!editor) return "";
+    const json = editor.getJSON() as JNode;
+    return (json.content ?? [])
+      .map((n) => inlineText(n.content))
+      .filter((t) => t.trim())
+      .join("\n\n");
+  };
+
+  /** Réviser le contrat : ouvre l'analyse des risques (surlignage + modale) sur ce contrat. */
+  const goReview = () => {
+    if (!editor) { navigate("/analyzer"); return; }
+    navigate("/analyzer", { state: { text: getContractText(), fileName: fileBase } });
+  };
+
+  /** Négocier : enregistre le contrat en contrathèque puis ouvre l'espace de négociation. */
+  const goNegotiation = async () => {
+    if (!editor || negoLoading) return;
+    setNegoLoading(true);
+    setActionError(null);
+    try {
+      const dataUri = buildPdfDoc().output("datauristring");
+      const fileBase64 = dataUri.split(",")[1] ?? "";
+      const created = await contractApi.create({
+        title: fileBase,
+        ocrText: getContractText(),
+        fileBase64,
+        metadataFields: [],
+        contractType: model.label ?? null,
+        counterpartyName: null,
+        currency: "EUR",
+        renewalType: "NONE",
+        status: "ACTIVE",
+      });
+      const nego = await negotiationApi.enter(created.id, `Négociation — ${fileBase}`);
+      navigate(`/negociation/${nego.id}`);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Impossible d'ouvrir la négociation.");
+      setNegoLoading(false);
+    }
   };
 
   const exportDocx = async () => {
@@ -272,7 +439,7 @@ export function SmartCddEditor({ onBack }: { onBack: () => void }) {
       sections: [{ properties: { page: { margin: { top: 1440, bottom: 1440, left: 1800, right: 1800 } } }, children }],
     });
     const blob = await docx.Packer.toBlob(wordDoc);
-    saveAs(blob, "CDD-accroissement.docx");
+    saveAs(blob, `${fileBase}.docx`);
   };
 
   const tbtn = (active: boolean) =>
@@ -284,14 +451,16 @@ export function SmartCddEditor({ onBack }: { onBack: () => void }) {
         <ArrowLeft className="h-4 w-4" /> Retour aux modèles
       </button>
 
-      {/* Pré-remplissage employeur (SIRET / nom) */}
-      <div className="mb-5 rounded-xl border border-gray-200 bg-gray-50 px-4 py-4">
-        <CompanySearchField
-          onSelect={applyCompany}
-          label="Pré-remplir l'employeur"
-          hint=""
-        />
-      </div>
+      {/* Pré-remplissage employeur (SIRET / nom) — seulement si le modèle a un employeur */}
+      {hasEmployer && (
+        <div className="mb-5 rounded-xl border border-gray-200 bg-gray-50 px-4 py-4">
+          <CompanySearchField
+            onSelect={applyCompany}
+            label="Pré-remplir l'employeur"
+            hint=""
+          />
+        </div>
+      )}
 
       {/* Barre de mise en forme */}
       {editor && (
@@ -372,6 +541,45 @@ export function SmartCddEditor({ onBack }: { onBack: () => void }) {
         )}
       </div>
 
+      {/* Barre sticky « Modifier avec l'IA » — visible en permanence pendant l'édition */}
+      <div className="sticky bottom-4 z-30 mt-4">
+        <div className="rounded-2xl border border-gray-200 bg-white/95 p-2 shadow-lg backdrop-blur">
+          <div className="flex items-center gap-2">
+            <Sparkles className="ml-2 h-4 w-4 shrink-0 text-[#354F99]" />
+            <input
+              value={globalAi.instruction}
+              onChange={(e) => setGlobalAi((g) => ({ ...g, instruction: e.target.value, applied: false }))}
+              onKeyDown={(e) => { if (e.key === "Enter") void runGlobalAi(); }}
+              disabled={globalAi.loading}
+              placeholder="Modifier avec l'IA — ex. « passe le préavis à 2 mois », « ajoute une clause de confidentialité »…"
+              className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm text-gray-800 outline-none placeholder:text-gray-400 disabled:opacity-60"
+            />
+            <button
+              onClick={() => void runGlobalAi()}
+              disabled={globalAi.loading || !globalAi.instruction.trim()}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[#354F99] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a2d5a] disabled:opacity-40"
+            >
+              {globalAi.loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {globalAi.loading ? "Modification…" : "Modifier"}
+            </button>
+          </div>
+          {globalAi.error && (
+            <p className="px-2 pb-1 pt-1.5 text-xs text-red-600">{globalAi.error}</p>
+          )}
+          {globalAi.applied && (
+            <p className="flex items-center gap-2 px-2 pb-1 pt-1.5 text-xs text-emerald-700">
+              Contrat modifié.
+              <button
+                onClick={() => { editor?.chain().focus().undo().run(); setGlobalAi((g) => ({ ...g, applied: false })); }}
+                className="font-semibold underline underline-offset-2 hover:text-emerald-900"
+              >
+                Annuler
+              </button>
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* Actions en bas : à gauche secondaires, signature en ligne à droite */}
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -391,25 +599,49 @@ export function SmartCddEditor({ onBack }: { onBack: () => void }) {
             )}
           </div>
 
+          {hasConvention && (
+            <button
+              onClick={() => setCcPanel((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 transition hover:border-[#354F99] hover:text-[#354F99]"
+            >
+              <ShieldCheck className="h-4 w-4" /> Convention collective
+            </button>
+          )}
+
+          {/* Réviser : analyse des risques (surlignage + modale) */}
           <button
-            onClick={() => setCcPanel((v) => !v)}
+            onClick={goReview}
             className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 transition hover:border-[#354F99] hover:text-[#354F99]"
           >
-            <ShieldCheck className="h-4 w-4" /> Convention collective
+            <ShieldAlert className="h-4 w-4" /> Réviser (risques)
           </button>
         </div>
 
-        {/* Signature en ligne — CTA principal, à droite */}
-        <button
-          onClick={goSignature}
-          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-7 py-3.5 text-base font-bold text-white shadow-lg shadow-emerald-600/25 transition hover:bg-emerald-700 active:scale-[0.99]"
-        >
-          <FileSignature className="h-5 w-5" /> Signature en ligne
-        </button>
+        {/* Choix final : négocier ou signer */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={goNegotiation}
+            disabled={negoLoading}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#354F99] px-6 py-3.5 text-base font-bold text-white shadow-lg shadow-[#354F99]/25 transition hover:bg-[#1a2d5a] active:scale-[0.99] disabled:opacity-60"
+          >
+            {negoLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <MessagesSquare className="h-5 w-5" />}
+            Négocier
+          </button>
+          <button
+            onClick={goSignature}
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3.5 text-base font-bold text-white shadow-lg shadow-emerald-600/25 transition hover:bg-emerald-700 active:scale-[0.99]"
+          >
+            <FileSignature className="h-5 w-5" /> Signature en ligne
+          </button>
+        </div>
       </div>
 
+      {actionError && (
+        <p className="mt-2 text-right text-xs text-red-600">{actionError}</p>
+      )}
+
       {/* Panneau Convention collective : identifier (open data) + vérifier (IA) */}
-      {ccPanel && (
+      {hasConvention && ccPanel && (
         <div className="mt-4 space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-800">
