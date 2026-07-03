@@ -39,6 +39,10 @@ proxy/.env
 proxy/node_modules
 proxy/dist
 
+#complement Word (Office Add-in)
+word-addin/node_modules
+word-addin/dist
+
 # Contrats chiffrés uploadés (données runtime, ne pas versionner)
 backNode/contracts/
 

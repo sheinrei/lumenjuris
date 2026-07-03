@@ -30,6 +30,7 @@ app.use(
   cors({
     origin: [
       /^http:\/\/localhost:\d+$/,
+      /^https:\/\/localhost:\d+$/, // complément Word (dev server HTTPS)
       /^http:\/\/127\.0\.0\.1:\d+$/,
       /^https:\/\/.*\.odns\.fr$/,
       "http://localhost:5173",
@@ -947,6 +948,52 @@ const auth = proxyAuthMiddleware;
 // Routes publiques (pas d'auth requise)
 app.post("/api/signup", handleSignUpUser);
 app.post("/api/user/auth/login", handleNodeLogin);
+
+/**
+ * Login du complément Word : mêmes identifiants que la plateforme, mais le
+ * JWT est renvoyé dans le corps (l'iframe Word ne peut pas recevoir le cookie
+ * httpOnly cross-site). Le token est ensuite passé en Authorization: Bearer.
+ */
+app.post("/api/addin/login", async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body as { email?: string; password?: string };
+    if (!email || !password) {
+      res.status(400).json({ success: false, message: "Email et mot de passe requis." });
+      return;
+    }
+    const r = await fetch(`${BACKNODE_URL}/user/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = (await r.json().catch(() => ({}))) as {
+      success?: boolean;
+      twoFactorRequired?: boolean;
+      data?: { idUser?: number; email?: string };
+      message?: string;
+    };
+    if (!r.ok || !data.success || !data.data?.idUser) {
+      res.status(401).json({ success: false, message: data.message || "Identifiants invalides." });
+      return;
+    }
+    if (data.twoFactorRequired) {
+      res.status(403).json({
+        success: false,
+        message:
+          "Ce compte a la double authentification activée : utilisez un compte sans 2FA pour le complément Word (POC).",
+      });
+      return;
+    }
+    const jwt = (await import("jsonwebtoken")).default;
+    const token = jwt.sign({ userId: data.data.idUser, role: "USER" }, process.env.JWT_SECRET!, {
+      expiresIn: "7d",
+    });
+    res.json({ success: true, token, user: { idUser: data.data.idUser, email: data.data.email } });
+  } catch (error) {
+    console.error("addin/login error:", error);
+    res.status(500).json({ success: false, message: "Erreur interne lors de la connexion." });
+  }
+});
 app.post("/api/auth/forgotpassword", handleNodeUserForgotPassword);
 app.post("/api/user/resetpassword", handleNodeUserResetPassword);
 app.get("/api/google", handleNodeGoogle);
