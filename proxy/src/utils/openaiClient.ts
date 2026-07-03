@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 const IS_PROD = process.env.NODE_ENV === "production";
-const BACKEND_URL = IS_PROD ? process.env.BACKEND_URL : "http://localhost:5678";
+const BACKEND_URL = IS_PROD ? process.env.BACKEND_URL : "http://127.0.0.1:5678";
 const BACKNODE_URL = IS_PROD
   ? process.env.BACKNODE_URL
   : "http://localhost:3020";
