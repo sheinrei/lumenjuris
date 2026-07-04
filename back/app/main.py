@@ -74,6 +74,9 @@ class SearchRequest(BaseModel):
 
 class JurisprudenceRequest(BaseModel):
     queries: List[str]
+    # Description de la clause et du problème juridique identifié : active le
+    # re-classement sémantique des décisions (recherche hybride).
+    context: Optional[str] = None
 
 
 class ClassifyVeilleRequest(BaseModel):
@@ -471,26 +474,94 @@ def _structure_decision_summary(decision: Dict[str, Any]) -> Dict[str, Any]:
     return decision
 
 
+def _candidate_text_for_rerank(decision: Dict[str, Any]) -> str:
+    """Texte représentatif d'une décision pour le calcul de similarité."""
+    zones = decision.get("zones") or {}
+    parts = [
+        str(decision.get("title") or ""),
+        str(decision.get("summary") or ""),
+        str(decision.get("solution") or ""),
+        str(zones.get("motivation") or "")[:1200],
+    ]
+    return "\n".join(p for p in parts if p.strip())[:2000]
+
+
+def _semantic_rerank(context: str, candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Re-classe les décisions par similarité sémantique avec le problème juridique
+    (embeddings OpenAI + cosinus). En cas d'échec, renvoie l'ordre d'origine.
+    """
+    if not _openai_client or not context.strip() or len(candidates) < 2:
+        return candidates
+    try:
+        inputs = [context[:2000]] + [_candidate_text_for_rerank(c) for c in candidates]
+        resp = _openai_client.embeddings.create(model="text-embedding-3-small", input=inputs)
+        vectors = [d.embedding for d in resp.data]
+        ref = vectors[0]
+
+        def cosine(a: List[float], b: List[float]) -> float:
+            dot = sum(x * y for x, y in zip(a, b))
+            na = sum(x * x for x in a) ** 0.5
+            nb = sum(y * y for y in b) ** 0.5
+            return dot / (na * nb) if na and nb else 0.0
+
+        scored = []
+        for cand, vec in zip(candidates, vectors[1:]):
+            sim = cosine(ref, vec)
+            cand = dict(cand)
+            cand["relevanceScore"] = round(sim, 3)
+            scored.append((sim, cand))
+        scored.sort(key=lambda t: t[0], reverse=True)
+        return [c for _, c in scored]
+    except Exception as e:  # pragma: no cover — repli silencieux
+        logger.warning(f"[jurisprudence] Rerank sémantique indisponible: {e}")
+        return candidates
+
+
 @app.post("/jurisprudence")
 async def jurisprudence(req: JurisprudenceRequest):
     if not req.queries:
         raise HTTPException(status_code=400, detail="Requête invalide, 'queries' manquant.")
+
+    # ── Recherche hybride ──────────────────────────────────────────────────
+    # 1) Rappel lexical élargi : jusqu'à 3 requêtes complémentaires en parallèle
+    #    (Judilibre), pool de candidats plus large que le besoin final.
+    queries = [q for q in (req.queries or []) if isinstance(q, str) and q.strip()][:3]
+    pool_size = 6 if req.context else 3
+    # fetch_text=False : pool léger (métadonnées seulement) — le texte complet
+    # n'est téléchargé que pour les 3 décisions retenues (hydratation ci-dessous).
+    results_per_query = await asyncio.gather(
+        *[run_in_threadpool(_judilibre_search, q, pool_size, False) for q in queries]
+    )
+
     all_results: List[Dict[str, Any]] = []
     seen_urls: Set[str] = set()
-    judilibre_results = _judilibre_search(req.queries[0]) if req.queries else []
-    for res in judilibre_results:
-        url = res.get("url")
-        if url and url not in seen_urls:
-            all_results.append(res)
-            seen_urls.add(url)
-    if len(all_results) < 3 and req.queries:
-        legifrance_results = _legifrance_search(req.queries[0], limit=3)
-        for res in legifrance_results:
+    for res_list in results_per_query:
+        for res in res_list or []:
             url = res.get("url")
             if url and url not in seen_urls:
                 all_results.append(res)
                 seen_urls.add(url)
-    decisions = all_results[:3]
+
+    # Complément Legifrance si le rappel est trop pauvre.
+    if len(all_results) < 3 and queries:
+        legifrance_results = await run_in_threadpool(_legifrance_search, queries[0], 3)
+        for res in legifrance_results or []:
+            url = res.get("url")
+            if url and url not in seen_urls:
+                all_results.append(res)
+                seen_urls.add(url)
+
+    # 2) Re-classement sémantique : les candidats sont triés par similarité
+    #    avec la clause et le problème juridique identifié (si fournis).
+    if req.context:
+        all_results = await run_in_threadpool(_semantic_rerank, req.context, all_results)
+
+    # 3) Hydratation : texte complet (solution + motivation) pour les finalistes
+    #    uniquement, puis enrichissement LITIGE/RESULTAT.
+    decisions = await asyncio.gather(
+        *[run_in_threadpool(_judilibre_hydrate_text, d) for d in all_results[:3]]
+    )
     enriched = await asyncio.gather(
         *[run_in_threadpool(_structure_decision_summary, d) for d in decisions]
     )

@@ -1251,8 +1251,13 @@ def _judilibre_get_decision_text(decision_id: str, token: str) -> Dict[str, str]
         return {}
 
 
-def _judilibre_search(query: str, limit: int = 3) -> List[Dict[str, Any]]:
-    """Recherche via Judilibre (décisions judiciaires)."""
+def _judilibre_search(query: str, limit: int = 3, fetch_text: bool = True) -> List[Dict[str, Any]]:
+    """
+    Recherche via Judilibre (décisions judiciaires).
+    `fetch_text=False` évite le téléchargement du texte complet de chaque
+    décision — utile pour constituer un pool de candidats à re-classer
+    (le texte des finalistes est récupéré ensuite via _judilibre_hydrate_text).
+    """
     token = _get_judilibre_token()
     if not token:
         logger.info("🚫 [Judilibre Search] Pas de token, recherche annulée.")
@@ -1311,16 +1316,21 @@ def _judilibre_search(query: str, limit: int = 3) -> List[Dict[str, Any]]:
             if not url_decision or not _is_authorized_domain(url_decision):
                 continue
 
-            # Fetch du texte complet via l'endpoint /decision
+            # Fetch du texte complet via l'endpoint /decision (différable)
             decision_id = res.get('id', '')
             if not decision_id:
                 import re as _re
                 m = _re.search(r'JURITEXT\w+', url_decision, _re.IGNORECASE)
                 decision_id = m.group(0).upper() if m else ''
 
-            decision_text = _judilibre_get_decision_text(decision_id, token) if decision_id else {}
+            decision_text = (
+                _judilibre_get_decision_text(decision_id, token)
+                if decision_id and fetch_text
+                else {}
+            )
 
             out.append({
+                'id': decision_id,
                 'title': title,
                 'court': court,
                 'year': year,
@@ -1337,3 +1347,32 @@ def _judilibre_search(query: str, limit: int = 3) -> List[Dict[str, Any]]:
     except Exception as e:
         logger.warning(f"Judilibre search error: {e}")
     return []
+
+
+def _judilibre_hydrate_text(decision: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Complète une décision issue d'une recherche `fetch_text=False` avec le
+    texte complet (solution + zones). No-op si déjà hydratée ou sans id.
+    """
+    if decision.get('zones'):
+        return decision
+    decision_id = decision.get('id') or ''
+    if not decision_id:
+        return decision
+    token = _get_judilibre_token()
+    if not token:
+        return decision
+    try:
+        decision_text = _judilibre_get_decision_text(decision_id, token)
+        if decision_text:
+            out = dict(decision)
+            out['solution'] = decision_text.get('solution', decision.get('solution', ''))
+            out['zones'] = {
+                k: decision_text[k]
+                for k in ('expose_moyens', 'motivation', 'dispositif')
+                if k in decision_text
+            }
+            return out
+    except Exception as e:
+        logger.warning(f"[Judilibre] Hydratation du texte impossible ({decision_id}): {e}")
+    return decision

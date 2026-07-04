@@ -82,13 +82,13 @@ export function ContrathequeList({ onOpen, onImport, tab, onTab, canDelete, refr
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => contractApi.exportCsv(filters)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-ink-secondary bg-white border border-line rounded-xl hover:bg-surface-subtle transition-colors shadow-card"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-ink-secondary bg-white border border-line rounded-xl hover:bg-surface-subtle transition-colors shadow-card"
           >
             <Download className="w-4 h-4" /> Exporter
           </button>
           <button
             onClick={onImport}
-            className="flex items-center gap-2 px-5 py-2 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-all shadow-card"
+            className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-all shadow-card"
           >
             <Plus className="w-4 h-4" /> Importer un contrat
           </button>
