@@ -18,6 +18,7 @@ interface LoaderProps {
     fadeOut?: boolean
 }
 
+
 /**
  * 
  * @param LoaderProps
@@ -57,7 +58,7 @@ export const Loader: React.FC<LoaderProps> = ({
                         animation: 'pulse 1s ease-in-out infinite'
                     }}
                 >
-                    <circle cx="34" cy="40" fill="none" r="9" stroke="#0D6EFD" stroke-width="2"></circle>
+                    <circle cx="34" cy="40" fill="none" r="9" stroke="#0D6EFD" strokeWidth="2"></circle>
                     <circle cx="34" cy="40" fill="#0D6EFD" r="4"></circle>
                 </svg>
                 <span style={{ fontSize: 24, fontWeight: 600, color: '#111827', letterSpacing: '-0.3px' }}>

@@ -241,6 +241,18 @@ CONTRACT_METADATA_KEYS = [
 ]
 
 
+
+@app.get("/health")
+def healtMonitor():
+    try:
+        return {
+            "status" : "OK"
+        }
+    except:
+        return {
+            "status" : "echec"
+        }
+
 @app.post("/extract-contract-metadata")
 async def extract_contract_metadata(file: UploadFile = File(...), scan: bool = Form(False)):
     """Extrait les métadonnées structurées d'un contrat avec un score de confiance par champ."""
