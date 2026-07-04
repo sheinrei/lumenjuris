@@ -101,13 +101,13 @@ export function ImportWizard({ onDone, onCancel }: Props) {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6 max-w-5xl">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Importer un contrat</h1>
-          <p className="text-sm text-gray-500 mt-1">Upload → extraction IA → revue humaine → enregistrement.</p>
+          <h1 className="text-2xl font-bold text-ink tracking-tight">Importer un contrat</h1>
+          <p className="text-sm text-ink-muted mt-1">Upload → extraction IA → revue humaine → enregistrement.</p>
         </div>
-        <button onClick={onCancel} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100" title="Annuler">
+        <button onClick={onCancel} className="shrink-0 p-1.5 rounded-lg text-ink-subtle hover:text-ink-secondary hover:bg-surface-muted transition-colors" title="Annuler">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -115,8 +115,8 @@ export function ImportWizard({ onDone, onCancel }: Props) {
       <Stepper step={step} />
 
       {error && (
-        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 px-4 py-3 rounded-xl">
-          <AlertCircle className="w-4 h-4" /> {error}
+        <div className="flex items-center gap-2 text-sm text-danger-dark bg-danger-light border border-danger/20 px-4 py-3 rounded-xl">
+          <AlertCircle className="w-4 h-4 shrink-0" /> {error}
         </div>
       )}
 
@@ -129,13 +129,13 @@ export function ImportWizard({ onDone, onCancel }: Props) {
       )}
 
       {step === "extract" && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-8 space-y-3">
+        <div className="bg-white rounded-card border border-line shadow-card p-8 space-y-3">
           {items.map((it, i) => (
             <div key={i} className="flex items-center gap-3 text-sm">
-              {it.status === "extracted" ? <Check className="w-4 h-4 text-emerald-500" />
-                : it.status === "error" ? <AlertCircle className="w-4 h-4 text-red-500" />
-                : <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
-              <span className="text-gray-700 truncate">{it.file.name}</span>
+              {it.status === "extracted" ? <Check className="w-4 h-4 text-success" />
+                : it.status === "error" ? <AlertCircle className="w-4 h-4 text-danger" />
+                : <Loader2 className="w-4 h-4 animate-spin text-ink-subtle" />}
+              <span className="text-ink-secondary truncate">{it.file.name}</span>
             </div>
           ))}
         </div>
@@ -153,14 +153,14 @@ export function ImportWizard({ onDone, onCancel }: Props) {
 
       {step === "done" && (
         <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
-          <div className="w-20 h-20 rounded-2xl bg-emerald-100 flex items-center justify-center">
-            <ShieldCheck className="w-10 h-10 text-emerald-600 stroke-[1.5]" />
+          <div className="w-20 h-20 rounded-card bg-success-light flex items-center justify-center">
+            <ShieldCheck className="w-10 h-10 text-success-dark stroke-[1.5]" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-lg font-bold text-gray-800">{items.filter((i) => i.status !== "error").length} contrat(s) enregistré(s)</h3>
-            <p className="text-sm text-gray-500">Ils apparaissent maintenant dans votre contrathèque.</p>
+            <h3 className="text-lg font-bold text-ink">{items.filter((i) => i.status !== "error").length} contrat(s) enregistré(s)</h3>
+            <p className="text-sm text-ink-muted">Ils apparaissent maintenant dans votre contrathèque.</p>
           </div>
-          <button onClick={onDone} className="px-5 py-2.5 text-sm font-semibold text-white bg-[#354F99] rounded-xl hover:bg-[#1a2d5a]">
+          <button onClick={onDone} className="px-5 py-2.5 text-sm font-semibold text-white bg-brand rounded-xl hover:bg-brand-hover transition-all shadow-card">
             Retour à la contrathèque
           </button>
         </div>
@@ -195,23 +195,23 @@ function UploadStep({
         onDragLeave={() => setDrag(false)}
         onDrop={(e) => { e.preventDefault(); setDrag(false); onAdd(e.dataTransfer.files); }}
         onClick={() => fileRef.current?.click()}
-        className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${drag ? "border-[#354F99] bg-[#354F99]/5" : "border-gray-200 hover:border-[#354F99]/40 hover:bg-gray-50"}`}
+        className={`border-2 border-dashed rounded-card p-10 text-center cursor-pointer transition-all ${drag ? "border-brand bg-brand-light" : "border-line hover:border-brand/40 hover:bg-surface-subtle"}`}
       >
         <input ref={fileRef} type="file" accept=".pdf,.doc,.docx" multiple className="hidden" onChange={(e) => { if (e.target.files) onAdd(e.target.files); e.target.value = ""; }} />
-        <div className="w-14 h-14 mx-auto bg-white rounded-2xl flex items-center justify-center text-[#354F99] shadow-sm border border-gray-100 mb-3">
+        <div className="w-14 h-14 mx-auto bg-white rounded-panel flex items-center justify-center text-brand shadow-card border border-line mb-3">
           <UploadCloud className="w-7 h-7 stroke-[1.5]" />
         </div>
-        <p className="text-sm font-semibold text-gray-800">Glissez-déposez vos contrats (PDF / Word)</p>
-        <p className="text-xs text-gray-400 mt-1">Import en masse supporté — plusieurs fichiers à la fois.</p>
+        <p className="text-sm font-semibold text-ink">Glissez-déposez vos contrats (PDF / Word)</p>
+        <p className="text-xs text-ink-subtle mt-1">Import en masse supporté — plusieurs fichiers à la fois.</p>
       </div>
 
       {items.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-200 divide-y divide-gray-100">
+        <div className="bg-white rounded-card border border-line shadow-card divide-y divide-line-subtle">
           {items.map((it, i) => (
             <div key={i} className="flex items-center gap-3 px-4 py-2.5">
-              <FileText className="w-4 h-4 text-gray-400 shrink-0" />
-              <span className="flex-1 text-sm text-gray-700 truncate">{it.file.name}</span>
-              <button onClick={() => onRemove(i)} className="p-1 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50">
+              <FileText className="w-4 h-4 text-ink-subtle shrink-0" />
+              <span className="flex-1 text-sm text-ink-secondary truncate">{it.file.name}</span>
+              <button onClick={() => onRemove(i)} className="p-1 rounded-md text-ink-subtle hover:text-danger hover:bg-danger-light transition-all">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -223,7 +223,7 @@ function UploadStep({
         <button
           onClick={onNext}
           disabled={items.length === 0}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#354F99] text-white text-sm font-semibold rounded-xl hover:bg-[#1a2d5a] disabled:opacity-40 transition-all"
+          className="flex items-center gap-2 px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover disabled:opacity-40 transition-all shadow-card"
         >
           <Sparkles className="w-4 h-4" /> Lancer l'extraction IA <ChevronRight className="w-4 h-4" />
         </button>
@@ -250,7 +250,7 @@ function ReviewStep({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2.5">
+      <div className="flex items-center gap-2 text-xs text-info-dark bg-info-light border border-info/20 rounded-xl px-4 py-2.5">
         <AlertCircle className="w-3.5 h-3.5 shrink-0" />
         Revue obligatoire : validez (✓) ou corrigez chaque champ avant l'enregistrement.
       </div>
@@ -258,11 +258,11 @@ function ReviewStep({
       {/* Navigation entre fichiers */}
       {items.length > 1 && (
         <div className="flex items-center justify-between">
-          <button onClick={() => setActive(Math.max(0, active - 1))} disabled={active === 0} className="p-1.5 rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-gray-50">
+          <button onClick={() => setActive(Math.max(0, active - 1))} disabled={active === 0} className="p-1.5 rounded-lg border border-line disabled:opacity-30 hover:bg-surface-subtle transition-all">
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="text-xs text-gray-500">Document {active + 1} / {items.length}</span>
-          <button onClick={() => setActive(Math.min(items.length - 1, active + 1))} disabled={active === items.length - 1} className="p-1.5 rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-gray-50">
+          <span className="text-xs text-ink-muted">Document {active + 1} / {items.length}</span>
+          <button onClick={() => setActive(Math.min(items.length - 1, active + 1))} disabled={active === items.length - 1} className="p-1.5 rounded-lg border border-line disabled:opacity-30 hover:bg-surface-subtle transition-all">
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
@@ -270,14 +270,14 @@ function ReviewStep({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Aperçu texte du contrat */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-5 overflow-y-auto" style={{ height: 560 }}>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Aperçu du contrat</p>
+        <div className="bg-white rounded-card border border-line shadow-card p-5 overflow-y-auto" style={{ height: 560 }}>
+          <p className="text-[10px] font-bold text-ink-subtle uppercase tracking-widest mb-3">Aperçu du contrat</p>
           {it.ocrText ? (
-            <pre className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed font-sans">{it.ocrText}</pre>
+            <pre className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed font-sans">{it.ocrText}</pre>
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-center">
-              <FileText className="w-8 h-8 text-gray-200" />
-              <p className="text-sm text-gray-400">Aucun texte extrait.</p>
+              <FileText className="w-8 h-8 text-ink-placeholder" />
+              <p className="text-sm text-ink-subtle">Aucun texte extrait.</p>
             </div>
           )}
         </div>
@@ -285,12 +285,12 @@ function ReviewStep({
         {/* Champs */}
         <div className="space-y-2">
           {it.status === "error" ? (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-100 px-4 py-3 rounded-xl">{it.error}</div>
+            <div className="text-sm text-danger-dark bg-danger-light border border-danger/20 px-4 py-3 rounded-xl">{it.error}</div>
           ) : (
             <>
-              <div className="bg-white rounded-xl border border-gray-200 p-3">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Intitulé du contrat</label>
-                <input value={it.title} onChange={(e) => onEditTitle(e.target.value)} className="w-full mt-1 text-sm px-2 py-1.5 rounded-md border border-gray-200 outline-none focus:border-[#354F99]" />
+              <div className="bg-white rounded-panel border border-line shadow-card p-3">
+                <label className="text-[10px] font-bold text-ink-subtle uppercase tracking-wide">Intitulé du contrat</label>
+                <input value={it.title} onChange={(e) => onEditTitle(e.target.value)} className="w-full mt-1 text-sm px-2 py-1.5 rounded-md border border-line text-ink outline-none focus:border-brand/40 transition-all" />
               </div>
               {it.fields.map((f) => (
                 <ReviewField key={f.field_key} field={f} validated={!!it.validated[f.field_key]} onToggle={() => onToggleValidate(f.field_key)} onEdit={(v) => onEditField(f.field_key, v)} />
@@ -301,8 +301,8 @@ function ReviewStep({
       </div>
 
       <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-400">{allValidated ? "Tous les champs sont validés ✓" : "Validez les champs restants"}</p>
-        <button onClick={onConfirm} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 disabled:opacity-40 transition-all shadow-sm">
+        <p className="text-xs text-ink-subtle">{allValidated ? "Tous les champs sont validés ✓" : "Validez les champs restants"}</p>
+        <button onClick={onConfirm} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-success text-white text-sm font-semibold rounded-xl hover:bg-success-dark disabled:opacity-40 transition-all shadow-card">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
           {saving ? "Enregistrement…" : `Enregistrer ${items.filter((i) => i.status !== "error").length} contrat(s)`}
         </button>
@@ -321,12 +321,12 @@ function ReviewField({
 }) {
   const conf = field.confidence_score;
   return (
-    <div className={`bg-white rounded-xl border p-3 ${validated ? "border-emerald-200" : "border-gray-200"}`}>
+    <div className={`bg-white rounded-panel border shadow-card p-3 transition-colors ${validated ? "border-success/40" : "border-line"}`}>
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">{FIELD_LABEL[field.field_key] ?? field.field_key}</span>
+        <span className="text-[10px] font-bold text-ink-subtle uppercase tracking-wide">{FIELD_LABEL[field.field_key] ?? field.field_key}</span>
         <div className="flex items-center gap-1.5">
-          <span className="text-[9px] text-gray-400 tabular-nums">{Math.round(conf * 100)}%</span>
-          <button onClick={onToggle} className={`p-0.5 rounded ${validated ? "text-emerald-600 bg-emerald-50" : "text-gray-300 hover:text-emerald-500"}`} title="Valider">
+          <span className="text-[9px] text-ink-subtle tabular-nums">{Math.round(conf * 100)}%</span>
+          <button onClick={onToggle} className={`p-0.5 rounded transition-all ${validated ? "text-success bg-success-light" : "text-ink-subtle hover:text-success"}`} title="Valider">
             <Check className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -335,11 +335,11 @@ function ReviewField({
         value={field.value ?? ""}
         onChange={(e) => onEdit(e.target.value)}
         placeholder="non détecté"
-        className="w-full mt-1 text-sm px-2 py-1 rounded-md border border-gray-200 outline-none focus:border-[#354F99]"
+        className="w-full mt-1 text-sm px-2 py-1 rounded-md border border-line text-ink outline-none focus:border-brand/40 placeholder:text-ink-placeholder transition-all"
       />
       {!validated && (
-        <div className="h-1 rounded-full bg-gray-100 overflow-hidden mt-2">
-          <div className="h-full rounded-full" style={{ width: `${Math.round(conf * 100)}%`, backgroundColor: conf >= 0.8 ? "#10b981" : conf >= 0.5 ? "#f59e0b" : "#ef4444" }} />
+        <div className="h-1 rounded-full bg-surface-muted overflow-hidden mt-2">
+          <div className="h-full rounded-full" style={{ width: `${Math.round(conf * 100)}%`, backgroundColor: conf >= 0.8 ? "#059669" : conf >= 0.5 ? "#d97706" : "#dc2626" }} />
         </div>
       )}
     </div>
@@ -356,14 +356,14 @@ function Stepper({ step }: { step: WizardStep }) {
   ];
   const idx = steps.findIndex((s) => s.key === step);
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 flex-wrap">
       {steps.map((s, i) => (
         <div key={s.key} className="flex items-center gap-2">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold ${i <= idx ? "bg-[#354F99] text-white" : "bg-gray-100 text-gray-400"}`}>
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${i <= idx ? "bg-brand text-white" : "bg-surface-muted text-ink-subtle"}`}>
             <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[10px]">{i + 1}</span>
             {s.label}
           </div>
-          {i < steps.length - 1 && <ChevronRight className="w-3.5 h-3.5 text-gray-300" />}
+          {i < steps.length - 1 && <ChevronRight className="w-3.5 h-3.5 text-ink-placeholder" />}
         </div>
       ))}
     </div>

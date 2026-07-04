@@ -13,26 +13,26 @@ export function parseAIResponse(response: string): ClauseRisk[] {
 
     const clauses: ClauseRisk[] = [];
     parsedResponse.clauses.forEach((parsed: Record<string, unknown>, index: number) => {
-      if (
-        parsed.type &&
-        parsed.text &&
-        parsed.riskScore &&
-        typeof parsed.startIndex === "number" &&
-        typeof parsed.endIndex === "number" &&
-        Array.isArray(parsed.keywords)
-      ) {
+      // Tolérant : le prompt annonce "texte" mais l'exemple montre "text" —
+      // selon la réponse du modèle, l'un ou l'autre arrive. Les index et les
+      // keywords sont facultatifs (le front sait relocaliser sans eux via
+      // findBestClauseSpan) : les exiger faisait rejeter TOUTES les clauses
+      // de certaines réponses → « aucune clause à risque détectée » à tort.
+      const content = (parsed.text ?? parsed.texte) as string | undefined;
+      const riskScore = Number(parsed.riskScore);
+      if (parsed.type && content && Number.isFinite(riskScore)) {
         clauses.push({
           id: `ai-clause-${Date.now()}-${index}`,
           type: parsed.type as string,
-          content: parsed.text as string,
-          riskScore: Math.min(5, Math.max(1, parsed.riskScore as number)),
+          content,
+          riskScore: Math.min(5, Math.max(1, riskScore)),
           category: mapTypeToCategory(parsed.type as string),
           justification: (parsed.justification as string) || "Clause identifiée par IA",
           suggestion: (parsed.suggestion as string) || "Révision recommandée",
           page: 1,
-          keywords: parsed.keywords as string[],
-          startIndex: parsed.startIndex as number,
-          endIndex: parsed.endIndex as number,
+          keywords: Array.isArray(parsed.keywords) ? (parsed.keywords as string[]) : [],
+          startIndex: typeof parsed.startIndex === "number" ? parsed.startIndex : undefined,
+          endIndex: typeof parsed.endIndex === "number" ? parsed.endIndex : undefined,
         });
       }
     });

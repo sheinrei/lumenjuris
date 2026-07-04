@@ -31,9 +31,9 @@ interface Props {
 }
 
 // Dimensions par défaut des champs (en pourcentage de la page)
+// (le paraphe « initial » a été retiré du produit — seul « signature » subsiste)
 const DEFAULT_SIZES: Record<FieldType, { width: number; height: number }> = {
   signature: { width: 0.22, height: 0.06 },
-  initial:   { width: 0.08, height: 0.06 },
 };
 
 /**

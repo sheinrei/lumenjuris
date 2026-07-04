@@ -11,10 +11,24 @@ export function proxyAuthMiddleware(
   res: Response,
   next: NextFunction,
 ): void {
-  const token: string | undefined = (
+  // Cookie (front web) ou header Authorization: Bearer (complément Word,
+  // où le cookie httpOnly cross-site n'est pas transmis par le navigateur).
+  const cookieToken: string | undefined = (
     req as Request & { cookies: Record<string, string> }
   ).cookies?.authLumenJuris;
+  const authHeader = req.headers.authorization;
+  const bearerToken =
+    authHeader && authHeader.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length)
+      : undefined;
+  const token = cookieToken ?? bearerToken;
   if (!token) {
+    // Mode dev local : laisser passer sans token (POC complément Word).
+    // En production, le comportement reste inchangé (401).
+    if (process.env.NODE_ENV !== "production") {
+      next();
+      return;
+    }
     res.status(401).json({ success: false, message: "Unauthorized" });
     return;
   }
