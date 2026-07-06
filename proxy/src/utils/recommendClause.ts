@@ -89,6 +89,9 @@ CONTRAINTES DE LONGUEUR :
 - Risk reduction : 30-50 mots maximum
 - Legal basis : 20-30 mots maximum
 - Negotiation tips : 2-3 conseils de 10-15 mots chacun
+
+RÈGLE DE STYLE : n'utilise JAMAIS d'énumérations en chiffres romains ((i), (ii), (iii), i., ii.…) ;
+rédige en phrases complètes, ou numérote 1. 2. 3. si une liste est indispensable.
 `;
 
   if (isComplex) {

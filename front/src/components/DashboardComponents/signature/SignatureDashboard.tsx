@@ -90,44 +90,44 @@ export function SignatureDashboard({ onNewContract, refreshKey }: Props) {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl">
+    <div className="space-y-5">
       <Header onNewContract={onNewContract} />
 
       {error && (
-        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 px-4 py-3 rounded-xl">
+        <div className="flex items-center gap-2 text-sm text-danger-dark bg-danger-light border border-danger/20 px-4 py-3 rounded-xl">
           <AlertCircle className="w-4 h-4 shrink-0" />
           {error}
         </div>
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard
           label="Total"
           value={stats?.total ?? 0}
           icon={FileText}
-          color="#354F99"
+          accent="#354F99"
           loading={loading}
         />
         <KpiCard
           label="En attente"
           value={(stats?.sent ?? 0) + (stats?.partiallySigned ?? 0)}
           icon={Clock}
-          color="#f59e0b"
+          accent="#d97706"
           loading={loading}
         />
         <KpiCard
           label="Signés"
           value={stats?.signed ?? 0}
           icon={CheckCircle2}
-          color="#10b981"
+          accent="#059669"
           loading={loading}
         />
         <KpiCard
           label="Brouillons"
           value={stats?.draft ?? 0}
           icon={Send}
-          color="#94a3b8"
+          accent="#64748b"
           loading={loading}
         />
       </div>
@@ -148,14 +148,14 @@ function Header({ onNewContract }: { onNewContract: () => void }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Signature électronique</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold text-ink tracking-tight">Signature électronique</h1>
+        <p className="text-sm text-ink-muted mt-1">
           Suivez l'avancement de vos contrats à signer.
         </p>
       </div>
       <button
         onClick={onNewContract}
-        className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-[#354F99] text-white text-sm font-semibold rounded-xl hover:bg-[#1a2d5a] transition-all shadow-sm"
+        className="shrink-0 flex items-center gap-2 px-5 py-2.5 bg-brand text-white text-sm font-semibold rounded-xl hover:bg-brand-hover transition-all shadow-card"
       >
         <Plus className="w-4 h-4" /> Nouveau contrat
       </button>
@@ -163,26 +163,28 @@ function Header({ onNewContract }: { onNewContract: () => void }) {
   );
 }
 
-/** Une carte KPI (valeur + label + petite icône colorée). */
+/** Une carte KPI — même gabarit que la bibliothèque de clauses (icône à gauche). */
 function KpiCard({
-  label, value, icon: Icon, color, loading,
+  label, value, icon: Icon, accent, loading,
 }: {
   label: string;
   value: number;
   icon: React.ElementType;
-  color: string;
+  accent: string;
   loading?: boolean;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex items-center justify-between">
-      <div>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{label}</p>
-        <p className="text-2xl font-bold text-gray-900 mt-1">
-          {loading ? <span className="text-gray-300">—</span> : value}
-        </p>
+    <div className="bg-white rounded-card border border-line shadow-card p-4 flex items-center gap-4">
+      <div className="w-10 h-10 rounded-panel flex items-center justify-center shrink-0" style={{ backgroundColor: accent + "18" }}>
+        <Icon className="w-5 h-5 stroke-[1.5]" style={{ color: accent }} />
       </div>
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: color + "1A" }}>
-        <Icon className="w-5 h-5" style={{ color }} />
+      <div className="min-w-0">
+        {loading ? (
+          <div className="h-7 w-8 rounded-md bg-surface-muted animate-pulse mb-1" />
+        ) : (
+          <p className="text-2xl font-bold tracking-tight text-ink">{value}</p>
+        )}
+        <p className="text-[10px] font-semibold text-ink-subtle uppercase tracking-widest leading-tight mt-0.5">{label}</p>
       </div>
     </div>
   );
@@ -204,15 +206,15 @@ function StatusFilters({
   ];
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <Filter className="w-3.5 h-3.5 text-gray-400" />
+      <Filter className="w-3.5 h-3.5 text-ink-subtle" />
       {options.map((o) => (
         <button
           key={o.id}
           onClick={() => onChange(o.id)}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all shadow-card ${
             current === o.id
-              ? "bg-gray-900 text-white shadow-sm"
-              : "text-gray-500 bg-white border border-gray-200 hover:bg-gray-50"
+              ? "bg-brand text-white border-brand"
+              : "text-ink-secondary bg-white border-line hover:bg-surface-subtle"
           }`}
         >
           {o.label}
@@ -233,20 +235,20 @@ function EnvelopeList({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+        <Loader2 className="w-5 h-5 animate-spin text-ink-subtle" />
       </div>
     );
   }
   if (list.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-3 text-center bg-white rounded-2xl border border-gray-200">
-        <div className="w-14 h-14 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">
-          <FileText className="w-6 h-6 text-gray-300 stroke-[1.5]" />
+      <div className="flex flex-col items-center justify-center py-20 gap-4 text-center bg-white rounded-card border border-line shadow-card">
+        <div className="w-14 h-14 rounded-card bg-surface-subtle border border-line flex items-center justify-center">
+          <FileText className="w-6 h-6 text-ink-subtle stroke-[1.5]" />
         </div>
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-gray-700">Aucune enveloppe</p>
-          <p className="text-xs text-gray-400 max-w-sm">
-            Créez votre premier contrat à signer depuis le bouton "Nouveau contrat".
+          <p className="text-sm font-semibold text-ink">Aucune enveloppe</p>
+          <p className="text-xs text-ink-muted max-w-sm">
+            Créez votre premier contrat à signer depuis le bouton « Nouveau contrat ».
           </p>
         </div>
       </div>
@@ -254,7 +256,7 @@ function EnvelopeList({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm divide-y divide-gray-100 overflow-hidden">
+    <div className="bg-white rounded-card border border-line shadow-card divide-y divide-line-subtle overflow-hidden">
       {list.map((env) => (
         <EnvelopeRow key={env.id} env={env} onDelete={() => onDelete(env.id)} />
       ))}
@@ -265,23 +267,23 @@ function EnvelopeList({
 /** Une ligne d'enveloppe dans la liste. */
 function EnvelopeRow({ env, onDelete }: { env: EnvelopeDTO; onDelete: () => void }) {
   return (
-    <div className="group flex items-center gap-4 px-5 py-3 hover:bg-gray-50/60 transition-colors">
-      <div className="w-9 h-9 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
-        <FileText className="w-4 h-4 text-gray-400" />
+    <div className="group flex items-center gap-4 px-5 py-3 hover:bg-surface-subtle/60 transition-colors">
+      <div className="w-9 h-9 rounded-panel bg-surface-subtle border border-line flex items-center justify-center shrink-0">
+        <FileText className="w-4 h-4 text-ink-subtle" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-800 truncate">{env.documentName}</p>
-        <p className="text-[11px] text-gray-400 truncate">
+        <p className="text-sm font-semibold text-ink truncate">{env.documentName}</p>
+        <p className="text-[11px] text-ink-subtle truncate">
           {env.counterpartyName} · {env.counterpartyEmail}
         </p>
       </div>
-      <div className="hidden md:block text-[11px] text-gray-400 shrink-0 min-w-[120px] text-right">
+      <div className="hidden md:block text-[11px] text-ink-subtle shrink-0 min-w-[120px] text-right">
         {formatDate(env.sentAt ?? env.createdAt)}
       </div>
       <StatusBadge status={env.status} />
       <button
         onClick={onDelete}
-        className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+        className="p-1.5 rounded-lg text-ink-subtle hover:text-danger hover:bg-danger-light transition-all opacity-0 group-hover:opacity-100"
         title="Supprimer"
       >
         <Trash2 className="w-3.5 h-3.5" />
@@ -295,7 +297,7 @@ function StatusBadge({ status }: { status: EnvelopeStatus }) {
   const cfg = STATUS_CONFIG[status];
   return (
     <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap"
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-chip text-[10px] font-semibold whitespace-nowrap"
       style={{ backgroundColor: cfg.bg, color: cfg.fg }}
     >
       {cfg.label}

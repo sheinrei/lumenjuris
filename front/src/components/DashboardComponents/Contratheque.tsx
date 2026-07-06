@@ -52,10 +52,10 @@ export function Contratheque() {
   // Vue Échéances
   if (tab === "echeances") {
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Contrathèque</h1>
-          <p className="text-sm text-gray-500 mt-1">Alertes de renouvellement et suivi des échéances.</p>
+          <h1 className="text-2xl font-bold text-ink tracking-tight">Contrathèque</h1>
+          <p className="text-sm text-ink-muted mt-1">Alertes de renouvellement et suivi des échéances.</p>
           <div className="mt-3"><ViewTabs tab={tab} onTab={setTab} /></div>
         </div>
         <DeadlinesView refreshKey={refreshKey} onOpen={(id) => navigate(`/contratheque/${id}`)} />

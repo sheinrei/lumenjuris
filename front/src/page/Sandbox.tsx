@@ -3,12 +3,10 @@ import {
   AlertBanner,
   type AlertVariant,
 } from "../components/common/AlertBanner";
+
 import MainHeader from "../components/MainHeader/MainHeader";
-
 import { useUserStore } from "../store/userStore";
-
 import { Navigate } from "react-router-dom";
-
 import { fetchProxy } from "../utils/fetchProxy";
 
 interface DebugFeed {
@@ -102,6 +100,10 @@ export function Sandbox() {
   >({});
 
   const { userData } = useUserStore();
+
+
+  const win = window
+  console.log(win)
 
   const applyAiFilter = async () => {
     const allItems: {
@@ -342,7 +344,9 @@ export function Sandbox() {
                     const v = e.target.value.replace(/[^0-9]/g, "");
                     setDuration(v === "" ? 3000 : parseInt(v));
                   }}
-                  className="w-24 text-sm border border-gray-300 rounded-md px-3 py-1.5 outline-none focus:border-lumenjuris-dark focus:ring-1 focus:ring-lumenjuris-dark"
+                  className="w-24 text-sm border border-gray-300 rounded-md px-3 py-1.5 outline-none 
+                  focus:border-lumenjuris-dark focus:ring-1 
+                  focus:ring-lumenjuris-dark"
                 />
               </div>
               <label className="flex items-center gap-2 cursor-pointer select-none">

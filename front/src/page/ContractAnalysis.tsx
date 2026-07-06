@@ -1,13 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { UploadZone } from "../components/ContractAnalysis/UploadZone";
-import {
-  DocumentViewer,
-  DocumentViewerRef,
-} from "../components/ContractAnalysis/DocumentViewer";
-
-// ===> ACTION 3 : CORRIGER L'IMPORT ICI
+import {  DocumentViewer, DocumentViewerRef} from "../components/ContractAnalysis/DocumentViewer";
 import { EnhancedClauseDetail } from "../components/ContractAnalysis/EnhancedClauseDetail/EnhancedClauseDetail";
 import { clearEnhancedClauseCaches } from "../components/ContractAnalysis/EnhancedClauseDetail/enhancedClauseCaches";
 import { ActionButtons } from "../components/ContractAnalysis/ActionButtons";
@@ -141,6 +136,14 @@ function mapEnterpriseToAnalysisContext(
     ? enterpriseContext
     : undefined;
 }
+
+
+
+
+
+
+
+
 
 // ─── Page principale ──────────────────────────────────────────────────────────
 
@@ -713,18 +716,23 @@ export default function ContractAnalysis() {
     }
   };
 
+  // Déclenche automatiquement l'analyse si un fichier OU un texte est passé via navigation state
+  // (ex. depuis la génération de contrats : « Réviser (risques) »).
   useEffect(() => {
-    const file = (location.state as { file?: File } | null)?.file;
-    if (file) {
-      const navigationUploadKey = `${location.key}:${getFileUploadKey(file)}`;
-
-      if (consumedNavigationUploadKeys.has(navigationUploadKey)) {
-        return;
-      }
-
+    const state = location.state as { file?: File; text?: string; fileName?: string } | null;
+    if (state?.file) {
+      const navigationUploadKey = `${location.key}:${getFileUploadKey(state.file)}`;
+      if (consumedNavigationUploadKeys.has(navigationUploadKey)) return;
       consumedNavigationUploadKeys.add(navigationUploadKey);
       navigate(".", { replace: true, state: null });
-      onFileUpload(file);
+      onFileUpload(state.file);
+    } else if (state?.text && state.text.trim()) {
+      const fileName = state.fileName || "Contrat généré";
+      const navigationTextKey = `${location.key}:text:${fileName}:${state.text.length}`;
+      if (consumedNavigationUploadKeys.has(navigationTextKey)) return;
+      consumedNavigationUploadKeys.add(navigationTextKey);
+      navigate(".", { replace: true, state: null });
+      void onTextSubmit(state.text, fileName);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
