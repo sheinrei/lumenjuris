@@ -1,13 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { UploadZone } from "../components/ContractAnalysis/UploadZone";
-import {
-  DocumentViewer,
-  DocumentViewerRef,
-} from "../components/ContractAnalysis/DocumentViewer";
-
-// ===> ACTION 3 : CORRIGER L'IMPORT ICI
+import {  DocumentViewer, DocumentViewerRef} from "../components/ContractAnalysis/DocumentViewer";
 import { EnhancedClauseDetail } from "../components/ContractAnalysis/EnhancedClauseDetail/EnhancedClauseDetail";
 import { clearEnhancedClauseCaches } from "../components/ContractAnalysis/EnhancedClauseDetail/enhancedClauseCaches";
 import { ActionButtons } from "../components/ContractAnalysis/ActionButtons";
@@ -141,6 +136,14 @@ function mapEnterpriseToAnalysisContext(
     ? enterpriseContext
     : undefined;
 }
+
+
+
+
+
+
+
+
 
 // ─── Page principale ──────────────────────────────────────────────────────────
 

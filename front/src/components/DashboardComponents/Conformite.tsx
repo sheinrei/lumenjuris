@@ -65,7 +65,8 @@ export function Conformite() {
   }, []);
 
   const handleOpen = (id: string) => {
-    navigate("/analyzer", { state: { historyId: id } });
+    console.log("Id du contract à ouvrir :", id)
+    navigate(`/analyzer`, { state: { historyId: id } });
   };
 
   const handleDelete = async (id: string) => {

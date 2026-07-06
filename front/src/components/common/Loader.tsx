@@ -19,6 +19,7 @@ interface LoaderProps {
 }
 
 
+
 /**
  * 
  * @param LoaderProps
@@ -29,74 +30,97 @@ export const Loader: React.FC<LoaderProps> = ({
     color = '#1a6cf5',
     showLogo = true,
     fullScreen = true,
-}) => (
-    <div
-        role="status"
-        aria-label={label}
-        style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: fullScreen ? '100vh' : '240px',
-            background: '#ffffff',
-            fontFamily: 'Inter, system-ui, sans-serif',
+}) => {
 
-        }}
-    >
-        <style>{loaderStyles.replace(/#1a6cf5/g, color)}</style>
+    let SIGNATURE_LOG = false;
+    if (!SIGNATURE_LOG) {
+        console.clear();
 
-        {showLogo && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 40 }}>
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="22 20 24 36"
-                    height="30"
-                    aria-label="LumenJuris"
-                    role="img"
-                    style={{
-                        animation: 'pulse 1s ease-in-out infinite'
-                    }}
-                >
-                    <circle cx="34" cy="40" fill="none" r="9" stroke="#0D6EFD" strokeWidth="2"></circle>
-                    <circle cx="34" cy="40" fill="#0D6EFD" r="4"></circle>
-                </svg>
-                <span style={{ fontSize: 24, fontWeight: 600, color: '#111827', letterSpacing: '-0.3px' }}>
-                    Lumen Juris
-                </span>
-            </div>
-        )}
+        console.log(
+            "%c◉ LUMEN JURIS ",
+            `
+    color:#0D6EFD;
+    font-size:64px;
+    font-weight:800;
+    letter-spacing:6px;
+    line-height:1;
+    border-radius:6px;
+    padding:14px 20px;
+    border-left:6px solid #0D6EFD;
+    background:rgba(15, 41, 82, 0.06);
+  `);
+        SIGNATURE_LOG = true;
+    }
 
-        <div style={{ width: 56, height: 56, marginBottom: 28 }}>
-            <div style={{
-                width: 56,
-                height: 56,
-                borderRadius: '50%',
-                border: '2.5px solid #e5e9f0',
-                borderTopColor: color,
-                animation: 'ljSpin 0.85s linear infinite',
-            }} />
-        </div>
+    return (
+        <div
+            role="status"
+            aria-label={label}
+            style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: fullScreen ? '100vh' : '240px',
+                background: '#ffffff',
+                fontFamily: 'Inter, system-ui, sans-serif',
 
-        <span style={{
-            fontSize: 14,
-            fontWeight: 500,
-            color: '#6b7280',
-            animation: 'ljFade 1.8s ease-in-out infinite',
-        }}>
-            {label}
-        </span>
+            }}
+        >
+            <style>{loaderStyles.replace(/#1a6cf5/g, color)}</style>
 
-        <div style={{ display: 'flex', gap: 6, marginTop: 20 }} aria-hidden="true">
-            {[0, 0.2, 0.4].map((delay, i) => (
-                <div key={i} style={{
-                    width: 5,
-                    height: 5,
+            {showLogo && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 40 }}>
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="22 20 24 36"
+                        height="30"
+                        aria-label="LumenJuris"
+                        role="img"
+                        style={{
+                            animation: 'pulse 1s ease-in-out infinite'
+                        }}
+                    >
+                        <circle cx="34" cy="40" fill="none" r="9" stroke="#0D6EFD" strokeWidth="2"></circle>
+                        <circle cx="34" cy="40" fill="#0D6EFD" r="4"></circle>
+                    </svg>
+                    <span style={{ fontSize: 24, fontWeight: 600, color: '#111827', letterSpacing: '-0.3px' }}>
+                        Lumen Juris
+                    </span>
+                </div>
+            )}
+
+            <div style={{ width: 56, height: 56, marginBottom: 28 }}>
+                <div style={{
+                    width: 56,
+                    height: 56,
                     borderRadius: '50%',
-                    animation: `ljDot 1.4s ease-in-out ${delay}s infinite`,
+                    border: '2.5px solid #e5e9f0',
+                    borderTopColor: color,
+                    animation: 'ljSpin 0.85s linear infinite',
                 }} />
-            ))}
+            </div>
+
+            <span style={{
+                fontSize: 14,
+                fontWeight: 500,
+                color: '#6b7280',
+                animation: 'ljFade 1.8s ease-in-out infinite',
+            }}>
+                {label}
+            </span>
+
+            <div style={{ display: 'flex', gap: 6, marginTop: 20 }} aria-hidden="true">
+                {[0, 0.2, 0.4].map((delay, i) => (
+                    <div key={i} style={{
+                        width: 5,
+                        height: 5,
+                        borderRadius: '50%',
+                        animation: `ljDot 1.4s ease-in-out ${delay}s infinite`,
+                    }} />
+                ))}
+            </div>
         </div>
-    </div>
-)
+    )
+}
 
