@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { UploadZone } from "../components/ContractAnalysis/UploadZone";
@@ -60,12 +60,14 @@ import {
   touchContractHistoryEntry,
   type ContractHistoryItem,
 } from "../utils/contractHistory";
-import type { MarketAnalysisResult } from "../utils/marketAnalysis";
+import type {
+  MarketAnalysisResult,
+  MissingClause,
+} from "../utils/marketAnalysis";
 
 import { fetchProxy } from "../utils/fetchProxy";
 
 import { LoadingZoneAnalyzer } from "../components/common/LoadingZoneAnalyzer";
-
 
 type EnterpriseGetData = EnterpriseSettings & {
   selectedIdcc?: ConventionCollectiveOption | null;
@@ -87,7 +89,7 @@ type TemporaryHistoryEntry = {
 
 const consumedNavigationUploadKeys = new Set<string>();
 const LEAVE_ANALYSIS_WARNING =
-  "Une analyse est en cours ou n'a pas été finalisée. Si vous quittez cette page, elle sera abandonnée.";
+  "Une analyse est en cours ou n'a pas Ã©tÃ© finalisÃ©e. Si vous quittez cette page, elle sera abandonnÃ©e.";
 const RECENT_NAVIGATION_CONFIRM_MS = 500;
 
 function getFileUploadKey(file: File): string {
@@ -142,13 +144,11 @@ function mapEnterpriseToAnalysisContext(
     : undefined;
 }
 
-// ─── Page principale ──────────────────────────────────────────────────────────
-
 export default function ContractAnalysis() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // États locaux
+  // Ã‰tats locaux
   const [selectedClause, setSelectedClause] = useState<string | null>(null);
   const [showAnalysisForm, setShowAnalysisForm] = useState(false);
   const [reviewedClauses, setReviewedClauses] = useState<Set<string>>(
@@ -164,7 +164,7 @@ export default function ContractAnalysis() {
   useEffect(() => {
     loadContractHistoryIndex()
       .then(setHistoryItems)
-      .catch(() => { });
+      .catch(() => {});
   }, []);
   const [temporaryHistoryEntries, setTemporaryHistoryEntries] = useState<
     Record<string, TemporaryHistoryEntry>
@@ -243,7 +243,7 @@ export default function ContractAnalysis() {
       .catch(() => setAnalyseCredit(null));
   }, []);
 
-  // Store pour les recommandations appliquées
+  // Store pour les recommandations appliquÃ©es
   const { clearAllAppliedRecommendations } = useAppliedRecommendationsStore();
   const appliedRecommendations = useAppliedRecommendationsStore(
     (s) => s.appliedRecommendations,
@@ -252,7 +252,7 @@ export default function ContractAnalysis() {
     (s) => s.setAppliedRecommendations,
   );
 
-  // Ref pour contrôler le DocumentViewer
+  // Ref pour contrÃ´ler le DocumentViewer
   const documentViewerRef = useRef<DocumentViewerRef>(null);
   const [recommendationIndex, setRecommandationIndex] = useState<number>(0);
   const handleIncrementIndexRecommendation = () =>
@@ -264,6 +264,7 @@ export default function ContractAnalysis() {
   const restoreDocumentState = useDocumentTextStore(
     (s) => s.restoreDocumentState,
   );
+  const setHtmlContent = useDocumentTextStore((s) => s.setHtmlContent);
   const resetAllPatches = useDocumentTextStore((s) => s.resetAll);
 
   // Hook principal pour l'analyse des contrats
@@ -439,12 +440,13 @@ export default function ContractAnalysis() {
         });
 
         if (!response.ok)
-          throw new Error(`Analyse échouée (${response.status})`);
+          throw new Error(`Analyse échoué (${response.status})`);
         const data = (await response.json()) as {
           success: boolean;
           clauses: ClauseRisk[];
         };
         analysisResults = data.clauses ?? [];
+
         saveAnalysisToCache(
           baseContract.content,
           analysisResults,
@@ -513,6 +515,148 @@ export default function ContractAnalysis() {
         setShowAnalysisForm(true);
       }
     }
+  };
+
+  const handleAppendClause = (clause: MissingClause) => {
+    let texteClause = clause.suggestionAjout;
+    const storeState = useDocumentTextStore.getState();
+    const originalText = storeState.originalText ?? "";
+
+    const baseContent = storeState.htmlContent?.trim()
+      ? storeState.htmlContent
+      : originalText.replace(/\n/g, "<br>");
+
+    // On cherche le tout dernier article écrit par l'utilisateur dans son document
+    const articleRegex = /(?:Article\s+(\d+)|(\d+)\.)/gi;
+    const matches = [...originalText.matchAll(articleRegex)];
+
+    let isNumericFormat = true;
+    let prefixTemplate = "";
+    let suffixTemplate = ".";
+
+    if (matches.length > 0) {
+      const lastMatch = matches[matches.length - 1];
+      const matchText = lastMatch[0];
+
+      isNumericFormat = !/article/i.test(matchText);
+
+      if (isNumericFormat) {
+        prefixTemplate = "";
+        suffixTemplate = matchText.includes(".") ? "." : "";
+      } else {
+        prefixTemplate = matchText.toUpperCase().startsWith("ARTICLE")
+          ? "Article "
+          : "Article ";
+        suffixTemplate = matchText.includes(" -") ? " -" : "";
+      }
+    } else {
+      // Si on ne trouve vraiment rien dans le texte, on regarde ce que l'IA a détecté
+      isNumericFormat =
+        clause.detectedFormat === "NumericOnly" ||
+        (clause.lastNumberValue !== undefined && clause.lastNumberValue > 0);
+      prefixTemplate = isNumericFormat ? "" : "Article ";
+      suffixTemplate = isNumericFormat ? "." : "";
+    }
+
+    // Calcul du numéro lors du clic d'ajout d'une clause sugérée
+    const baseNum = clause.lastNumberValue ?? 0;
+    const clausesAjoutees = (
+      baseContent.match(/class="contract-article"/g) || []
+    ).length;
+    const nextNum = baseNum + clausesAjoutees + 1;
+    const header = `${prefixTemplate}${nextNum}${suffixTemplate}`;
+
+    // Supprime le titre généré par l'IA
+    const iaTitleMatch = texteClause
+      .trim()
+      .match(/^(?:<strong>)?(?:article\s+(\d+)|(\d+)\s*\.?)/i);
+
+    if (iaTitleMatch) {
+      const numIA = parseInt(iaTitleMatch[1] || iaTitleMatch[2], 10);
+      const cleanRegex = new RegExp(
+        `^\\s*(?:<strong>)?(?:article\\s+${numIA}|${numIA}\\s*\\.?)\\s*(?:-|–|—)?\\s*(?:<\\/strong>)?\\s*`,
+        "i",
+      );
+      texteClause = texteClause.replace(cleanRegex, "");
+    }
+
+    const contentToInsert = `${header} ${texteClause}`;
+    const newClauseHtml = `<div class="contract-article" style="margin-top: 14px; margin-bottom: 14px;">${contentToInsert}</div>`;
+
+    // Clean le texte pour pouvoir effectuer une recherche du anchorText
+    let insertIdx = -1;
+    const normalizeText = (str: string) =>
+      str
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "");
+
+    const anchorsToTry = [
+      clause.anchorText,
+      "fait a",
+      "en 2 exemplaires",
+      "en deux exemplaires",
+      "signe a",
+      "lu et approuve",
+    ].filter(Boolean) as string[];
+
+    for (const anchor of anchorsToTry) {
+      const targetClean = normalizeText(anchor);
+      if (!targetClean) continue;
+
+      let currentPlain = "";
+      const indexMap: number[] = [];
+      let inTag = false;
+
+      // Vérifie si il s'agit d'une balise
+      for (let i = 0; i < baseContent.length; i++) {
+        if (baseContent[i] === "<") {
+          inTag = true;
+          continue;
+        }
+        if (baseContent[i] === ">") {
+          inTag = false;
+          continue;
+        }
+        if (inTag) continue;
+
+        // Permet de savoir où se trouve le texte injecté même avec des balises
+        const charNormalized = normalizeText(baseContent[i]);
+        if (charNormalized) {
+          currentPlain += charNormalized;
+          indexMap.push(i);
+        }
+      }
+
+      const matchPos = currentPlain.indexOf(targetClean);
+      if (matchPos !== -1) {
+        insertIdx = indexMap[matchPos];
+        break;
+      }
+    }
+
+    let finalContent = "";
+    if (insertIdx !== -1) {
+      const chunkBefore = baseContent.slice(0, insertIdx);
+      const lastBr = chunkBefore.lastIndexOf("<br");
+      const lastP = chunkBefore.lastIndexOf("<p");
+      const bestBreak = Math.max(lastBr, lastP);
+
+      if (bestBreak !== -1 && insertIdx - bestBreak < 300) {
+        insertIdx = bestBreak;
+      }
+
+      finalContent =
+        baseContent.slice(0, insertIdx) +
+        newClauseHtml +
+        baseContent.slice(insertIdx);
+    } else {
+      finalContent = baseContent + newClauseHtml;
+    }
+
+    useDocumentTextStore.getState().addClauseToTrack(clause.nom);
+    setHtmlContent(finalContent);
   };
 
   const { handleShareReport, loadSharedData } = useShareUrl(
@@ -684,7 +828,7 @@ export default function ContractAnalysis() {
     const preparationKey = `file:${getFileUploadKey(file)}`;
 
     if (documentPreparationRef.current) {
-      console.warn("Upload ignoré: une préparation est déjà en cours.");
+      console.warn("Upload ignorÃ©: une prÃ©paration est déjà en cours.");
       return;
     }
 
@@ -733,7 +877,7 @@ export default function ContractAnalysis() {
     const preparationKey = `text:${fileName}:${text.length}`;
 
     if (documentPreparationRef.current) {
-      console.warn("Soumission ignorée: une préparation est déjà en cours.");
+      console.warn("Soumission ignorée: une prÃ©paration est déjà en cours.");
       return;
     }
 
@@ -812,7 +956,7 @@ export default function ContractAnalysis() {
     };
 
     console.log(
-      "🚀 Début onContextualAnalysis avec contexte:",
+      "Début onContextualAnalysis avec contexte:",
       contextWithEnterprise,
     );
     void startTemporaryAnalysis(
@@ -831,7 +975,7 @@ export default function ContractAnalysis() {
       await handleMarketAnalysis();
       setShowMarketAnalysis(true);
     } catch (error) {
-      console.error("Erreur analyse de marché:", error);
+      console.error("Erreur analyse de marchÃ©:", error);
     }
   };
 
@@ -994,7 +1138,7 @@ export default function ContractAnalysis() {
                   onTextSubmit={onTextSubmit}
                   isProcessing={displayedIsProcessing}
                   processingPhase={displayedProcessingPhase}
-                  analyseCredit={9999 /* bypass dev — crédits réels: analyseCredit */}
+                  analyseCredit={9999}
                 />
               </div>
             </div>
@@ -1030,7 +1174,7 @@ export default function ContractAnalysis() {
                   {contract.clauses.length === 0 && (
                     <div className="p-4 bg-blue-50 border-b border-blue-200">
                       <div className="flex items-center gap-2 text-blue-800">
-                        <span className="text-lg">📄</span>
+                        <span className="text-lg">🚀</span>
                         <span className="font-medium">
                           Texte extrait - En attente d'analyse
                         </span>
@@ -1041,6 +1185,20 @@ export default function ContractAnalysis() {
                       </p>
                     </div>
                   )}
+
+                  <div className="flex justify-center">
+                    <ActionButtons
+                      onShareReport={handleShareReport}
+                      isProcessed={Boolean(contract?.processed)}
+                      originalContent={contract?.content}
+                      htmlContent={htmlContent}
+                      fileName={contract?.fileName || "document"}
+                      onRelaunchAnalysis={handleForceRelaunchAnalysis}
+                      isRelaunchingAnalysis={displayedIsProcessing}
+                      onSuggestedClauses={handleMarketAnalysisClick}
+                      isLoadingSuggested={isMarketAnalysisLoading}
+                    />
+                  </div>
 
                   <DocumentViewer
                     content={contract.content}
@@ -1055,20 +1213,6 @@ export default function ContractAnalysis() {
                     ref={documentViewerRef}
                   />
                 </div>
-              </div>
-
-              <div className="flex justify-center">
-                <ActionButtons
-                  onShareReport={handleShareReport}
-                  isProcessed={Boolean(contract?.processed)}
-                  originalContent={contract?.content}
-                  htmlContent={htmlContent}
-                  fileName={contract?.fileName || "document"}
-                  onRelaunchAnalysis={handleForceRelaunchAnalysis}
-                  isRelaunchingAnalysis={displayedIsProcessing}
-                  onSuggestedClauses={handleMarketAnalysisClick}
-                  isLoadingSuggested={isMarketAnalysisLoading}
-                />
               </div>
             </div>
           )}
@@ -1097,7 +1241,7 @@ export default function ContractAnalysis() {
                 onClick={() => setShowMarketAnalysis(false)}
                 className="text-gray-400 hover:text-gray-600 text-2xl"
               >
-                ×
+                X
               </button>
             </div>
             <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
@@ -1111,6 +1255,7 @@ export default function ContractAnalysis() {
                 <MarketComparison
                   analysisResult={marketAnalysis}
                   isLoading={isMarketAnalysisLoading}
+                  onAppendClause={handleAppendClause}
                 />
               </Suspense>
             </div>

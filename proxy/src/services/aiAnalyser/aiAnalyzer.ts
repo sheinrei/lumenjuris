@@ -54,7 +54,10 @@ async function logTokens(
   }
 }
 
-async function callPythonOpenAi(prompt: string, userId?: number): Promise<string> {
+async function callPythonOpenAi(
+  prompt: string,
+  userId?: number,
+): Promise<string> {
   const r = await fetch(`${BACKEND_URL}/openai-chat-5`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

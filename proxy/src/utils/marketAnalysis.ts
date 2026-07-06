@@ -9,6 +9,14 @@ export interface MissingClause {
   standardMarche: string;
   suggestionAjout: string;
   priorite: "critique" | "important" | "mineur";
+  detectedFormat: "ArticleX" | "ARTICLE X" | "NumericOnly" | "Roman" | "None";
+  prefixTemplate: string;
+  suffixTemplate: string;
+  lastNumberType: "arabic" | "roman" | "letters" | "words" | "none";
+  lastNumberValue: number;
+  nextArticleHeader: string;
+  clauseSize: number;
+  anchorText: string;
 }
 
 export interface MarketDeviation {
@@ -38,8 +46,10 @@ export async function detectMissingClauses(
   contractText: string,
   contractType: string,
   existingClauses: string[],
-): Promise<MissingClause[]> {
-  const contractExcerpt = contractText ? contractText.substring(0, 4000) : "";
+): Promise<{ clausesManquantes: MissingClause[] }> {
+  const contractExcerpt = contractText
+    ? `${contractText.substring(0, 3000)}\n\n[...]\n\n${contractText.slice(-4000)}`
+    : "";
 
   const prompt = `Tu es un expert juridique senior spécialisé dans l'analyse de ${contractType}.
 Ta mission est d'identifier UNIQUEMENT les clauses ABSENTES mais ESSENTIELLES.
@@ -62,26 +72,51 @@ CRITÈRES DE SÉLECTION:
 - Clauses RECOMMANDÉES par les standards du marché
 - Clauses UTILES pour protéger les intérêts
 
+
+ INSTRUCTIONS POUR L'ANALYSE DE STRUCTURE (CRITIQUE) :
+ 
+ Le but est de trouver le point d'insertion exact pour ajouter de nouveaux éléments APRÈS le dernier paragraphe ou article de fond, et AVANT toute formule de clôture ou bloc de signature. Tu dois t'adapter à TOUT type d'acte (formel, informel, anglo-saxon, acte sous seing privé, CGV, avenant, etc.).
+ 
+ 1. Repère la ZONE DE CLÔTURE : Identifie l'emplacement exact des mentions comme "Fait à", "Fait en autant d'exemplaires", "Signé le", "En foi de quoi", "Lu et approuvé", "Fait pour valoir ce que de droit", ou le bloc de signatures. Tout ce qui est dans cette zone ou en dessous ne doit pas être modifié.
+ 2. Identifie le DERNIER ÉLÉMENT SUBSTANTIEL : Trouve le tout dernier paragraphe, article ou clause de fond situé juste AVANT cette zone de clôture.
+ Pour chaque clause dans "clausesManquantes", remplis également ces règles agnostiques et structurelles directement dans l'objet de la clause :
+ "detectedFormat" : Le style ou modèle textuel du titre. Choisis STRICTEMENT parmi : "ArticleX", "ARTICLE X", "NumericOnly" (si juste un chiffre comme 1. ou 12-), "Roman", ou "None" (si pas de numérotation).
+ "prefixTemplate" : Le texte exact qui précède le numéro dans le titre. Ex: "Article " (avec l'espace), "Art. " ou "" (chaîne vide si le format est NumericOnly).
+ "suffixTemplate" : La ponctuation ou les caractères qui suivent immédiatement le numéro dans le titre. Ex: "." (pour 1.), " -" (pour ARTICLE 1 -), ou "" (chaîne vide s'il n'y a rien).
+ "lastNumberType" : "arabic" (1, 2...), "roman" (I, II...), "letters" (A, B...), "words" (Un, Deux...) ou "none".
+ "lastNumberValue" : Valeur numérique entière (Int) du tout dernier élément détecté RÉELLEMENT PRÉSENT dans le "Contrat à analyser" (ex: 13). Cette valeur DOIT être STRICTEMENT la même pour TOUTES les clauses du tableau "clausesManquantes", car elles se basent toutes sur le même état initial du contrat. Convertis en entier si c'est du romain ou du texte (ex: XIV ou Quatorze devient 14). Mets 0 si "none".
+ "nextArticleHeader" : Le titre exact et complet que devra porter ce nouvel élément s'il était inséré immédiatement. Tu dois le construire en combinant prefixTemplate + (lastNumberValue + 1) + suffixTemplate. Exemple : si le dernier présent dans le contrat est "13.", le prochain DOIT être "14.". Attention : toutes les clauses générées dans cette réponse doivent proposer le MÊME numéro d'article suivant (ex: elles réclament TOUTES le numéro 14), car elles partagent le même point d'insertion initial.
+ "clauseSize" : Le nombre de caractères de la clause à ajouter (longueur de "suggestionAjout").
+ "anchorText" : Le texte exact (sensible à la casse et à la ponctuation) des 3 à 5 premiers mots de la formule de clôture ou du bloc de signatures (ex: "Fait à", "En foi de quoi", "Fait en autant d'exemplaires") présent TOUT À LA FIN du contrat permettant d'injecter la clause manquante juste avant ce bloc. ATTENTION : Ce texte doit exister mot pour mot dans le "Contrat à analyser". Si tu ne trouves aucun bloc de clôture ou si le texte s'arrête brusquement, renvoie STRICTEMENT une chaîne vide "".
+
 FORMAT DE RÉPONSE JSON:
-{
-  "clausesManquantes": [
-    {
-      "nom": "Nom précis de la clause manquante",
-      "importance": "obligatoire|recommandé|utile",
-      "explicationAbsence": "Pourquoi cette absence est problématique",
-      "standardMarche": "Ce qui existe dans 90% des contrats similaires",
-      "suggestionAjout": "Proposition de formulation concrète",
-      "priorite": "critique|important|mineur"
-    }
-  ]
-}
+ {
+   "clausesManquantes": [
+     {
+       "nom": "Nom de la clause manquante",
+       "importance": "obligatoire|recommandé|utile",
+       "priorite": "critique|important|mineur",
+       "explicationAbsence": "Pourquoi cette clause est nécessaire",
+       "standardMarche": "Ce que prévoit habituellement le marché pour cette clause",
+       "suggestionAjout": "Texte complet de la clause à ajouter, prêt à l'emploi",
+       "detectedFormat": "ArticleX",
+       "prefixTemplate": "Article ",
+       "suffixTemplate": "",
+       "lastNumberType": "arabic",
+       "lastNumberValue": 13,
+       "nextArticleHeader": "Article 14",
+       "clauseSize": 200,
+       "anchorText": "..."
+     }
+   ],
+ }
 
 Contrat à analyser:
 """
 ${contractExcerpt}
 """
 
-Réponds UNIQUEMENT avec le JSON.`;
+Réponds UNIQUEMENT avec le JSON complet et valide.`;
 
   try {
     const txt = await callOpenAI([{ role: "user", content: prompt }], {
@@ -90,14 +125,20 @@ Réponds UNIQUEMENT avec le JSON.`;
       max_tokens: 1500,
       response_format: { type: "json_object" },
     });
+
     const result = JSON.parse(txt);
-    return result.clausesManquantes || [];
+
+    return {
+      clausesManquantes: result.clausesManquantes || [],
+    };
   } catch (error) {
     console.error(
       "❌ Erreur lors de la détection des clauses manquantes:",
       error,
     );
-    return [];
+    return {
+      clausesManquantes: [],
+    };
   }
 }
 
@@ -223,21 +264,23 @@ export async function performCompleteMarketAnalysis(
   contractType: string,
   detectedClauses: ClauseRisk[],
 ): Promise<MarketAnalysisResult> {
-  const [clausesManquantes, ecartAuxStandards, questionsProposees] =
-    await Promise.all([
-      detectMissingClauses(
-        contractText,
-        contractType,
-        detectedClauses.map((c) => c.type),
-      ),
-      compareToMarketStandards(contractText, contractType, detectedClauses),
-      generateContextualQuestions(
-        contractText,
-        [],
-        detectedClauses,
-        contractType,
-      ),
-    ]);
+  const missingClausesData = await detectMissingClauses(
+    contractText,
+    contractType,
+    detectedClauses.map((c) => c.type),
+  );
+
+  const clausesManquantes = missingClausesData.clausesManquantes;
+
+  const [ecartAuxStandards, questionsProposees] = await Promise.all([
+    compareToMarketStandards(contractText, contractType, detectedClauses),
+    generateContextualQuestions(
+      contractText,
+      clausesManquantes,
+      detectedClauses,
+      contractType,
+    ),
+  ]);
 
   const scoreConformite = calculateConformityScore(
     clausesManquantes,

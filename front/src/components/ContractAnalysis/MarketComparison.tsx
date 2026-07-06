@@ -1,15 +1,25 @@
-import React from "react";
-import { MarketAnalysisResult } from "../../utils/marketAnalysis";
+import React, { useState } from "react";
+import {
+  MarketAnalysisResult,
+  MissingClause,
+} from "../../utils/marketAnalysis";
+import { useDocumentTextStore } from "../../store/documentTextStore";
 
 interface MarketComparisonProps {
   analysisResult: MarketAnalysisResult;
   isLoading?: boolean;
+  onAppendClause: (clause: MissingClause) => void;
 }
 
 export const MarketComparison: React.FC<MarketComparisonProps> = ({
   analysisResult,
   isLoading = false,
+  onAppendClause,
 }) => {
+  const addedClauseNames = useDocumentTextStore(
+    (state) => state.addedClauses || [],
+  );
+
   if (isLoading) {
     return (
       <div className="bg-white rounded-lg p-6 border border-gray-200">
@@ -23,7 +33,10 @@ export const MarketComparison: React.FC<MarketComparisonProps> = ({
     );
   }
 
-  const { clausesManquantes } = analysisResult;
+  const allClauses = analysisResult?.clausesManquantes || [];
+  const clausesManquantes = allClauses.filter(
+    (clause) => !addedClauseNames.includes(clause.nom),
+  );
 
   const getPriorityColor = (priorite: string) => {
     switch (priorite) {
@@ -55,7 +68,7 @@ export const MarketComparison: React.FC<MarketComparisonProps> = ({
                 <div className="flex items-start justify-between mb-2">
                   <h4 className="font-semibold text-gray-800">{clause.nom}</h4>
                   <span className="text-xs px-2 py-1 rounded-full bg-white bg-opacity-50 text-gray-700">
-                    {clause.importance.toUpperCase()}
+                    {clause.importance?.toUpperCase()}
                   </span>
                 </div>
 
@@ -74,6 +87,12 @@ export const MarketComparison: React.FC<MarketComparisonProps> = ({
                     <strong>Suggestion:</strong> {clause.suggestionAjout}
                   </p>
                 </div>
+                <button
+                  onClick={() => onAppendClause(clause)}
+                  className="mt-4 w-full inline-flex justify-center items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md shadow-sm transition-colors duration-150"
+                >
+                  Ajouter
+                </button>
               </div>
             ))}
           </div>

@@ -11,7 +11,10 @@ type OpenAiUsagePayload = {
   output_tokens?: number;
 };
 
-async function logTokens(usage: OpenAiUsagePayload | undefined, userId?: number): Promise<void> {
+async function logTokens(
+  usage: OpenAiUsagePayload | undefined,
+  userId?: number,
+): Promise<void> {
   if (!usage?.model) return;
   const input = Math.trunc(Number(usage.input_tokens ?? 0));
   const output = Math.trunc(Number(usage.output_tokens ?? 0));
