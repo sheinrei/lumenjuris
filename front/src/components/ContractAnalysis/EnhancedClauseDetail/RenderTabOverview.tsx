@@ -6,13 +6,8 @@ import { Recommendation } from "../../../types";
 import { copyToClipboard } from "./EnhancedClauseDetail";
 import { useDocumentTextStore } from "../../../store/documentTextStore";
 import { useAppliedRecommendationsStore } from "../../../store/appliedRecommendationsStore";
-import { type OpenAIModelId } from "../../../utils/aiClient";
+import { cleanEnumArtifacts } from "../../../utils/cleanAiText";
 
-
-interface ClauseAIModelOption {
-    value: OpenAIModelId;
-    label: string;
-}
 
 interface PropsRenderTabOverview {
     longText: string,
@@ -25,9 +20,6 @@ interface PropsRenderTabOverview {
     originalTextGlobal: string,
     recommendationIndex: number,
     setRecommendationIndex: (index: number) => void
-    clauseAiModel: OpenAIModelId,
-    clauseAiModelOptions: ClauseAIModelOption[],
-    onClauseAiModelChange: (model: OpenAIModelId) => void
 }
 export const RenderTabOverview: React.FC<PropsRenderTabOverview> = ({
     longText,
@@ -40,9 +32,6 @@ export const RenderTabOverview: React.FC<PropsRenderTabOverview> = ({
     originalTextGlobal,
     recommendationIndex,
     setRecommendationIndex,
-    clauseAiModel,
-    clauseAiModelOptions,
-    onClauseAiModelChange
 }) => {
 
 
@@ -110,7 +99,7 @@ export const RenderTabOverview: React.FC<PropsRenderTabOverview> = ({
             recommendationKey,
             startOrig: anchor.start,
             endOrig: anchor.end,
-            newSlice: clauseRecommendation.clauseText,
+            newSlice: cleanEnumArtifacts(clauseRecommendation.clauseText),
             originalSlice: clause.content
         });
         setRecommendationIndex(recommendationIndex)
@@ -145,31 +134,6 @@ export const RenderTabOverview: React.FC<PropsRenderTabOverview> = ({
                 )}
             </section>
 
-            <section className="rounded-md border border-slate-200 bg-slate-50 p-4">
-                <div className="flex items-center justify-between gap-3">
-                    <div>
-                        <h4 className="font-semibold text-slate-800">Comparaison IA</h4>
-                        <p className="mt-1 text-xs text-slate-500">
-                            Change le modèle pour régénérer les problèmes et les propositions de clause.
-                        </p>
-                    </div>
-                    <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Modèle
-                        <select
-                            value={clauseAiModel}
-                            onChange={(event) => onClauseAiModelChange(event.target.value as OpenAIModelId)}
-                            className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm font-medium normal-case tracking-normal text-slate-800 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        >
-                            {clauseAiModelOptions.map(option => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                </div>
-            </section>
-
             {/* Problèmes */}
             <section className="rounded-md border border-slate-200 bg-white p-4">
                 <header className="mb-3 flex items-center gap-2">
@@ -195,7 +159,7 @@ export const RenderTabOverview: React.FC<PropsRenderTabOverview> = ({
                             ai.issues.map((issue: string, i: number) => (
                                 <li key={i} className="flex gap-2 rounded-sm px-2 py-1.5 leading-snug text-slate-700">
                                     <span className="mt-0.5 text-red-500">•</span>
-                                    <span>{issue}</span>
+                                    <span>{cleanEnumArtifacts(issue)}</span>
                                 </li>
                             ))
                         ) : (
@@ -251,7 +215,7 @@ export const RenderTabOverview: React.FC<PropsRenderTabOverview> = ({
 
                                     {/* Button CTA */}
                                     <div className="mb-2 flex items-start justify-end gap-2 text-sm">
-                                        <button onClick={() => copyToClipboard(alternative.clauseText)} className="rounded-full px-3 py-1 font-semibold text-slate-700 border border-slate-400 bg-slate-100 hover:bg-slate-200" title="Copier cette recommandation">Copier</button>
+                                        <button onClick={() => copyToClipboard(cleanEnumArtifacts(alternative.clauseText))} className="rounded-full px-3 py-1 font-semibold text-slate-700 border border-slate-400 bg-slate-100 hover:bg-slate-200" title="Copier cette recommandation">Copier</button>
                                         {currentRecommendation ? (
                                             <button onClick={() => handleRemove(recommendationKey)}
                                                 className="rounded-full px-3 py-1 font-semibold text-slate-700 border border-slate-400 bg-slate-100 hover:bg-slate-200">
@@ -272,21 +236,21 @@ export const RenderTabOverview: React.FC<PropsRenderTabOverview> = ({
                                     </div>
 
 
-                                    <pre className="whitespace-pre-wrap leading-relaxed text-slate-700 mb-2 text-sm font-sans">{alternative.clauseText}</pre>
+                                    <pre className="whitespace-pre-wrap leading-relaxed text-slate-700 mb-2 text-sm font-sans">{cleanEnumArtifacts(alternative.clauseText)}</pre>
 
                                     <div className="flex flex-col gap-1 text-xs text-slate-500">
                                         <div>
                                             <span className="font-medium text-slate-600">
                                                 Avantages :
                                             </span>
-                                            {alternative.benefits}
+                                            {cleanEnumArtifacts(alternative.benefits)}
                                         </div>
 
                                         <div>
                                             <span className="font-medium text-slate-600">
                                                 Réduction des risques :
                                             </span>
-                                            {alternative.riskReduction}
+                                            {cleanEnumArtifacts(alternative.riskReduction)}
                                         </div>
                                     </div>
                                 </li>

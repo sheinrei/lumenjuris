@@ -131,14 +131,17 @@ export const ContextualAnalysisForm: React.FC<ContextualAnalysisFormProps> = ({
       <div className="bg-white rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <h3 className="text-xl font-semibold mb-4">📋 Questions d'analyse personnalisée</h3>
 
-        {isDetecting && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-sm text-blue-700">
-              <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full"></div>
-              Le document est en cours d'analyse pour vous aider à remplir automatiquement les champs.
-              Vous pouvez les modifier comme vous le souhaitez
+        {isDetecting ? (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-sm text-blue-700">
+            <div className="animate-spin shrink-0 w-4 h-4 border-2 border-current border-t-transparent rounded-full"></div>
+            Le document est en cours d'analyse pour vous aider à remplir automatiquement les champs.
+          </div>)
+          : (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-sm text-green-700">
+              Les champs ont été préremplis automatiquement. <br />
+              Vous pouvez les ajuster si nécessaire afin de refléter au mieux votre situation.
             </div>
           )
-
 
         }
 
