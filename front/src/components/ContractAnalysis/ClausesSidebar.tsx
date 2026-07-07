@@ -40,7 +40,7 @@ export const ClausesSidebar: React.FC<ClausesSidebarProps> = ({
   ).length;
 
   return (
-    <div className="w-80 bg-white border-l border-gray-200 flex flex-col h-fit">
+    <div className="w-80 bg-white border rounded-lg flex flex-col h-fit m-2 p-2">
       {/* Header sticky */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 pt-4 pb-3">
         {/* Title + count */}

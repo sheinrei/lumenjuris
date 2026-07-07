@@ -19,15 +19,17 @@ export function ClauseRiskCard({
   const getRiskColor = (riskScore: number) => {
     if (riskScore === 5) return "bg-red-200 border-red-400 text-red-900"; // Critique
     if (riskScore >= 3)
-      return "bg-orange-100 border-orange-300 text-orange-800"; // Moyen
-    return "bg-green-100 border-green-300 text-green-800"; // Modéré
+      return "bg-orange-100 border-orange-400 text-orange-800"; // Moyen
+    return "bg-green-100 border-green-600 text-green-900"; // Modéré
   };
 
   const getRiskBadge = (riskScore: number) => {
-    if (riskScore === 5) return "bg-red-700 text-white"; // Critique
-    if (riskScore >= 3) return "bg-orange-500 text-white"; // Moyen
-    if (riskScore === -1) return "bg-blue-300 text-black"; //modified
-    return "bg-green-500 text-white"; // Modéré
+    if (riskScore === 5) return "text-white bg-red-600 border border-red-700"; // Critique
+    if (riskScore >= 3)
+      return "border-orange-700 bg-orange-500 text-white border"; // Moyen
+    if (riskScore === -1)
+      return "border-blue-300 bg-blue-500 border text-white"; //modified
+    return "border-green-700 bg-green-500 border text-white"; // Modéré
   };
 
   const getRiskLabel = (riskScore: number) => {

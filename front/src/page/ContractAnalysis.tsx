@@ -69,6 +69,9 @@ import { fetchProxy } from "../utils/fetchProxy";
 
 import { LoadingZoneAnalyzer } from "../components/common/LoadingZoneAnalyzer";
 
+import { ClausesSidebar } from "../components/ContractAnalysis/ClausesSidebar";
+import { isFeatureEnabled } from "../config/features";
+
 type EnterpriseGetData = EnterpriseSettings & {
   selectedIdcc?: ConventionCollectiveOption | null;
 };
@@ -89,7 +92,7 @@ type TemporaryHistoryEntry = {
 
 const consumedNavigationUploadKeys = new Set<string>();
 const LEAVE_ANALYSIS_WARNING =
-  "Une analyse est en cours ou n'a pas Ã©tÃ© finalisÃ©e. Si vous quittez cette page, elle sera abandonnÃ©e.";
+  "Une analyse est en cours ou n'a pas été finalisée. Si vous quittez cette page, elle sera abandonnée.";
 const RECENT_NAVIGATION_CONFIRM_MS = 500;
 
 function getFileUploadKey(file: File): string {
@@ -1189,10 +1192,14 @@ export default function ContractAnalysis() {
 
           {contract?.processed && !displayedIsProcessing && (
             <div
-              className={sidebarCollapsed ? "w-full px-3" : "max-w-7xl mx-auto"}
+              className={
+                sidebarCollapsed
+                  ? "w-full px-3 flex gap-x-6"
+                  : "max-w-7xl mx-auto flex gap-x-6"
+              }
             >
               <div id="clauses-section" className="mb-6">
-                <div className="bg-white rounded-lg shadow-lg">
+                <div className="bg-white">
                   {contract.clauses.length === 0 && (
                     <div className="p-4 bg-blue-50 border-b border-blue-200">
                       <div className="flex items-center gap-2 text-blue-800">
@@ -1221,7 +1228,6 @@ export default function ContractAnalysis() {
                       isLoadingSuggested={isMarketAnalysisLoading}
                     />
                   </div>
-
                   <DocumentViewer
                     content={contract.content}
                     clauses={sortedClauses}
@@ -1236,6 +1242,16 @@ export default function ContractAnalysis() {
                   />
                 </div>
               </div>
+              {isFeatureEnabled("ENABLE_CLAUSES_SIDEBAR") && (
+                <div className="hidden md:block w-80 border-gray-200 flex-shrink-0">
+                  <ClausesSidebar
+                    clauses={sortedClauses}
+                    onClauseClick={(clause) => handleClauseClick(clause.id)}
+                    isVisible={true}
+                    recommandationApplied={patches}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

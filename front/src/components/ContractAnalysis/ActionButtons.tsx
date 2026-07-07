@@ -1,5 +1,11 @@
 import React from "react";
-import { Share2, FileText, CheckCircle, RefreshCw, Lightbulb } from "lucide-react";
+import {
+  Share2,
+  FileText,
+  CheckCircle,
+  RefreshCw,
+  Lightbulb,
+} from "lucide-react";
 import { useDocumentTextStore } from "../../store/documentTextStore";
 import { useAppliedRecommendationsStore } from "../../store/appliedRecommendationsStore";
 
@@ -39,10 +45,9 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   const btnExportDisabled = `${btnBase} bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed`;
 
   return (
-    <div className="bg-white border-b border-gray-200 px-6 py-3">
+    <div className=" px-6 py-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-wrap">
-
           <button onClick={onShareReport} className={btnGhost}>
             <Share2 className="w-4 h-4" />
             Partager
@@ -50,7 +55,13 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
 
           {generateWordDocument && (
             <button
-              onClick={() => generateWordDocument(originalContent, fileName, htmlContent ?? undefined)}
+              onClick={() =>
+                generateWordDocument(
+                  originalContent,
+                  fileName,
+                  htmlContent ?? undefined,
+                )
+              }
               disabled={!isProcessed}
               className={isProcessed ? btnExport : btnExportDisabled}
               title="Exporter le document en .docx"
@@ -67,8 +78,12 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
               className={btnGhost}
               title="Relancer une nouvelle analyse complète"
             >
-              <RefreshCw className={`w-4 h-4 ${isRelaunchingAnalysis ? "animate-spin" : ""}`} />
-              {isRelaunchingAnalysis ? "Analyse en cours…" : "Relancer l'analyse"}
+              <RefreshCw
+                className={`w-4 h-4 ${isRelaunchingAnalysis ? "animate-spin" : ""}`}
+              />
+              {isRelaunchingAnalysis
+                ? "Analyse en cours…"
+                : "Relancer l'analyse"}
             </button>
           )}
 
@@ -83,13 +98,13 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
               {isLoadingSuggested ? "Analyse en cours…" : "Clauses suggérées"}
             </button>
           )}
-
         </div>
 
         {activePatchCount > 0 && (
           <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
             <CheckCircle className="w-4 h-4 text-green-500" />
-            {activePatchCount} recommandation{activePatchCount > 1 ? "s" : ""} appliquée{activePatchCount > 1 ? "s" : ""}
+            {activePatchCount} recommandation{activePatchCount > 1 ? "s" : ""}{" "}
+            appliquée{activePatchCount > 1 ? "s" : ""}
           </div>
         )}
       </div>
