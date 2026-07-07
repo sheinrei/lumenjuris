@@ -7,7 +7,8 @@ export interface MissingClause {
   importance: "obligatoire" | "recommandé" | "utile";
   explicationAbsence: string;
   standardMarche: string;
-  suggestionAjout: string;
+  titreSuggestion: string;
+  corpsSuggestion: string;
   priorite: "critique" | "important" | "mineur";
   detectedFormat: "ArticleX" | "ARTICLE X" | "NumericOnly" | "Roman" | "None";
   prefixTemplate: string;
@@ -98,7 +99,8 @@ FORMAT DE RÉPONSE JSON:
        "priorite": "critique|important|mineur",
        "explicationAbsence": "Pourquoi cette clause est nécessaire",
        "standardMarche": "Ce que prévoit habituellement le marché pour cette clause",
-       "suggestionAjout": "Texte complet de la clause à ajouter, prêt à l'emploi",
+       "titreSuggestion": "Le titre seul de la clause (ex: PROTECTION DES DONNEES, Confidentialité, etc.). ATTENTION : Respecte scrupuleusement le style du contrat à analyser : n'écris PAS en majuscules si les titres du contrat original utilisent des minuscules et au contraire utilise des MAJUSCULES si les titres du contrat le sont.",
+       "corpsSuggestion": "Le texte complet de la clause, sans répéter le titre, prêt à l'emploi",
        "detectedFormat": "ArticleX",
        "prefixTemplate": "Article ",
        "suffixTemplate": "",

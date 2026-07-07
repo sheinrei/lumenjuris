@@ -6,7 +6,8 @@ export interface MissingClause {
   importance: "obligatoire" | "recommandé" | "utile";
   explicationAbsence: string;
   standardMarche: string;
-  suggestionAjout: string;
+  titreSuggestion: string;
+  corpsSuggestion: string;
   priorite: "critique" | "important" | "mineur";
   detectedFormat?: "ArticleX" | "ARTICLE X" | "NumericOnly" | "Roman" | "None";
   prefixTemplate?: string;

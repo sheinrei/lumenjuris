@@ -84,7 +84,10 @@ export const MarketComparison: React.FC<MarketComparisonProps> = ({
 
                 <div className="bg-white bg-opacity-60 rounded p-3">
                   <p className="text-sm text-gray-800">
-                    <strong>Suggestion:</strong> {clause.suggestionAjout}
+                    <strong>Suggestion:</strong> {clause.titreSuggestion}
+                  </p>
+                  <p className="text-gray-600 leading-relaxed whitespace-pre-line">
+                    {clause.corpsSuggestion}
                   </p>
                 </div>
                 <button

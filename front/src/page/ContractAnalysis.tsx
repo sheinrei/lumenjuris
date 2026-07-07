@@ -243,7 +243,7 @@ export default function ContractAnalysis() {
       .catch(() => setAnalyseCredit(null));
   }, []);
 
-  // Store pour les recommandations appliquÃ©es
+  // Store pour les recommandations appliquées
   const { clearAllAppliedRecommendations } = useAppliedRecommendationsStore();
   const appliedRecommendations = useAppliedRecommendationsStore(
     (s) => s.appliedRecommendations,
@@ -252,7 +252,7 @@ export default function ContractAnalysis() {
     (s) => s.setAppliedRecommendations,
   );
 
-  // Ref pour contrÃ´ler le DocumentViewer
+  // Ref pour controler le DocumentViewer
   const documentViewerRef = useRef<DocumentViewerRef>(null);
   const [recommendationIndex, setRecommandationIndex] = useState<number>(0);
   const handleIncrementIndexRecommendation = () =>
@@ -518,16 +518,27 @@ export default function ContractAnalysis() {
   };
 
   const handleAppendClause = (clause: MissingClause) => {
-    let texteClause = clause.suggestionAjout;
+    let titreClause = clause.titreSuggestion;
+    let texteClause = clause.corpsSuggestion;
     const storeState = useDocumentTextStore.getState();
     const originalText = storeState.originalText ?? "";
 
-    const baseContent = storeState.htmlContent?.trim()
-      ? storeState.htmlContent
-      : originalText.replace(/\n/g, "<br>");
+    let baseContent = "";
+
+    if (storeState.htmlContent?.trim()) {
+      baseContent = storeState.htmlContent;
+    } else {
+      baseContent = originalText
+        .split(/\n{2,}/)
+        .map(
+          (bloc) =>
+            `<p style="margin-bottom: 14px;">${bloc.replace(/\n/g, "<br>")}</p>`,
+        )
+        .join("");
+    }
 
     // On cherche le tout dernier article écrit par l'utilisateur dans son document
-    const articleRegex = /(?:Article\s+(\d+)|(\d+)\.)/gi;
+    const articleRegex = /(?:Article\s+\d+|(\d+)\.)(?:\s*[-–—]\s*)?/gi;
     const matches = [...originalText.matchAll(articleRegex)];
 
     let isNumericFormat = true;
@@ -544,18 +555,20 @@ export default function ContractAnalysis() {
         prefixTemplate = "";
         suffixTemplate = matchText.includes(".") ? "." : "";
       } else {
-        prefixTemplate = matchText.toUpperCase().startsWith("ARTICLE")
-          ? "Article "
-          : "Article ";
-        suffixTemplate = matchText.includes(" -") ? " -" : "";
+        prefixTemplate = "Article ";
+
+        if (/[-–—]/.test(matchText)) {
+          suffixTemplate = " - ";
+        } else {
+          suffixTemplate = " ";
+        }
       }
     } else {
-      // Si on ne trouve vraiment rien dans le texte, on regarde ce que l'IA a détecté
       isNumericFormat =
         clause.detectedFormat === "NumericOnly" ||
         (clause.lastNumberValue !== undefined && clause.lastNumberValue > 0);
       prefixTemplate = isNumericFormat ? "" : "Article ";
-      suffixTemplate = isNumericFormat ? "." : "";
+      suffixTemplate = isNumericFormat ? "." : " ";
     }
 
     // Calcul du numéro lors du clic d'ajout d'une clause sugérée
@@ -580,8 +593,17 @@ export default function ContractAnalysis() {
       texteClause = texteClause.replace(cleanRegex, "");
     }
 
-    const contentToInsert = `${header} ${texteClause}`;
-    const newClauseHtml = `<div class="contract-article" style="margin-top: 14px; margin-bottom: 14px;">${contentToInsert}</div>`;
+    const titreClair = titreClause ? titreClause.trim() : "";
+    const corpsClair = texteClause ? texteClause.trim() : "";
+
+    let contentToInsert = "";
+    if (titreClair) {
+      contentToInsert = `${header} ${titreClair}<br />${corpsClair}`;
+    } else {
+      contentToInsert = `${header} ${corpsClair}`;
+    }
+
+    const newClauseHtml = `<p class="contract-article" style="margin-top: 14px; margin-bottom: 14px;">${contentToInsert}</p>`;
 
     // Clean le texte pour pouvoir effectuer une recherche du anchorText
     let insertIdx = -1;

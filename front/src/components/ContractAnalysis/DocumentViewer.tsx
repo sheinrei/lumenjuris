@@ -221,7 +221,9 @@ export const DocumentViewer = forwardRef<
 
     // Ref stable vers l'éditeur pour éviter les stale closures dans les event handlers
     const editorRef = useRef(editor);
-    useEffect(() => { editorRef.current = editor; }, [editor]);
+    useEffect(() => {
+      editorRef.current = editor;
+    }, [editor]);
 
     // Event delegation pour les clics sur les spans de clauses
     const tiptapWrapperRef = useRef<HTMLDivElement>(null);
@@ -247,7 +249,10 @@ export const DocumentViewer = forwardRef<
           event.stopPropagation();
           const ed = editorRef.current;
           if (ed && !ed.isDestroyed) {
-            const pos = ed.view.posAtCoords({ left: event.clientX, top: event.clientY });
+            const pos = ed.view.posAtCoords({
+              left: event.clientX,
+              top: event.clientY,
+            });
             if (pos) {
               ed.commands.focus();
               ed.commands.setTextSelection(pos.pos);
@@ -270,7 +275,9 @@ export const DocumentViewer = forwardRef<
       wrapper.addEventListener("click", handleClick);
       return () => {
         wrapper.removeEventListener("mousedown", handleMouseDown);
-        wrapper.removeEventListener("dblclick", handleDblClick, { capture: true });
+        wrapper.removeEventListener("dblclick", handleDblClick, {
+          capture: true,
+        });
         wrapper.removeEventListener("click", handleClick);
       };
     }, [htmlFormattedContent, clauses, onClauseClick]);
