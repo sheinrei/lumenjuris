@@ -33,6 +33,7 @@ backNode/userassets/
 backNode/templatesources/
 backNode/signatureenvelopes/
 backNode/feedback-logs.json
+backNode/app.log.json
 
 #proxy
 proxy/.env
