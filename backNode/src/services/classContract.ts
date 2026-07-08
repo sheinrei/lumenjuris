@@ -478,6 +478,7 @@ export class ContractService {
                 ...(patch.amount !== undefined ? { amount: toNum(patch.amount) } : {}),
                 ...(patch.currency !== undefined ? { currency: patch.currency } : {}),
                 ...(patch.governingLaw !== undefined ? { governingLaw: patch.governingLaw } : {}),
+                ...(patch.ocrText !== undefined ? { ocrText: patch.ocrText } : {}),
                 ...(folder !== undefined ? { folderId: folder?.idFolder ?? null } : {}),
             },
         })
