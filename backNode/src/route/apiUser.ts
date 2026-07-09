@@ -11,8 +11,13 @@ import { Enterprise } from "../services/classEnterprise.js";
 import { Subscription } from "../services/classSubscription.js";
 import { normalizeAccountParameters } from "../utils/normalizeAccountParameters.js";
 import { normalizePreferenceUI } from "../utils/normalizePreferenceUI.js";
+import { getUserFullExport } from "../services/getUserData.js";
 
-import { loginLimiter, registerLimiter, forgotPasswordLimiter } from "../securite/limiter.js";
+import {
+  loginLimiter,
+  registerLimiter,
+  forgotPasswordLimiter,
+} from "../securite/limiter.js";
 const routerUser: Router = express.Router();
 
 type TokenValidationResult =
@@ -61,74 +66,78 @@ async function validateToken(
   return { valid: true, tokenEntry };
 }
 
-routerUser.post("/create", registerLimiter, async (req: Request, res: Response) => {
-  try {
-    const { email, nom, prenom, password, cgu, enterprise } = req.body;
+routerUser.post(
+  "/create",
+  registerLimiter,
+  async (req: Request, res: Response) => {
+    try {
+      const { email, nom, prenom, password, cgu, enterprise } = req.body;
 
-    if (!password) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Un mot de passe est requis pour la création d'un compte utilisateur.",
+      if (!password) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Un mot de passe est requis pour la création d'un compte utilisateur.",
+        });
+      }
+
+      const user = new User();
+      const createdUser = await user.create({
+        email,
+        nom,
+        prenom,
+        password,
+        cgu,
       });
-    }
 
-    const user = new User();
-    const createdUser = await user.create({
-      email,
-      nom,
-      prenom,
-      password,
-      cgu,
-    });
+      if (!createdUser.success || !createdUser.data) {
+        return res.status(500).json({
+          success: false,
+          message:
+            "Une erreur est survenue avec le serveur, nous n'avons pas pu créer votre compte utilisateur.",
+        });
+      }
 
-    if (!createdUser.success || !createdUser.data) {
+      const { idUser } = createdUser.data;
+      const token = await new Token().createToken(idUser, "verifyAccount");
+      const url = `${process.env.HOST}/user/verify/${token.token}`;
+
+      if (
+        enterprise &&
+        typeof enterprise === "object" &&
+        !Array.isArray(enterprise)
+      ) {
+        const nested = enterprise as any;
+        const enterpriseInput = {
+          ...nested,
+          address: nested.address?.address ?? nested.address ?? null,
+          codePostal: nested.address?.codePostal ?? nested.codePostal ?? null,
+          pays: nested.address?.pays ?? nested.pays ?? null,
+        };
+        await new Enterprise().updateByUser(idUser, enterpriseInput);
+      }
+
+      const mailer = await new Mailer(email).sendVerifyAccount(
+        url,
+        `${prenom} ${nom}`,
+      );
+
+      return res.status(200).json({
+        success: mailer.success,
+        message: mailer.message,
+      });
+    } catch (err) {
+      console.error(
+        `Une erreur avec le serveur est survenue dans la route apiUser/create, error : \n ${err}`,
+      );
       return res.status(500).json({
         success: false,
         message:
           "Une erreur est survenue avec le serveur, nous n'avons pas pu créer votre compte utilisateur.",
       });
     }
-
-    const { idUser } = createdUser.data;
-    const token = await new Token().createToken(idUser, "verifyAccount");
-    const url = `${process.env.HOST}/user/verify/${token.token}`;
-
-    if (
-      enterprise &&
-      typeof enterprise === "object" &&
-      !Array.isArray(enterprise)
-    ) {
-      const nested = enterprise as any;
-      const enterpriseInput = {
-        ...nested,
-        address: nested.address?.address ?? nested.address ?? null,
-        codePostal: nested.address?.codePostal ?? nested.codePostal ?? null,
-        pays: nested.address?.pays ?? nested.pays ?? null,
-      };
-      await new Enterprise().updateByUser(idUser, enterpriseInput);
-    }
-
-    const mailer = await new Mailer(email).sendVerifyAccount(
-      url,
-      `${prenom} ${nom}`,
-    );
-
-    return res.status(200).json({
-      success: mailer.success,
-      message: mailer.message,
-    });
-  } catch (err) {
-    console.error(
-      `Une erreur avec le serveur est survenue dans la route apiUser/create, error : \n ${err}`,
-    );
-    return res.status(500).json({
-      success: false,
-      message:
-        "Une erreur est survenue avec le serveur, nous n'avons pas pu créer votre compte utilisateur.",
-    });
-  }
-});
+  },
+);
 
 routerUser.get(
   "/verify/:token",
@@ -213,56 +222,61 @@ routerUser.post(
  * Necessite email et password accesseible dans req.body
  */
 
-routerUser.post("/auth/login", loginLimiter, async (req: Request, res: Response) => {
-  try {
-    const { password, email } = req.body;
-    const logUser = await new User().authenticate(password, email);
+routerUser.post(
+  "/auth/login",
+  loginLimiter,
+  async (req: Request, res: Response) => {
+    try {
+      const { password, email } = req.body;
+      const logUser = await new User().authenticate(password, email);
 
-    if (!logUser.success || !logUser.data) {
-      return res.status(401).json({
-        success: false,
-        message: "Email ou mot de passe invalide",
-      });
-    }
+      if (!logUser.success || !logUser.data) {
+        return res.status(401).json({
+          success: false,
+          message: "Email ou mot de passe invalide",
+        });
+      }
 
-    createCookieAuth(logUser.data.idUser, "USER", res);
+      createCookieAuth(logUser.data.idUser, "USER", res);
 
-    if (logUser.data.twoFactorEnabled) {
-      const codeResult = await new Token().createTwoFactorCode(
-        logUser.data.idUser,
-      );
-
-      if (codeResult.success && codeResult.code) {
-        await new Mailer(logUser.data.email).sendTwoFactor(
-          codeResult.code,
-          logUser.data.email,
+      if (logUser.data.twoFactorEnabled) {
+        const codeResult = await new Token().createTwoFactorCode(
+          logUser.data.idUser,
         );
+
+        if (codeResult.success && codeResult.code) {
+          await new Mailer(logUser.data.email).sendTwoFactor(
+            codeResult.code,
+            logUser.data.email,
+          );
+        }
+
+        return res.status(200).json({
+          success: true,
+          twoFactorRequired: true,
+          message: `Un code de vérification a été envoyé à ${logUser.data.email}.`,
+          data: logUser.data,
+        });
       }
 
       return res.status(200).json({
         success: true,
-        twoFactorRequired: true,
-        message: `Un code de vérification a été envoyé à ${logUser.data.email}.`,
+        twoFactorRequired: false,
+        message: logUser.message,
         data: logUser.data,
       });
+    } catch (err) {
+      console.error(
+        `Une erreur est survenue lors de la connexion d'un utilisateur : \n ${err}`,
+      );
+      return res.status(500).json({
+        success: false,
+        message:
+          "Une erreur est survenue lors de la connexion d'un utilisateur",
+      });
     }
-
-    return res.status(200).json({
-      success: true,
-      twoFactorRequired: false,
-      message: logUser.message,
-      data: logUser.data,
-    });
-  } catch (err) {
-    console.error(
-      `Une erreur est survenue lors de la connexion d'un utilisateur : \n ${err}`,
-    );
-    return res.status(500).json({
-      success: false,
-      message: "Une erreur est survenue lors de la connexion d'un utilisateur",
-    });
-  }
-});
+  },
+);
 
 /**
  * Endpoint User pour récuperer les données de l'utilisateur d'après son id dans le token d'authentification
@@ -641,11 +655,40 @@ routerUser.post(
 routerUser.post(
   "/export-data",
   authMiddleware,
-  async (_req: Request, res: Response) => {
-    return res.status(200).json({
-      success: true,
-      message: "L'export des données n'est pas pas encore branché.",
-    });
+  async (req: Request, res: Response) => {
+    try {
+      const userId = Number(req.idUser);
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "Utilisateurs non identifiés.",
+        });
+      }
+      const fullExport = await getUserFullExport(userId);
+      const firstName = fullExport.profile?.prenom;
+      const targetMail = fullExport.profile?.email;
+
+      if (!targetMail) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Adresse e-mail de l'utilisateur introuvable dans la base de données",
+        });
+      }
+      const mailer = new Mailer(targetMail);
+      await mailer.sendUserData(fullExport, firstName || undefined);
+      return res.status(200).json({
+        success: true,
+        message: "Votre export de données a été envoyé par e-mail avec succès",
+      });
+    } catch (err) {
+      console.error("Erreur détaillé de la route export-data", err);
+      return res.status(500).json({
+        success: false,
+        message: "Erreur lors de la génération de l'export",
+      });
+    }
   },
 );
 
@@ -661,46 +704,50 @@ routerUser.delete(
 );
 
 // Route forgot password pour l'envoi du mail de réinitialisation
-routerUser.post("/forgotpassword", forgotPasswordLimiter, async (req: Request, res: Response) => {
-  const { email } = req.body;
+routerUser.post(
+  "/forgotpassword",
+  forgotPasswordLimiter,
+  async (req: Request, res: Response) => {
+    const { email } = req.body;
 
-  if (!email) {
-    return res.status(400).json({
-      success: false,
-      message: "Un email est requis pour réinitialiser votre mot de passe",
-    });
-  }
-
-  try {
-    const user = await prisma.user.findUnique({
-      where: { email: email },
-    });
-
-    if (user) {
-      const token = await new Token().createToken(
-        user.idUser,
-        "forgotPassword",
-      );
-      const url = `${process.env.HOST}/user/resetpassword/${token.token}`;
-      await new Mailer(email).sendResetPassword(
-        url,
-        `${user.prenom} ${user.nom}`,
-      );
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Un email est requis pour réinitialiser votre mot de passe",
+      });
     }
 
-    return res.status(200).json({
-      success: true,
-      message:
-        "Si cet email est associé à un compte, vous recevrez un lien de réinitialisation.",
-    });
-  } catch (error) {
-    console.error("Erreur lors de la demande de réinitialisation:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Une erreur est survenue, veuillez réessayer.",
-    });
-  }
-});
+    try {
+      const user = await prisma.user.findUnique({
+        where: { email: email },
+      });
+
+      if (user) {
+        const token = await new Token().createToken(
+          user.idUser,
+          "forgotPassword",
+        );
+        const url = `${process.env.HOST}/user/resetpassword/${token.token}`;
+        await new Mailer(email).sendResetPassword(
+          url,
+          `${user.prenom} ${user.nom}`,
+        );
+      }
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Si cet email est associé à un compte, vous recevrez un lien de réinitialisation.",
+      });
+    } catch (error) {
+      console.error("Erreur lors de la demande de réinitialisation:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Une erreur est survenue, veuillez réessayer.",
+      });
+    }
+  },
+);
 
 // Vérification du token pour permettre la redirection vers la page de reset password
 routerUser.get(

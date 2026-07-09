@@ -11,6 +11,11 @@ type CreateDataDTO = {
   isVerified?: boolean;
 };
 
+export type UserPreferenceDTO = {
+  preferenceUI: any;
+  accountParameters: any;
+};
+
 type UserAuthData = {
   idUser: number;
   email: string;
@@ -210,5 +215,18 @@ export class User {
     } catch (err) {
       return this.errorCatching(err, "User.get");
     }
+  }
+}
+
+export class UserPreferenceService {
+  static async get(userId: number): Promise<UserPreferenceDTO | null> {
+    const pref = await prisma.userPreference.findUnique({
+      where: { userId },
+      select: {
+        preferenceUI: true,
+        accountParameters: true,
+      },
+    });
+    return pref;
   }
 }
