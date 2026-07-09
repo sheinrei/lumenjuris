@@ -76,6 +76,8 @@ export function ParamCompte() {
   const [enterpriseInitialSettings, setEnterpriseInitialSettings] =
     useState<EnterpriseSettings>(createEmptyEnterpriseSettings());
   const enterprise = useEnterpriseSettings(enterpriseInitialSettings);
+  const [exportDataSuccess, setExportDataSuccess] = useState(false);
+  const [exportDataError, setExportDataError] = useState(false);
 
   useEffect(() => {
     if (location.state) {
@@ -357,9 +359,23 @@ export function ParamCompte() {
       void fetchProxy("/api/user/export-data", {
         method: "POST",
         credentials: "include",
-      }).catch((error) => {
-        console.error(error);
-      });
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error("Erreur lors de la récupération des données");
+          }
+          const result = await response.json();
+          if (!result.success) {
+            throw new Error(result.message || "L'export a échoué");
+          }
+
+          setActiveConfirmationModal(null);
+          setExportDataSuccess(true);
+        })
+        .catch((error) => {
+          console.error("Erreur d'export des données :", error);
+          setExportDataError(true);
+        });
     },
 
     onDeleteAccountConfirm: () => {
@@ -405,6 +421,10 @@ export function ParamCompte() {
       onPasswordBlur={handlePasswordBlur}
       onTwoFactorCheckedChange={handleTwoFactorCheckedChange}
       onPasswordAdded={() => void fetchUser()}
+      onExportDataSuccess={exportDataSuccess}
+      onExportDataSuccessClose={() => setExportDataSuccess(false)}
+      onExportDataError={exportDataError}
+      onExportDataErrorClose={() => setExportDataError(false)}
       onExportDataClick={() => setActiveConfirmationModal("export_data")}
       onDeleteAccountClick={() => setActiveConfirmationModal("delete_account")}
     />

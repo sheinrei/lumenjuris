@@ -41,6 +41,10 @@ type AccountSettingsPanelProps = {
   onProfileUpdateSuccessClose: () => void;
   profileUpdateError: boolean;
   onProfileUpdateErrorClose: () => void;
+  onExportDataSuccess: boolean;
+  onExportDataSuccessClose: () => void;
+  onExportDataError: boolean;
+  onExportDataErrorClose: () => void;
   onPasswordChange: (value: string) => void;
   onPasswordBlur: () => void;
   onCancelProfileEdit: () => void;
@@ -62,9 +66,14 @@ export function AccountSettingsPanel({
   onProfileUpdateSuccessClose,
   profileUpdateError,
   onProfileUpdateErrorClose,
+  onExportDataSuccess,
+  onExportDataSuccessClose,
+  onExportDataError,
+  onExportDataErrorClose,
   onCancelProfileEdit,
   onTwoFactorCheckedChange,
   onPasswordAdded,
+  onExportDataClick,
   onDeleteAccountClick,
 }: AccountSettingsPanelProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -81,11 +90,6 @@ export function AccountSettingsPanel({
   const [passwordDialogMode, setPasswordDialogMode] =
     useState<PasswordDialogMode>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [errorMail, setErrorMail] = useState(false);
-  const [errorMailMessage, setErrorMailMessage] = useState("");
-  const [successMail, setSuccessMail] = useState(false);
-  const [successMailMessage, setSuccessMailMessage] = useState("");
 
   useEffect(() => {
     if (profileUpdateSuccess) setIsEditingProfile(false);
@@ -188,39 +192,6 @@ export function AccountSettingsPanel({
       setConfirmPasswordError("Les mots de passe doivent être identiques !");
     } else if (value.length >= 8 && value === password) {
       setConfirmPasswordError("");
-    }
-  };
-
-  const onExportDataConfirm = async () => {
-    setIsExporting(true);
-    try {
-      const response = await fetchProxy("/api/user/export-data", {
-        method: "POST",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("Erreur lors de la récupération des données");
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        setSuccessMailMessage(
-          "Votre export de données vous a bien été envoyé par e-mail.",
-        );
-        setSuccessMail(true);
-      } else {
-        throw new Error(result.message || "L'export a échoué");
-      }
-    } catch (error) {
-      console.error("Erreur d'export des données :", error);
-      setErrorMailMessage(
-        "Une erreur technique est survenue lors de la préparation de vos données. L'envoi de l'e-mail a échoué.",
-      );
-      setErrorMail(true);
-    } finally {
-      setIsExporting(false);
     }
   };
 
@@ -530,30 +501,29 @@ export function AccountSettingsPanel({
       </div>
 
       <div className="mt-auto flex flex-col gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:justify-end">
-        {errorMail && (
+        {onExportDataSuccess && (
           <AlertBanner
-            title="Erreur lors de l'envoi du mail"
-            variant="error"
-            detail={errorMailMessage}
-            duration={6000}
-            onClose={() => setErrorMail(false)}
+            title="Export demandé avec succès !"
+            variant="success"
+            detail="Un e-mail contenant toutes les informations liées à votre compte vous a été envoyé."
+            duration={7000}
+            onClose={onExportDataSuccessClose}
           />
         )}
-        {successMail && (
+        {onExportDataError && (
           <AlertBanner
-            title="L' e-mail a été envoyé avec succès"
-            variant="success"
-            detail={successMailMessage}
-            duration={6000}
-            onClose={() => setSuccessMail(false)}
+            title="Échec de l'exportation !"
+            variant="error"
+            detail="Une erreur est survenue lors de la récupération de vos données. Veuillez réessayer."
+            duration={7000}
+            onClose={onExportDataErrorClose}
           />
         )}
         <Button
           type="button"
           variant="outline"
           className="hover:bg-gray-100"
-          onClick={onExportDataConfirm}
-          disabled={isExporting}
+          onClick={onExportDataClick}
         >
           Exporter mes données
         </Button>

@@ -134,13 +134,11 @@ export function getParamConfirmationModalContent({
     case "export_data":
       return {
         title: "Exporter mes données",
-        description:
-          "Vous recevrez prochainement un email contenant toutes les informations liées à votre compte.",
+        description: "Souhaitez-vous recevoir un mail contenant vos données ?",
         confirmLabel: "Exporter mes données",
         confirmClassName: "bg-lumenjuris text-white hover:bg-lumenjuris/90",
         onConfirm: () => {
           onExportDataConfirm();
-          onClose();
         },
       };
     case "delete_account":
@@ -158,4 +156,6 @@ export function getParamConfirmationModalContent({
     default:
       return null;
   }
+
+  onDeleteAccountConfirm();
 }
