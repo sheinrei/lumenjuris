@@ -65,7 +65,6 @@ export function AccountSettingsPanel({
   onCancelProfileEdit,
   onTwoFactorCheckedChange,
   onPasswordAdded,
-  onExportDataClick,
   onDeleteAccountClick,
 }: AccountSettingsPanelProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
