@@ -5,10 +5,9 @@ import { templateTwoFactor } from "./template/twoFactor.js";
 import { templateInvoiceEmail } from "./template/invoiceEmail.js";
 import { templateWelcomeFreemium } from "./template/welcomeFreemium.js";
 import { generateInvoicePDF, type InvoiceData } from "../pdf/invoicePDF.js";
+import { templateExportData } from "./template/userData.js";
 
-
-import { logger } from "../../logger/logger.js"; 
-
+import { logger } from "../../logger/logger.js";
 
 const transporter = nodemailer.createTransport({
   host: "mail.lumenjuris.com",
@@ -44,7 +43,7 @@ export class Mailer {
     console.error(
       `Une erreur est survenu lors d'un envoie d'un email' error : ${err}`,
     );
-    logger.error("Une erreur est survenu lors d'un envoie d'un email", err)
+    logger.error("Une erreur est survenu lors d'un envoie d'un email", err);
     return {
       success: false,
       message:
@@ -56,7 +55,11 @@ export class Mailer {
   private createOption(
     html: string,
     subject: string,
-    attachments?: Array<{ filename: string; content: Buffer; contentType: string }>,
+    attachments?: Array<{
+      filename: string;
+      content: Buffer;
+      contentType: string;
+    }>,
   ) {
     const textBrutFallback = html.replace(/<[^>]*>/g, "");
     return {
@@ -152,19 +155,18 @@ export class Mailer {
             </body>`;
   }
 
-
   /**
    * Initialise le transporter dés l'ouverture du serveur.
    */
   async initTransporter() {
     try {
-      await transporter.verify()
-      console.log("Transporteur envoie email SMTP prêt.")
-      logger.info("Verification du transporter SMTP")
+      await transporter.verify();
+      console.log("Transporteur envoie email SMTP prêt.");
+      logger.info("Verification du transporter SMTP");
     } catch (err) {
-      console.error("Erreur lors de la verification du transporteur")
-      logger.error("Erreur lors de la verification du transporteur", err)
-      throw err
+      console.error("Erreur lors de la verification du transporteur");
+      logger.error("Erreur lors de la verification du transporteur", err);
+      throw err;
     }
   }
 
@@ -249,7 +251,9 @@ export class Mailer {
 
   async sendWelcomeFreemium(username?: string) {
     try {
-      const html = this.createHtmlFullContent(templateWelcomeFreemium(username));
+      const html = this.createHtmlFullContent(
+        templateWelcomeFreemium(username),
+      );
       const mailOptions = this.createOption(
         html,
         "Bienvenue sur Lumen Juris — votre formule Freemium est activée",
@@ -262,6 +266,36 @@ export class Mailer {
         );
       }
       return { success: true };
+    } catch (err) {
+      return this.errorCatching(err);
+    }
+  }
+
+  async sendUserData(fullExport: any, username?: string) {
+    try {
+      const html = this.createHtmlFullContent(templateExportData(username));
+      const mailOptions = this.createOption(
+        html,
+        "Lumen Juris - Vos données utilisateurs",
+      );
+
+      const jsonString = JSON.stringify(fullExport, null, 2);
+
+      mailOptions.attachments = [
+        {
+          filename: "export-data.json",
+          content: Buffer.from(jsonString, "utf-8"),
+          contentType: "application/json",
+        },
+      ];
+
+      const sending = await transporter.sendMail(mailOptions);
+
+      if (!sending.messageId) {
+        throw new Error(
+          `Echec lors de l'envoi du mail de récupération de données utilisateurs, messageId indisponible.\n ${sending}`,
+        );
+      }
     } catch (err) {
       return this.errorCatching(err);
     }

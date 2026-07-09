@@ -24,7 +24,6 @@ import { useState, useRef, useEffect } from "react";
 
 import { fetchProxy } from "../../utils/fetchProxy";
 
-
 type PasswordDialogMode = "change" | "add" | null;
 
 type AccountSettingsPanelProps = {
@@ -83,6 +82,11 @@ export function AccountSettingsPanel({
   const [passwordDialogMode, setPasswordDialogMode] =
     useState<PasswordDialogMode>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [errorMail, setErrorMail] = useState(false);
+  const [errorMailMessage, setErrorMailMessage] = useState("");
+  const [successMail, setSuccessMail] = useState(false);
+  const [successMailMessage, setSuccessMailMessage] = useState("");
 
   useEffect(() => {
     if (profileUpdateSuccess) setIsEditingProfile(false);
@@ -185,6 +189,39 @@ export function AccountSettingsPanel({
       setConfirmPasswordError("Les mots de passe doivent être identiques !");
     } else if (value.length >= 8 && value === password) {
       setConfirmPasswordError("");
+    }
+  };
+
+  const onExportDataConfirm = async () => {
+    setIsExporting(true);
+    try {
+      const response = await fetchProxy("/api/user/export-data", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la récupération des données");
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        setSuccessMailMessage(
+          "Votre export de données vous a bien été envoyé par e-mail.",
+        );
+        setSuccessMail(true);
+      } else {
+        throw new Error(result.message || "L'export a échoué");
+      }
+    } catch (error) {
+      console.error("Erreur d'export des données :", error);
+      setErrorMailMessage(
+        "Une erreur technique est survenue lors de la préparation de vos données. L'envoi de l'e-mail a échoué.",
+      );
+      setErrorMail(true);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -494,11 +531,30 @@ export function AccountSettingsPanel({
       </div>
 
       <div className="mt-auto flex flex-col gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:justify-end">
+        {errorMail && (
+          <AlertBanner
+            title="Erreur lors de l'envoi du mail"
+            variant="error"
+            detail={errorMailMessage}
+            duration={6000}
+            onClose={() => setErrorMail(false)}
+          />
+        )}
+        {successMail && (
+          <AlertBanner
+            title="L' e-mail a été envoyé avec succès"
+            variant="success"
+            detail={successMailMessage}
+            duration={6000}
+            onClose={() => setSuccessMail(false)}
+          />
+        )}
         <Button
           type="button"
           variant="outline"
           className="hover:bg-gray-100"
-          onClick={onExportDataClick}
+          onClick={onExportDataConfirm}
+          disabled={isExporting}
         >
           Exporter mes données
         </Button>
