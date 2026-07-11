@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -15,6 +15,7 @@ import {
   ScrollText,
   Users,
   PanelLeft,
+  X,
 } from "lucide-react";
 
 import HeaderNavigationBar from "../MainHeader/HeaderNavigationBar";
@@ -49,7 +50,7 @@ const navItems: NavItem[] = [
     children: [
       { icon: Upload, label: "Importer un modèle", path: "/contrat-generation?section=import" },
       { icon: BookOpen, label: "Bibliothèque de modèles", path: "/contrat-generation?section=library", notificationKey: "templateAdded" },
-      { icon: Droplets, label: "Mes filigranes", path: "/generateur/filigranes" },
+      { icon: Droplets, label: "Mes images", path: "/generateur/filigranes" },
     ],
   },
   { icon: PenTool, label: "Signature", path: "/signature" },
@@ -59,7 +60,10 @@ const navItems: NavItem[] = [
   { icon: Newspaper, label: "Veille information", path: "/veille" },
 ];
 
-function NavChildLink({ child }: { child: NavSubItem }) {
+// Breakpoint Tailwind `md` = 768px. On garde la même valeur en JS pour rester cohérent.
+const MOBILE_BREAKPOINT = 768;
+
+function NavChildLink({ child, onNavigate }: { child: NavSubItem; onNavigate: () => void }) {
   const location = useLocation();
   const pulse = useTemplateNotificationStore((s) => s.pulse);
   const pendingCount = useTemplateNotificationStore((s) => s.pendingCount);
@@ -72,11 +76,11 @@ function NavChildLink({ child }: { child: NavSubItem }) {
     <li>
       <NavLink
         to={child.path}
-        className={`relative flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
-          isActive
+        onClick={onNavigate}
+        className={`relative flex w-full items-center gap-2 rounded-md px-2 py-2 sm:py-1.5 text-sm transition-colors ${isActive
             ? "text-brand font-medium"
             : "text-ink-muted hover:bg-surface-muted hover:text-ink-secondary"
-        }`}
+          }`}
       >
         <child.icon className="h-3.5 w-3.5 shrink-0" />
         <span className="flex-1">{child.label}</span>
@@ -93,7 +97,7 @@ function NavChildLink({ child }: { child: NavSubItem }) {
   );
 }
 
-function NavItemRow({ item }: { item: NavItem }) {
+function NavItemRow({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
   const location = useLocation();
   const hasChildren = !!item.children?.length;
   const isParentActive = location.pathname.startsWith(item.path);
@@ -109,11 +113,11 @@ function NavItemRow({ item }: { item: NavItem }) {
         <>
           <NavLink
             to={item.path}
-            className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all ${
-              isParentActive
+            onClick={onNavigate}
+            className={`group flex w-full items-center gap-3 rounded-lg px-3 py-3 sm:py-2.5 text-sm transition-all ${isParentActive
                 ? "bg-brand-light text-brand font-medium"
                 : "text-ink-secondary hover:bg-surface-muted"
-            }`}
+              }`}
           >
             <item.icon className={`h-4 w-4 shrink-0 transition-colors ${isParentActive ? "text-brand" : "text-ink-subtle"}`} />
             <span className="flex-1 text-left">{item.label}</span>
@@ -124,7 +128,7 @@ function NavItemRow({ item }: { item: NavItem }) {
           {open && (
             <ul className="mt-0.5 ml-5 border-l border-line pl-3 flex flex-col gap-0.5">
               {item.children!.map((child) => (
-                <NavChildLink key={child.path} child={child} />
+                <NavChildLink key={child.path} child={child} onNavigate={onNavigate} />
               ))}
             </ul>
           )}
@@ -133,11 +137,11 @@ function NavItemRow({ item }: { item: NavItem }) {
         <NavLink
           to={item.path}
           end={item.path === "/dashboard"}
+          onClick={onNavigate}
           className={({ isActive }) =>
-            `group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all ${
-              isActive
-                ? "bg-brand-light text-brand font-medium"
-                : "text-ink-secondary hover:bg-surface-muted"
+            `group flex w-full items-center gap-3 rounded-lg px-3 py-3 sm:py-2.5 text-sm transition-all ${isActive
+              ? "bg-brand-light text-brand font-medium"
+              : "text-ink-secondary hover:bg-surface-muted"
             }`
           }
         >
@@ -156,51 +160,110 @@ function NavItemRow({ item }: { item: NavItem }) {
 export function MainLayout() {
   const userData = useUserStore((s) => s.userData);
   const isAdmin = userData?.profile?.role === "ADMIN";
-  const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+
+  // sidebarOpen pilote à la fois :
+  // - le drawer mobile/tablette (overlay)
+  // - le collapse desktop (sidebar rétractable)
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => typeof window !== "undefined" && window.innerWidth >= MOBILE_BREAKPOINT
+  );
+
+  // Ajuste automatiquement l'état lors d'un resize (ex: rotation tablette, redimensionnement fenêtre)
+  useEffect(() => {
+    const mql = window.matchMedia(`(min-width: ${MOBILE_BREAKPOINT}px)`);
+    const handleChange = (e: MediaQueryListEvent) => {
+      setSidebarOpen(e.matches);
+    };
+    mql.addEventListener("change", handleChange);
+    return () => mql.removeEventListener("change", handleChange);
+  }, []);
+
+  // Bloque le scroll du body quand le drawer mobile est ouvert
+  useEffect(() => {
+    const isMobile = window.innerWidth < MOBILE_BREAKPOINT;
+    if (isMobile && sidebarOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [sidebarOpen]);
+
+  // Ferme le drawer uniquement sur mobile/tablette après un clic sur un lien
+  const handleNavigate = useCallback(() => {
+    if (window.innerWidth < MOBILE_BREAKPOINT) {
+      setSidebarOpen(false);
+    }
+  }, []);
 
   return (
     <div className="flex min-h-screen w-full bg-white">
-      {/* ── Sidebar (fond blanc — seul le bloc nav porte le fond teinté arrondi) ── */}
-      <aside className={`${collapsed ? "hidden" : "hidden md:flex"} flex-col fixed inset-y-0 left-0 w-64 bg-white z-20`}>
-        {/* Logo — séparé du menu par une ligne fine (alignée avec le header) */}
-        <div className="h-16 px-4 flex items-center border-b border-line">
-          <Link to="/dashboard" className="flex items-center">
+      {/* ── Overlay mobile/tablette ── */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/40 backdrop-blur-[1px] transition-opacity md:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* ── Sidebar ── */}
+      <aside
+        className={`
+              fixed inset-y-0 left-0 w-72 sm:w-64 bg-white z-30 flex flex-col
+              transition-transform duration-300 ease-in-out
+              ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+            `}
+      >
+        {/* Logo + bouton fermeture (mobile only) */}
+        <div className="h-16 px-4 flex items-center justify-between border-b border-line">
+          <Link to="/dashboard" className="flex items-center" onClick={handleNavigate}>
             <LumenJurisLogo variant="light" height={30} />
           </Link>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Fermer le menu"
+            className="md:hidden rounded-lg p-2 text-gray-500 hover:bg-surface-muted hover:text-ink"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
-        {/* Navigation — sidebar blanche, seul le lien actif porte un fond */}
+        {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <ul className="flex flex-col gap-0.5">
             {navItems.map((item) => (
-              <NavItemRow key={item.path} item={item} />
+              <NavItemRow key={item.path} item={item} onNavigate={handleNavigate} />
             ))}
             {isAdmin && (
-              <NavItemRow item={{ icon: Users, label: "Utilisateurs", path: "/utilisateurs" }} />
+              <NavItemRow
+                item={{ icon: Users, label: "Utilisateurs", path: "/utilisateurs" }}
+                onNavigate={handleNavigate}
+              />
             )}
           </ul>
         </nav>
       </aside>
 
-      {/* ── Zone principale ───────────────────────────────────────────── */}
-      <div className={`flex-1 flex flex-col min-w-0 ${collapsed ? "" : "md:ml-64"}`}>
-        {/* Header — ligne fine en bas pour séparer du contenu, alignée avec la sidebar */}
+      {/* ── Zone principale ── */}
+      <div className={`flex-1 flex flex-col min-w-0 transition-[margin] duration-300 ${sidebarOpen ? "md:ml-64" : "md:ml-0"}`}>
         <header className="h-16 bg-white flex items-center justify-between px-4 lg:px-6 sticky top-0 z-10 border-b border-line">
           <button
-            onClick={() => setCollapsed((c) => !c)}
-            title={collapsed ? "Afficher le menu" : "Masquer le menu"}
-            aria-label={collapsed ? "Afficher le menu" : "Masquer le menu"}
-            className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-surface-muted hover:text-ink"
+            onClick={() => setSidebarOpen((o) => !o)}
+            title={sidebarOpen ? "Masquer le menu" : "Afficher le menu"}
+            aria-label={sidebarOpen ? "Masquer le menu" : "Afficher le menu"}
+            aria-expanded={sidebarOpen}
+            className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-surface-muted hover:text-ink active:scale-95"
           >
             <PanelLeft className="h-5 w-5" />
           </button>
           <HeaderNavigationBar />
         </header>
 
-        {/* Contenu des pages — isolé par un ErrorBoundary re-monté à chaque route :
-            un crash d'écran n'emporte plus toute l'app, et changer de page le réinitialise. */}
-        <main className="flex-1 overflow-auto p-5 lg:p-7">
+        <main className="flex-1 overflow-auto p-4 sm:p-5 lg:p-7">
           <ErrorBoundary key={location.pathname}>
             <Outlet />
           </ErrorBoundary>
