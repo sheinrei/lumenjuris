@@ -909,6 +909,111 @@ model GuestAccess {
   @@index([token])
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// MODULE VEILLE JURIDIQUE (isolé — couplé à User/Contract par ID scalaire,
+// sans relation Prisma : aucun modèle existant n'est modifié).
+//
+// Pipeline : ingestion Judilibre (via microservice Python, stateless) →
+// enrichissement LLM → matching par type de modèle → alertes + digest.
+// Principe : la veille détecte et priorise, elle ne constitue jamais un avis
+// juridique — le juriste reste le décideur.
+// ════════════════════════════════════════════════════════════════════════════
+
+// Cycle de vie d'un item de veille.
+enum LegalWatchItemStatus {
+  INGESTED // récupéré, en attente d'enrichissement
+  ENRICHED // enrichi par le LLM, en attente de publication
+  PUBLISHED // publié (digest + alertes générées)
+  DISCARDED // hors périmètre de la taxonomie
+  ERROR // enrichissement en échec (après retry)
+}
+
+// Niveau d'impact estimé par le LLM (à valider par un professionnel du droit).
+enum LegalWatchImpact {
+  HAUT // revirement ou précision nouvelle affectant rédaction/validité
+  MOYEN // confirmation avec application notable
+  FAIBLE // le reste
+}
+
+enum LegalWatchAlertStatus {
+  UNREAD
+  READ
+  DISMISSED
+}
+
+// Source de veille ("judilibre", plus tard "legifrance").
+model LegalWatchSource {
+  idSource  Int       @id @default(autoincrement())
+  name      String    @unique
+  isActive  Boolean   @default(true)
+  lastRunAt DateTime? // borne de la fenêtre glissante d'ingestion
+
+  items LegalWatchItem[]
+}
+
+// Décision/texte ingéré puis enrichi par le LLM.
+model LegalWatchItem {
+  idItem      Int    @id @default(autoincrement())
+  externalId  String @unique // identifiant public (uuid)
+  providerId  String // ID de la décision chez la source (ex. ID Judilibre)
+  contentHash String @unique // SHA-256 du texte intégral — dédup entre runs
+
+  title        String
+  jurisdiction String? // chambre (soc, com, civ1…)
+  decisionDate DateTime?
+  sourceUrl    String // lien vers la décision officielle
+  rawText      String    @db.LongText
+
+  // Champs remplis par l'enrichissement LLM :
+  summary     String?           @db.Text // 2-3 phrases en langage clair
+  legalDomain String? // ex. "droit_travail_contrats_precaires" | "hors_perimetre"
+  concepts    Json? // concepts de la taxonomie détectés (liste fermée)
+  impactLevel LegalWatchImpact?
+  isEvolution Boolean? // évolution vs confirmation d'une position établie
+  confidence  Float? // confiance déclarée par le LLM (0..1)
+  enrichedAt  DateTime?
+  enrichError String?           @db.Text // dernière erreur d'enrichissement
+
+  status    LegalWatchItemStatus @default(INGESTED)
+  createdAt DateTime             @default(now())
+
+  sourceId Int
+  source   LegalWatchSource @relation(fields: [sourceId], references: [idSource])
+  alerts   LegalWatchAlert[]
+
+  @@unique([sourceId, providerId]) // idempotence : une décision par source
+  @@index([status])
+  @@index([decisionDate])
+  @@index([legalDomain])
+}
+
+// Taxonomie : concept juridique surveillé → types de modèles concernés.
+model LegalConceptMapping {
+  idConcept     Int     @id @default(autoincrement())
+  concept       String  @unique // ex. "delai_de_carence"
+  label         String // libellé lisible : "Délai de carence"
+  legalDomain   String // ex. "droit_travail_contrats_precaires"
+  keywords      Json // mots-clés/expressions (filtrage + prompt LLM)
+  contractTypes Json // clés de modèles concernés, ex. ["cdd_accroissement"]
+  isActive      Boolean @default(true) // thème surveillé (paramétrable par l'utilisateur)
+}
+
+// Alerte ciblée : un item de veille touche des contrats du portefeuille d'un user.
+model LegalWatchAlert {
+  idAlert     Int                   @id @default(autoincrement())
+  externalId  String                @unique
+  userId      Int // scalaire (pas de FK) — modèle multi-tenant par utilisateur
+  contractIds Json // externalIds des contrats concernés
+  status      LegalWatchAlertStatus @default(UNREAD)
+  createdAt   DateTime              @default(now())
+
+  itemId Int
+  item   LegalWatchItem @relation(fields: [itemId], references: [idItem], onDelete: Cascade)
+
+  @@unique([itemId, userId]) // idempotence : pas de double alerte
+  @@index([userId, status])
+}
+
 model NegotiationAudit {
   idAudit       Int                    @id @default(autoincrement())
   action        NegotiationAuditAction

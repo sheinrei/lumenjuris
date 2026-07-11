@@ -10,17 +10,28 @@ interface Props {
 
 const DATE_FIELDS = ["signature_date", "effective_date", "end_date"];
 
-/** Panneau droite de la fiche contrat : champs IA + score + validation humaine. */
+/**
+ * Rang d'affichage d'un champ : validé (en avant) > renseigné > info manquante
+ * (en bas). Permet de mettre en avant ce qui est confirmé et de reléguer ce
+ * qui reste à compléter.
+ */
+function fieldRank(f: MetadataField): number {
+  const validated = f.validationStatus === "HUMAN_VALIDATED" || f.validationStatus === "HUMAN_CORRECTED";
+  const hasValue = !!(f.value && f.value.trim());
+  if (validated) return 2;
+  if (hasValue) return 1;
+  return 0;
+}
+
+/** Champs de métadonnées IA + validation humaine — validés en haut, manquants en bas. */
 export function MetadataPanel({ fields, onValidate }: Props) {
+  const ordered = [...fields].sort((a, b) => fieldRank(b) - fieldRank(a));
   return (
     <div className="space-y-2">
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">
-        Métadonnées extraites
-      </p>
       {fields.length === 0 && (
-        <p className="text-xs text-gray-400 px-1 py-4">Aucune métadonnée extraite pour ce contrat.</p>
+        <p className="text-xs text-gray-400 px-1 py-2">Aucune métadonnée extraite pour ce contrat.</p>
       )}
-      {fields.map((f) => (
+      {ordered.map((f) => (
         <FieldRow key={f.fieldKey} field={f} onValidate={onValidate} />
       ))}
     </div>
@@ -43,7 +54,6 @@ function FieldRow({ field, onValidate }: { field: MetadataField; onValidate: Pro
   const [busy, setBusy] = useState(false);
 
   const label = FIELD_LABEL[field.fieldKey] ?? field.fieldKey;
-  const conf = field.confidenceScore ?? 0;
   const isDate = DATE_FIELDS.includes(field.fieldKey);
 
   async function run(status: ValidationStatus, value: string | null) {
@@ -71,14 +81,6 @@ function FieldRow({ field, onValidate }: { field: MetadataField; onValidate: Pro
           />
           {busy && <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />}
         </div>
-        {field.validationStatus === "AI_SUGGESTED" && conf > 0 && (
-          <div className="flex items-center gap-2 mt-2">
-            <div className="flex-1 h-1 rounded-full bg-gray-100 overflow-hidden">
-              <div className="h-full rounded-full transition-all" style={{ width: `${Math.round(conf * 100)}%`, backgroundColor: conf >= 0.8 ? "#10b981" : conf >= 0.5 ? "#f59e0b" : "#ef4444" }} />
-            </div>
-            <span className="text-[9px] text-gray-400 tabular-nums">{Math.round(conf * 100)}%</span>
-          </div>
-        )}
       </div>
     );
   }
@@ -120,19 +122,6 @@ function FieldRow({ field, onValidate }: { field: MetadataField; onValidate: Pro
               </button>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Barre de confiance IA (uniquement si encore au stade suggéré) */}
-      {field.validationStatus === "AI_SUGGESTED" && (
-        <div className="flex items-center gap-2 mt-2">
-          <div className="flex-1 h-1 rounded-full bg-gray-100 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${Math.round(conf * 100)}%`, backgroundColor: conf >= 0.8 ? "#10b981" : conf >= 0.5 ? "#f59e0b" : "#ef4444" }}
-            />
-          </div>
-          <span className="text-[9px] text-gray-400 tabular-nums">{Math.round(conf * 100)}%</span>
         </div>
       )}
     </div>

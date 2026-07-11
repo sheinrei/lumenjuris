@@ -940,6 +940,9 @@ const auth = proxyAuthMiddleware;
 app.post("/api/signup", handleSignUpUser);
 app.post("/api/user/auth/login", handleNodeLogin);
 
+
+
+
 /**
  * Login du complément Word : mêmes identifiants que la plateforme, mais le
  * JWT est renvoyé dans le corps (l'iframe Word ne peut pas recevoir le cookie
@@ -985,11 +988,13 @@ app.post("/api/addin/login", async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "Erreur interne lors de la connexion." });
   }
 });
+
+
 app.post("/api/auth/forgotpassword", handleNodeUserForgotPassword);
 app.post("/api/user/resetpassword", handleNodeUserResetPassword);
 app.get("/api/google", handleNodeGoogle);
-app.post("/api/billing/customer", handleBillingCustomer);
-app.post("/api/billing/payment-intent", handleBillingPaymentIntent);
+app.post("/api/billing/customer",auth, handleBillingCustomer);
+app.post("/api/billing/payment-intent",auth, handleBillingPaymentIntent);
 app.get("/api/veille", handleNodeVeille);
 app.get("/api/veille/debug", handleNodeVeilleDebug);
 app.get("/api/user-uploads", auth, handleUserUploadsGet);
@@ -1110,6 +1115,22 @@ app.post("/api/clause/:externalId/use", auth, (req, res) => relayToNode(req, res
 app.get("/api/clause/:externalId", auth, (req, res) => relayToNode(req, res, `/clause/${encodeURIComponent(req.params.externalId as string)}`));
 app.patch("/api/clause/:externalId", auth, (req, res) => relayToNode(req, res, `/clause/${encodeURIComponent(req.params.externalId as string)}`));
 app.delete("/api/clause/:externalId", auth, (req, res) => relayToNode(req, res, `/clause/${encodeURIComponent(req.params.externalId as string)}`));
+
+// ─── Veille juridique (alertes + digest jurisprudence) ───
+// Jobs du pipeline (rôle vérifié côté backNode)
+app.post("/api/legal-watch/ingest", auth, (req, res) => relayToNode(req, res, "/legal-watch/ingest"));
+app.post("/api/legal-watch/enrich", auth, (req, res) => relayToNode(req, res, "/legal-watch/enrich"));
+app.post("/api/legal-watch/publish", auth, (req, res) => relayToNode(req, res, "/legal-watch/publish"));
+app.post("/api/legal-watch/run", auth, (req, res) => relayToNode(req, res, "/legal-watch/run"));
+// Consultation
+app.get("/api/legal-watch/alerts", auth, (req, res) => relayToNode(req, res, withQuery("/legal-watch/alerts", req)));
+app.patch("/api/legal-watch/alerts/:externalId", auth, (req, res) => relayToNode(req, res, `/legal-watch/alerts/${encodeURIComponent(req.params.externalId as string)}`));
+app.get("/api/legal-watch/digest", auth, (req, res) => relayToNode(req, res, withQuery("/legal-watch/digest", req)));
+app.get("/api/legal-watch/unread-count", auth, (req, res) => relayToNode(req, res, "/legal-watch/unread-count"));
+app.get("/api/legal-watch/status", auth, (req, res) => relayToNode(req, res, "/legal-watch/status"));
+app.get("/api/legal-watch/config", auth, (req, res) => relayToNode(req, res, "/legal-watch/config"));
+app.patch("/api/legal-watch/sources/:name", auth, (req, res) => relayToNode(req, res, `/legal-watch/sources/${encodeURIComponent(req.params.name as string)}`));
+app.patch("/api/legal-watch/concepts/:concept", auth, (req, res) => relayToNode(req, res, `/legal-watch/concepts/${encodeURIComponent(req.params.concept as string)}`));
 
 // ─── Administration (gestion des utilisateurs & rôles) ───
 app.get("/api/admin/users", auth, (req, res) => relayToNode(req, res, "/admin/users"));

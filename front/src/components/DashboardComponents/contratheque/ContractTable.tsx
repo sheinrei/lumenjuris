@@ -16,8 +16,12 @@ interface Props {
   onDelete?: (id: string, title: string) => void;
 }
 
+
+
 /** Tableau principal de la liste des contrats. */
 export function ContractTable({ items, loading, sortBy, sortDir, onSort, onOpen, canDelete, onDelete }: Props) {
+  console.log(items)
+  {/* Rendu du composant en instance de traitement */}
   if (loading) {
     return (
       <div className="bg-white rounded-card border border-line shadow-card overflow-hidden">
@@ -31,6 +35,8 @@ export function ContractTable({ items, loading, sortBy, sortDir, onSort, onOpen,
     );
   }
 
+
+  { /* Rendu du composant lorseque la liste d'items est vide */}
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4 bg-white rounded-card border border-line shadow-card">
@@ -44,6 +50,8 @@ export function ContractTable({ items, loading, sortBy, sortDir, onSort, onOpen,
       </div>
     );
   }
+
+
 
   return (
     <div className="bg-white rounded-card border border-line shadow-card overflow-hidden">
@@ -151,6 +159,9 @@ export function ContractTable({ items, loading, sortBy, sortDir, onSort, onOpen,
     </div>
   );
 }
+
+
+
 
 /** En-tête de tableau partagé (liste + skeleton). */
 function TableHeader({

@@ -6,6 +6,7 @@ export function authMiddleware(
   next: NextFunction,
 ) {
   const userId = req.headers["x-user-id"] as string | undefined;
+  console.log(req.headers)
   if (!userId) {
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }

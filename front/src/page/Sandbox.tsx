@@ -416,6 +416,9 @@ export function Sandbox() {
           </div>
         </section>
 
+
+
+
         {/* INSEE */}
         <section className="space-y-4">
           <h2 className="text-base font-semibold text-gray-800">Test INSEE</h2>

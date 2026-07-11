@@ -1,6 +1,6 @@
 import { AnalysisContext, ClauseAI, ClauseRisk, JurisprudenceCase, Recommendation } from "./types";
 
-/* global localStorage, fetch */
+/* global localStorage, fetch, window */
 
 /**
  * Client des endpoints LumenJuris — les MÊMES routes que la page « Analyse
@@ -16,7 +16,14 @@ import { AnalysisContext, ClauseAI, ClauseRisk, JurisprudenceCase, Recommendatio
  * proxy/src/middleware/authMiddleware.ts).
  */
 
-export const PROXY_BASE = "http://localhost:3000";
+// En local (développement), on parle au proxy lancé sur la machine (port 3000).
+// En ligne (complément publié sur beta.lumenjuris.com), on parle au proxy
+// public — le MÊME que celui qu'utilise déjà l'application beta.lumenjuris.com.
+export const PROXY_BASE =
+  typeof window !== "undefined" &&
+  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ? "http://localhost:3000"
+    : "https://proxy.lumenjuris.com";
 
 const TOKEN_KEY = "lumen-addin-token";
 
@@ -206,20 +213,24 @@ const parseClauseAI = (txt: string): ClauseAI =>
 
 /** Détail IA d'une clause — même prompt que aiStore.fetch de la plateforme. */
 export async function fetchClauseDetail(clause: ClauseRisk): Promise<ClauseAI> {
-  const prompt = `Tu es un avocat français spécialisé en droit des contrats.
+  const prompt = `Tu es un avocat français spécialisé en droit des contrats. Tu t'adresses à des professionnels du droit.
 Analyse la clause suivante:
 """${clause.content}"""
 
-RÈGLE DE STYLE : n'utilise JAMAIS d'énumérations en chiffres romains ((i), (ii), (iii), i., ii.…) ; rédige en phrases complètes, ou numérote 1. 2. 3. si nécessaire.
+STYLE DES "issues" (problèmes) — IMPÉRATIF :
+- 2 problèmes MAXIMUM (1 seul si un seul risque réel), classés du plus grave au moins grave.
+- Une phrase courte chacun (20 mots max), qui va droit au risque concret.
+- Langage clair et direct, sans jargon superflu ni énumération de généralités ; précis sur le plan juridique mais immédiatement compréhensible.
+- Pas de chiffres romains ((i), (ii)…), pas de sous-listes.
 
 Réponds STRICTEMENT en JSON:
 {
-  "summary":"résumé 2 lignes",
+  "summary":"résumé 1 ligne",
   "riskLevel":"High|Medium|Low",
   "riskScore":"0-100",
   "litigation":"type de litige potentiel",
-  "issues":["problème1","problème2"],
-  "advice":"conseil global (1-2 phrases)",
+  "issues":["problème principal (1 phrase courte)","problème secondaire éventuel (1 phrase courte)"],
+  "advice":"conseil actionnable (1 phrase)",
   "alternatives":[
     {
       "clause":"réécriture intégrale (Proposition 1)",

@@ -2,6 +2,8 @@
 CLAUDE.md
 
 #backend python
+__pycache__/
+*.pyc
 back/__pycache__
 back/app/__pycache__
 back/services/__pycache__
@@ -33,6 +35,7 @@ backNode/userassets/
 backNode/templatesources/
 backNode/signatureenvelopes/
 backNode/feedback-logs.json
+backNode/app.log.json
 
 #proxy
 proxy/.env

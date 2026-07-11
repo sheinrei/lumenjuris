@@ -183,7 +183,7 @@ export function ChatJuridique() {
   );
 
   return (
-    <div className="flex h-[calc(100vh-9rem)] gap-0 overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+    <div className="flex h-[calc(100vh-9rem)] gap-0 overflow-hidden rounded-card border border-line shadow-card">
       {/* liste des conversations */}
       <aside className="w-64 shrink-0 bg-white border-r border-gray-200 flex-col hidden md:flex">
         <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -191,7 +191,7 @@ export function ChatJuridique() {
           <button
             onClick={createConversation}
             title="Nouvelle conversation"
-            className="flex h-7 w-7 items-center justify-center rounded-lg bg-lumenjuris text-white hover:bg-lumenjuris-dark transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
           </button>
@@ -216,13 +216,13 @@ export function ChatJuridique() {
                   onKeyDown={(e) => e.key === "Enter" && setActiveId(conv.id)}
                   className={`group w-full text-left px-3 py-3 rounded-xl transition-colors flex items-start justify-between gap-2 cursor-pointer ${
                     activeId === conv.id
-                      ? "bg-lumenjuris/10 border border-lumenjuris/20"
+                      ? "bg-brand-light border border-brand/20"
                       : "hover:bg-gray-50"
                   }`}
                 >
                   <div className="min-w-0 flex-1">
                     <p
-                      className={`text-sm font-medium truncate ${activeId === conv.id ? "text-lumenjuris" : "text-gray-700"}`}
+                      className={`text-sm font-medium truncate ${activeId === conv.id ? "text-brand" : "text-gray-700"}`}
                     >
                       {conv.title}
                     </p>
@@ -255,7 +255,7 @@ export function ChatJuridique() {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-lumenjuris" />
+            <MessageSquare className="h-4 w-4 text-brand" />
             <span className="text-sm font-semibold text-gray-900">
               {activeConv?.title ?? "Chat juridique RH"}
             </span>
@@ -263,7 +263,7 @@ export function ChatJuridique() {
           <div className="flex items-center gap-2">
             <button
               onClick={createConversation}
-              className="md:hidden flex items-center gap-1.5 text-xs text-white bg-lumenjuris border border-lumenjuris rounded-lg px-3 py-1.5 hover:bg-lumenjuris-dark transition-colors"
+              className="md:hidden flex items-center gap-1.5 text-xs text-white bg-brand border border-brand rounded-lg px-3 py-1.5 hover:bg-brand-hover transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
               Nouveau
@@ -280,8 +280,8 @@ export function ChatJuridique() {
           <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 px-6">
             <div className="w-full max-w-2xl flex flex-col items-center gap-6">
               <div className="flex flex-col items-center gap-2 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-lumenjuris/10 border border-lumenjuris/20">
-                  <MessageSquare className="h-6 w-6 text-lumenjuris" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-light border border-brand/20">
+                  <MessageSquare className="h-6 w-6 text-brand" />
                 </div>
                 <h2 className="text-xl font-semibold text-gray-900">
                   Un doute juridique ?
@@ -291,7 +291,7 @@ export function ChatJuridique() {
                   ou la jurisprudence française.
                 </p>
               </div>
-              <div className="w-full flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3 bg-white shadow-sm focus-within:border-lumenjuris transition-colors">
+              <div className="w-full flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3 bg-white shadow-sm focus-within:border-brand/40 focus-within:shadow-ring-brand transition-colors">
                 <input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -306,7 +306,7 @@ export function ChatJuridique() {
                 <button
                   onClick={() => sendMessage(input)}
                   disabled={!input.trim() || isSending}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-lumenjuris text-white hover:bg-lumenjuris-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-white hover:bg-brand-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
                 >
                   {isSending ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -338,7 +338,7 @@ export function ChatJuridique() {
                       {m.text}
                     </div>
                   ) : (
-                    <div className="max-w-[80%] bg-white border border-gray-200 text-sm text-gray-800 rounded-2xl px-6 py-5 shadow-sm leading-relaxed [&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:text-sm [&_h3]:font-medium [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1 [&_li]:leading-relaxed [&_strong]:font-semibold [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_p]:mb-2 [&_p:last-child]:mb-0 [&_a]:text-lumenjuris [&_a]:underline">
+                    <div className="max-w-[80%] bg-white border border-gray-200 text-sm text-gray-800 rounded-2xl px-6 py-5 shadow-sm leading-relaxed [&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:text-sm [&_h3]:font-medium [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1 [&_li]:leading-relaxed [&_strong]:font-semibold [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_p]:mb-2 [&_p:last-child]:mb-0 [&_a]:text-brand [&_a]:underline">
                       <ReactMarkdown>{m.text}</ReactMarkdown>
                     </div>
                   )}
@@ -347,7 +347,7 @@ export function ChatJuridique() {
               {isSending && (
                 <div className="flex justify-start">
                   <div className="bg-white border border-gray-200 rounded-2xl px-6 py-4 shadow-sm flex items-center gap-2 text-sm text-gray-400">
-                    <Loader2 className="h-4 w-4 animate-spin text-lumenjuris" />
+                    <Loader2 className="h-4 w-4 animate-spin text-brand" />
                     Réponse en attente…
                   </div>
                 </div>
@@ -356,7 +356,7 @@ export function ChatJuridique() {
             </div>
 
             <div className="px-6 py-4 bg-white border-t border-gray-200 shrink-0">
-              <div className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3 focus-within:border-lumenjuris transition-colors">
+              <div className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3 focus-within:border-brand/40 focus-within:shadow-ring-brand transition-colors">
                 <input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -370,7 +370,7 @@ export function ChatJuridique() {
                 <button
                   onClick={() => sendMessage(input)}
                   disabled={!input.trim() || isSending}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-lumenjuris text-white hover:bg-lumenjuris-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-white hover:bg-brand-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
                 >
                   {isSending ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />

@@ -845,6 +845,74 @@ function CustomTemplateEditor({ templateId, onBack }: { templateId: string; onBa
 
 // ─── Page principale ──────────────────────────────────────────────────────────
 
+/**
+ * Écran d'entrée « Créer de zéro » : un champ (le contrat souhaité) et, en
+ * dessous, les étapes. La génération réutilise le questionnaire de la
+ * bibliothèque de modèles (ScratchWizard : questions fermées une à une,
+ * puis rédaction IA et ouverture dans l'éditeur).
+ */
+function ScratchEntry({ onStart, onBack }: { onStart: (title: string) => void; onBack: () => void }) {
+  const [title, setTitle] = useState("");
+  const canStart = title.trim().length >= 3;
+
+  return (
+    <div className="max-w-2xl">
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1.5 text-xs text-ink-subtle hover:text-brand transition-colors mb-2 font-medium"
+      >
+        <ChevronLeft className="w-3.5 h-3.5" />
+        Générateur de contrat
+      </button>
+      <h1 className="text-2xl font-bold text-ink tracking-tight">Créer de zéro</h1>
+      <p className="text-sm text-ink-muted mt-1 mb-6">
+        Générez un contrat complet sans partir d&apos;un modèle.
+      </p>
+
+      <div className="bg-white rounded-card border border-line shadow-card p-6 space-y-5">
+        <div>
+          <label className="block text-sm font-medium text-ink-secondary mb-2">
+            Quel contrat souhaitez-vous créer ?
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && canStart && onStart(title.trim())}
+              placeholder="ex : Contrat de prestation de services informatiques"
+              className="flex-1 p-2.5 border border-line rounded-xl text-sm text-ink outline-none focus:border-brand/40 focus:shadow-ring-brand transition-all placeholder:text-ink-placeholder"
+            />
+            <button
+              onClick={() => onStart(title.trim())}
+              disabled={!canStart}
+              className="px-5 py-2.5 bg-brand text-white rounded-xl text-sm font-semibold hover:bg-brand-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-card"
+            >
+              Commencer
+            </button>
+          </div>
+        </div>
+
+        {/* Les étapes */}
+        <ol className="space-y-2 text-sm text-ink-muted">
+          <li className="flex items-start gap-2.5">
+            <span className="w-5 h-5 rounded-full bg-brand-light text-brand text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+            Décrivez le contrat souhaité
+          </li>
+          <li className="flex items-start gap-2.5">
+            <span className="w-5 h-5 rounded-full bg-brand-light text-brand text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+            Répondez aux questions, une à la fois
+          </li>
+          <li className="flex items-start gap-2.5">
+            <span className="w-5 h-5 rounded-full bg-brand-light text-brand text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+            Le contrat est rédigé puis ouvert dans l&apos;éditeur
+          </li>
+        </ol>
+      </div>
+    </div>
+  );
+}
+
 export function Generateur() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [section, setSection]     = useState<Section>(null);
@@ -855,10 +923,10 @@ export function Generateur() {
   const [libraryRefreshKey, setLibraryRefreshKey] = useState(0);
   const notifyAdded = useTemplateNotificationStore((s) => s.notifyAdded);
 
-  // Synchronise la section avec l'URL (?section=library|import)
+  // Synchronise la section avec l'URL (?section=library|import|scratch)
   useEffect(() => {
     const s = searchParams.get("section");
-    if (s === "library" || s === "import") setSection(s);
+    if (s === "library" || s === "import" || s === "scratch") setSection(s);
     else setSection(null);
   }, [searchParams]);
 
@@ -876,6 +944,13 @@ export function Generateur() {
   function handleCreate(title: string) {
     setWizardTitle(title);
     setSection("scratch");
+  }
+
+  // Retour depuis le questionnaire : si on est arrivé par « Créer de zéro »
+  // (?section=scratch), on revient à l'écran d'entrée ; sinon à la bibliothèque.
+  function handleScratchBack() {
+    setWizardTitle(null);
+    if (searchParams.get("section") !== "scratch") goLibrary();
   }
 
   // Contrat créé par le questionnaire : on l'archive puis on ouvre l'éditeur.
@@ -950,40 +1025,58 @@ export function Generateur() {
           {section && (
             <button
               onClick={goHub}
-              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#354F99] transition-colors mb-2 font-medium"
+              className="flex items-center gap-1.5 text-xs text-ink-subtle hover:text-brand transition-colors mb-2 font-medium"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
-              Générateur de modèles
+              Générateur de contrat
             </button>
           )}
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-            {section ? LABELS[section] : "Générateur de modèles"}
+          <h1 className="text-2xl font-bold text-ink tracking-tight">
+            {section ? LABELS[section] : "Générateur de contrat"}
           </h1>
           {(section ? SUBS[section] : "Accédez à vos modèles ou importez-en un nouveau.") && (
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-ink-muted mt-1">
               {section ? SUBS[section] : "Accédez à vos modèles ou importez-en un nouveau."}
             </p>
           )}
         </div>
       )}
 
-      {/* Hub — 2 cartes */}
+      {/* Hub — 3 cartes */}
       {!section && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-4xl">
+          {/* Créer de zéro */}
+          <button
+            onClick={() => setSearchParams({ section: "scratch" })}
+            className="group relative flex flex-col gap-5 p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg hover:border-violet-300 transition-all duration-200 text-left active:scale-[0.99] overflow-hidden"
+          >
+            <div className="absolute inset-x-0 top-0 h-0.5 bg-violet-500 rounded-t-2xl" />
+            <div className="w-12 h-12 rounded-xl bg-violet-50 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-violet-600 stroke-[1.5]" />
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-sm font-bold text-gray-900">Créer de zéro</p>
+              <p className="text-xs text-gray-500 leading-relaxed">Décrivez le contrat, répondez à quelques questions : il est rédigé pour vous.</p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-violet-600 mt-auto">
+              Créer <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </button>
+
           {/* Bibliothèque de modèles */}
           <button
             onClick={() => setSearchParams({ section: "library" })}
-            className="group relative flex flex-col gap-5 p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg hover:border-[#354F99]/30 transition-all duration-200 text-left active:scale-[0.99] overflow-hidden"
+            className="group relative flex flex-col gap-5 p-6 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg hover:border-brand/30 transition-all duration-200 text-left active:scale-[0.99] overflow-hidden"
           >
-            <div className="absolute inset-x-0 top-0 h-0.5 bg-[#354F99] rounded-t-2xl" />
-            <div className="w-12 h-12 rounded-xl bg-[#354F99]/10 flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-[#354F99] stroke-[1.5]" />
+            <div className="absolute inset-x-0 top-0 h-0.5 bg-brand rounded-t-2xl" />
+            <div className="w-12 h-12 rounded-xl bg-brand-light flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-brand stroke-[1.5]" />
             </div>
             <div className="space-y-1.5">
               <p className="text-sm font-bold text-gray-900">Bibliothèque de modèles</p>
               <p className="text-xs text-gray-500 leading-relaxed">CDI, CDD, avenants, lettres disciplinaires — et vos modèles personnalisés. Prêts à l'emploi.</p>
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#354F99] mt-auto">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-brand mt-auto">
               Accéder <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
           </button>
@@ -1032,11 +1125,18 @@ export function Generateur() {
         />
       )}
 
+      {section === "scratch"   && !wizardTitle && (
+        <ScratchEntry
+          onStart={(title) => setWizardTitle(title)}
+          onBack={goHub}
+        />
+      )}
+
       {section === "scratch"   && wizardTitle && (
         <ScratchWizard
           title={wizardTitle}
           onReady={handleScratchReady}
-          onBack={goLibrary}
+          onBack={handleScratchBack}
         />
       )}
     </div>
