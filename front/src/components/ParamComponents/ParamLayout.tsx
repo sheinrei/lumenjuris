@@ -48,11 +48,10 @@ export function ParamLayout({
               key={tab.id}
               type="button"
               onClick={() => onTabChange(tab.id)}
-              className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                isActive
+              className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${isActive
                   ? "bg-brand-light text-brand"
                   : "text-ink-secondary hover:bg-surface-muted"
-              }`}
+                }`}
             >
               <Icon className="h-4 w-4 shrink-0" />
               {tab.label}
@@ -72,7 +71,7 @@ export function ParamLayout({
         */}
         <div
           aria-hidden="true"
-          className="pointer-events-none invisible absolute left-0 top-0 hidden w-full md:block"
+          className="pointer-events-none invisible absolute left-0 top-0 hidden w-full h-0 overflow-hidden md:block"
         >
           <div>
             <section ref={accountMeasureRef} className="flex flex-col rounded-card border border-line bg-white p-6 shadow-card">

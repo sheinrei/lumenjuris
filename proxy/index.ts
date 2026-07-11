@@ -243,6 +243,37 @@ async function logOpenAiTokens(data: PythonJsonResponse, userId?: number): Promi
   }
 }
 
+// ─── Feature usage tracking ────────────────────────────────────────────────────
+
+async function trackFeature(feature: string, userId?: number): Promise<void> {
+  if (!userId) return;
+  try {
+    await fetch(`${BACKNODE_URL}/feature-event`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-internal-api-key": process.env.INTERNAL_API_KEY || "",
+      },
+      body: JSON.stringify({ feature, userId }),
+    });
+  } catch (e: any) {
+    console.error("[feature-track] error:", e.message);
+  }
+}
+
+/** Compose le tracking d'une feature avec un callback existant (ex: logOpenAiTokens). */
+function withTracking(
+  feature: string,
+  base?: (data: PythonJsonResponse, userId?: number) => Promise<void>,
+): (data: PythonJsonResponse, userId?: number) => Promise<void> {
+  return async (data, userId) => {
+    void trackFeature(feature, userId);
+    if (base) await base(data, userId);
+  };
+}
+
+// ─────────────���────────────────────────────────────���────────────────────────────
+
 function handleExtractDocumentText(req: Request, res: Response): void {
   relayStreamToPython(req, res, "/extract-document-text");
 }
@@ -260,19 +291,19 @@ function handleJurisprudence(req: Request, res: Response): void {
 }
 
 function handleAnalyzeClause(req: Request, res: Response): void {
-  relayJsonToPython(req, res, "/analyze-clause", logOpenAiTokens);
+  relayJsonToPython(req, res, "/analyze-clause", withTracking("analyze_clause", logOpenAiTokens));
 }
 
 function handleChat(req: Request, res: Response): void {
-  relayJsonToPython(req, res, "/chat", logOpenAiTokens);
+  relayJsonToPython(req, res, "/chat", withTracking("chat", logOpenAiTokens));
 }
 
 function handleOpenAiChat(req: Request, res: Response): void {
-  relayJsonToPython(req, res, "/openai-chat", logOpenAiTokens);
+  relayJsonToPython(req, res, "/openai-chat", withTracking("openai_chat", logOpenAiTokens));
 }
 
 function handleOpenAiChat5(req: Request, res: Response): void {
-  relayJsonToPython(req, res, "/openai-chat-5", logOpenAiTokens);
+  relayJsonToPython(req, res, "/openai-chat-5", withTracking("openai_chat", logOpenAiTokens));
 }
 
 function handleHuggingFaceGenerate(req: Request, res: Response): void {
@@ -431,6 +462,7 @@ async function handleDetectContract(
   }
   try {
     const context = await detectContractWithAI(text);
+    void trackFeature("detect_contract", res.locals.userId as number | undefined);
     res.json(context);
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Erreur interne";
@@ -461,6 +493,7 @@ async function handleMarketAnalysis(
       contractType,
       (detectedClauses ?? []) as any,
     );
+    void trackFeature("market_analysis", res.locals.userId as number | undefined);
     res.json(result);
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Erreur interne";
@@ -490,6 +523,7 @@ async function handleRecommendClause(
       context as any,
       model,
     );
+    void trackFeature("recommend_clause", res.locals.userId as number | undefined);
     res.json(recommendations);
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Erreur interne";
@@ -511,6 +545,7 @@ async function handleDetectLegalReferences(
   }
   try {
     const refs = await detectLegalReferences(clause as any);
+    void trackFeature("detect_legal_refs", res.locals.userId as number | undefined);
     res.json(refs);
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Erreur interne";
@@ -550,6 +585,7 @@ async function handleSummarizeCase(req: Request, res: Response): Promise<void> {
   }
   try {
     const summary = await summarizeCaseInline(item as JurisprudenceCase);
+    void trackFeature("summarize_case", res.locals.userId as number | undefined);
     res.json({ summary });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Erreur interne";
@@ -574,6 +610,7 @@ async function handleAnalyzeContract(
   }
   try {
     const clauses = await analyzeContractWithAI(content, context, res.locals.userId as number | undefined);
+    void trackFeature("analyze_contract", res.locals.userId as number | undefined);
     res.json({ success: true, clauses });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Erreur interne";
@@ -769,6 +806,7 @@ async function handleTemplateGenerate(req: Request, res: Response): Promise<void
       await logOpenAiTokens({ openai_tokens: aiData.openai_tokens } as any, res.locals.userId as number);
     }
 
+    void trackFeature("generate_contract", res.locals.userId as number | undefined);
     res.json({
       success: true,
       content: aiData.content ?? "",
@@ -900,6 +938,7 @@ async function handleTemplateImport(req: Request, res: Response): Promise<void> 
       body: JSON.stringify({ name, contractType, sourceFilename: filename, fileBase64, structure }),
     });
     const saved = await saveRes.json();
+    if (saveRes.ok) void trackFeature("import_template", res.locals.userId as number | undefined);
     res.status(saveRes.ok ? 201 : saveRes.status).json(saved);
   } catch (e: any) {
     console.error("[template/import] error:", e.message);
@@ -1046,6 +1085,8 @@ app.post("/api/fetch-legal-texts", auth, handleFetchLegalTexts);
 app.post("/api/summarize-case", auth, handleSummarizeCase);
 app.post("/api/feedback", auth, handleFeedback);
 app.get("/api/feedback", auth, handleFeedback);
+app.delete("/api/feedback/bulk", auth, (req, res) => relayToNode(req, res, "/feedback/bulk"));
+app.delete("/api/feedback/:id", auth, (req, res) => relayToNode(req, res, `/feedback/${encodeURIComponent(req.params.id as string)}`));
 
 // Template de contrats
 app.post("/api/template/import", auth, handleTemplateImport);
@@ -1135,6 +1176,11 @@ app.patch("/api/legal-watch/concepts/:concept", auth, (req, res) => relayToNode(
 // ─── Administration (gestion des utilisateurs & rôles) ───
 app.get("/api/admin/users", auth, (req, res) => relayToNode(req, res, "/admin/users"));
 app.patch("/api/admin/users/:idUser/role", auth, (req, res) => relayToNode(req, res, `/admin/users/${encodeURIComponent(req.params.idUser as string)}/role`));
+app.get("/api/admin/revenue", auth, (req, res) => relayToNode(req, res, "/admin/revenue"));
+app.get("/api/admin/users/:idUser/details", auth, (req, res) => relayToNode(req, res, `/admin/users/${encodeURIComponent(req.params.idUser as string)}/details`));
+app.patch("/api/admin/users/:idUser/ban", auth, (req, res) => relayToNode(req, res, `/admin/users/${encodeURIComponent(req.params.idUser as string)}/ban`));
+app.get("/api/admin/feature-usage", auth, (req, res) => relayToNode(req, res, `/admin/feature-usage${req.query.days ? `?days=${encodeURIComponent(req.query.days as string)}` : ""}`));
+app.get("/api/admin/overview", auth, (req, res) => relayToNode(req, res, "/admin/overview"));
 
 // ─── Négociation (module isolé) ───
 // Publiques invité (sans auth — token = secret) ; placées AVANT /:externalId.

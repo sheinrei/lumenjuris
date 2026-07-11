@@ -312,7 +312,7 @@ export function AccountSettingsPanel({
             if (!open) resetPasswordDialog();
           }}
         >
-          <DialogContent className="sm:max-w-sm">
+          <DialogContent className="sm:max-w-sm bg-white">
             <form
               onSubmit={handleSubmitNewPassword}
               className="flex flex-col gap-4"
