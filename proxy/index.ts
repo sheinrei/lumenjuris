@@ -940,6 +940,9 @@ const auth = proxyAuthMiddleware;
 app.post("/api/signup", handleSignUpUser);
 app.post("/api/user/auth/login", handleNodeLogin);
 
+
+
+
 /**
  * Login du complément Word : mêmes identifiants que la plateforme, mais le
  * JWT est renvoyé dans le corps (l'iframe Word ne peut pas recevoir le cookie
@@ -985,11 +988,13 @@ app.post("/api/addin/login", async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "Erreur interne lors de la connexion." });
   }
 });
+
+
 app.post("/api/auth/forgotpassword", handleNodeUserForgotPassword);
 app.post("/api/user/resetpassword", handleNodeUserResetPassword);
 app.get("/api/google", handleNodeGoogle);
-app.post("/api/billing/customer", handleBillingCustomer);
-app.post("/api/billing/payment-intent", handleBillingPaymentIntent);
+app.post("/api/billing/customer",auth, handleBillingCustomer);
+app.post("/api/billing/payment-intent",auth, handleBillingPaymentIntent);
 app.get("/api/veille", handleNodeVeille);
 app.get("/api/veille/debug", handleNodeVeilleDebug);
 app.get("/api/user-uploads", auth, handleUserUploadsGet);

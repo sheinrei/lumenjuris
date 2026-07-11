@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { UploadZone } from "../components/ContractAnalysis/UploadZone";
-import {  DocumentViewer, DocumentViewerRef} from "../components/ContractAnalysis/DocumentViewer";
+import { DocumentViewer, DocumentViewerRef } from "../components/ContractAnalysis/DocumentViewer";
 import { EnhancedClauseDetail } from "../components/ContractAnalysis/EnhancedClauseDetail/EnhancedClauseDetail";
 import { clearEnhancedClauseCaches } from "../components/ContractAnalysis/EnhancedClauseDetail/enhancedClauseCaches";
 import { ActionButtons } from "../components/ContractAnalysis/ActionButtons";
@@ -164,6 +164,8 @@ export default function ContractAnalysis() {
   const [historyItems, setHistoryItems] = useState<ContractHistoryItem[]>([]);
   const sidebarCollapsed = false;
 
+
+
   useEffect(() => {
     loadContractHistoryIndex()
       .then(setHistoryItems)
@@ -229,6 +231,8 @@ export default function ContractAnalysis() {
     };
   }, []);
 
+
+
   useEffect(() => {
     fetchProxy("/api/billing/subscription", {
       method: "GET",
@@ -268,6 +272,7 @@ export default function ContractAnalysis() {
     (s) => s.restoreDocumentState,
   );
   const resetAllPatches = useDocumentTextStore((s) => s.resetAll);
+
 
   // Hook principal pour l'analyse des contrats
   const {
@@ -716,10 +721,14 @@ export default function ContractAnalysis() {
     }
   };
 
+
   // Déclenche automatiquement l'analyse si un fichier OU un texte est passé via navigation state
   // (ex. depuis la génération de contrats : « Réviser (risques) »).
   useEffect(() => {
-    const state = location.state as { file?: File; text?: string; fileName?: string } | null;
+    const state = location.state as
+      | { file?: File; text?: string; fileName?: string; historyId?: string }
+      | null;
+
     if (state?.file) {
       const navigationUploadKey = `${location.key}:${getFileUploadKey(state.file)}`;
       if (consumedNavigationUploadKeys.has(navigationUploadKey)) return;
@@ -733,6 +742,12 @@ export default function ContractAnalysis() {
       consumedNavigationUploadKeys.add(navigationTextKey);
       navigate(".", { replace: true, state: null });
       void onTextSubmit(state.text, fileName);
+    } else if (state?.historyId) {
+      const navigationHistoryKey = `${location.key}:history:${state.historyId}`;
+      if (consumedNavigationUploadKeys.has(navigationHistoryKey)) return;
+      consumedNavigationUploadKeys.add(navigationHistoryKey);
+      navigate(".", { replace: true, state: null });
+      void handleOpenHistoryItem(state.historyId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

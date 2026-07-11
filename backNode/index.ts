@@ -27,6 +27,8 @@ import { seedPlans } from "./src/services/planSeeder.js";
 import { Mailer } from "./src/infrastructure/mailer/classMailer.js";
 import { globalLimiter } from "./src/securite/limiter.js";
 // import { internalApiKeyMiddleware } from "./middleware/internalApiKeyMiddleware";
+
+
 /**
  * Préparation du serveur nodejs/express pour ce backend
  * Ici sera traité toute les opérations avec la base de données
@@ -98,6 +100,7 @@ async function sandbox() {
 
 app.listen(port, async () => {
   console.log(`Serveur backend nodejs running on port ${port}`);
+  
   try {
     await seedBootstrapUsers();
     new Mailer("l.beaute@laposte.net").initTransporter()

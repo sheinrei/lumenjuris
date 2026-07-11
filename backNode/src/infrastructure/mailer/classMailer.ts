@@ -7,7 +7,7 @@ import { templateWelcomeFreemium } from "./template/welcomeFreemium.js";
 import { generateInvoicePDF, type InvoiceData } from "../pdf/invoicePDF.js";
 
 
-import { logger } from "../../logger/logger.js"; 
+import { logger } from "../../logger/logger.js";
 
 
 const transporter = nodemailer.createTransport({
@@ -72,84 +72,105 @@ export class Mailer {
   private createHtmlHeader() {
     return `
         <tr>
-            <td align="center" style="background-color:#716af9; padding:24px;">
-                <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%;">
+            <td style="background: linear-gradient(135deg, #c8deff 0%, #9bc0f6 100%); padding: 32px 40px;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+
+                
                     <tr>
-                        <td style="text-align:center;">
-                            <span style="color:#ffffff; font-family:Arial, sans-serif; font-size:22px; font-weight:bold; letter-spacing:0.5px;">
+                        <td>
+                            <span style="color:#ffffff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+                                         font-size:20px; font-weight:700; letter-spacing:-0.3px;">
+                                
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="22 20 200 36" width="166.66666666666666" height="30" aria-label="LumenJuris" role="img">
+                                <circle cx="34" cy="40" fill="none" r="9" stroke="#0D6EFD" stroke-width="2"></circle>
+                                <circle cx="34" cy="40" fill="#0D6EFD" r="4"></circle>
                                 Lumen Juris
+                                </text>
+                                </svg>
+                                         Lumen Juris
+                            </span>
+                        </td>
+                        <td style="text-align:right;">
+                            <span style="color:rgba(255,255,255,0.7); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+                                         font-size:11px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">
+                                Intelligence Juridique
                             </span>
                         </td>
                     </tr>
                 </table>
             </td>
         </tr>
-
-        <!-- petite séparation clean -->
-        <tr>
-            <td style="background-color:#ffffff; height:1px; line-height:1px; font-size:0;"></td>
-        </tr>
     `;
   }
 
   private createHtmlFooter() {
-    const date = new Date();
-    const year = date.getFullYear();
-
+    const year = new Date().getFullYear();
     return `
         <tr>
-            <td style="padding: 30px 30px 10px 30px; font-family: Arial, sans-serif; font-size:14px; color:#1f2937;">
+            <td style="padding: 32px 40px 24px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+                        font-size:14px; color:#374151; border-top: 1px solid #f3f4f6;">
                 Cordialement,<br>
                 <strong style="color:#111827;">L'équipe Lumen Juris</strong>
             </td>
         </tr>
 
-        <!-- séparation -->
         <tr>
-            <td style="padding:0 30px;">
-                <hr style="border:none; border-top:1px solid #e5e7eb;">
-            </td>
-        </tr>
-
-        <!-- footer bas -->
-        <tr>
-            <td style="background-color:#f9fafb; padding:20px; text-align:center;
-                       font-family: Arial, sans-serif; font-size:12px; color:#6b7280;">
-                
-                <div style="margin-bottom:8px;">
-                    &copy; ${year} Lumen Juris. Tous droits réservés.
-                </div>
-
-                <div>
-                    <a href="https://lumenjuris.com" 
-                       style="color:#716af9; text-decoration:none; font-weight:500;">
-                        lumenjuris.com
-                    </a>
-                </div>
-
+            <td style="background-color:#fafafa; padding: 24px 40px; border-top: 1px solid #f0f0f0;">
+                <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td style="text-align:center; padding-bottom:12px;">
+                            <a href="https://lumenjuris.com"
+                               style="color:#716af9; text-decoration:none; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+                                      font-size:13px; font-weight:600;">
+                                lumenjuris.com
+                            </a>
+                            &nbsp;&nbsp;·&nbsp;&nbsp;
+                            <a href="mailto:contact@lumenjuris.com"
+                               style="color:#6b7280; text-decoration:none; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+                                      font-size:13px;">
+                                contact@lumenjuris.com
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:center;">
+                            <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+                                         font-size:11px; color:#9ca3af;">
+                                &copy; ${year} Lumen Juris — Tous droits réservés.
+                            </span>
+                        </td>
+                    </tr>
+                </table>
             </td>
         </tr>
     `;
   }
 
   private createHtmlFullContent(htmlContent: string) {
-    return `
-            <body style="margin:0;padding:0;">
-                <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6; padding:20px 0;">
-                    <tr>
-                        <td align="center">
-                            <table width="600" cellpadding="0" cellspacing="0" 
-                                style="background-color:#ffffff; border:1px solid #b3b7be; border-radius:8px;overflow:hidden;">
-                                
-                                ${this.createHtmlHeader()}
-                                ${htmlContent}
-                                ${this.createHtmlFooter()}
-                                
-                            </table>
-                        </td>
-                    </tr>
-                </table>
-            </body>`;
+    return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+</head>
+<body style="margin:0; padding:0; background-color:#f0efff;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0efff; padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0"
+               style="max-width:600px; width:100%; background-color:#ffffff;
+                      border-radius:12px; overflow:hidden;
+                      box-shadow:0 4px 24px rgba(113,106,249,0.10), 0 1px 4px rgba(0,0,0,0.06);">
+          ${this.createHtmlHeader()}
+          ${htmlContent}
+          ${this.createHtmlFooter()}
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
   }
 
 

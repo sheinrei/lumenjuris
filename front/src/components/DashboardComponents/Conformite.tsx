@@ -10,6 +10,7 @@ import {
   FileText,
   MoreVertical,
   Trash2,
+  ExternalLink
 } from "lucide-react";
 import {
   loadContractHistoryIndex,
@@ -28,10 +29,10 @@ function getRiskLevel(score?: number): RiskLevel {
 
 function getRiskStyles(level: RiskLevel): string {
   switch (level) {
-    case "Élevé":  return "text-danger-dark border-danger/20 bg-danger-light";
-    case "Moyen":  return "text-warning-dark border-warning/20 bg-warning-light";
+    case "Élevé": return "text-danger-dark border-danger/20 bg-danger-light";
+    case "Moyen": return "text-warning-dark border-warning/20 bg-warning-light";
     case "Faible": return "text-success-dark border-success/20 bg-success-light";
-    default:       return "text-ink-subtle border-line bg-surface-muted";
+    default: return "text-ink-subtle border-line bg-surface-muted";
   }
 }
 
@@ -59,15 +60,25 @@ export function Conformite() {
   const [priorityFilter, setPriorityFilter] = useState("Tous");
   const [history, setHistory] = useState<ContractHistoryItem[]>([]);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-
   useEffect(() => {
-    loadContractHistoryIndex().then(setHistory).catch(() => {});
+    loadContractHistoryIndex().then(setHistory).catch(() => { });
   }, []);
 
   const handleOpen = (id: string) => {
     console.log("Id du contract à ouvrir :", id)
     navigate(`/analyzer`, { state: { historyId: id } });
   };
+
+  //Handle de la fermeture de la modale "Action"
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setOpenMenuId(null);
+    };
+    window.addEventListener("click", handleClickOutside);
+    return () => {
+      window.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
 
   const handleDelete = async (id: string) => {
     await deleteContractHistoryEntry(id);
@@ -148,7 +159,7 @@ export function Conformite() {
       </div>
 
       {/* History table */}
-      <div className="bg-white border border-line rounded-card overflow-hidden shadow-card">
+      <div className="bg-white border border-line rounded-card shadow-card">
         <table className="w-full text-left border-collapse">
           <thead className="bg-surface-subtle border-b border-line text-ink-subtle text-[10px] uppercase tracking-widest font-semibold">
             <tr>
@@ -208,33 +219,39 @@ export function Conformite() {
                         {formatDate(item.createdAt)}
                       </span>
                     </td>
+
                     <td className="px-6 py-5 text-right">
                       <div
                         className="relative inline-flex items-center gap-2"
                         onClick={(e) => e.stopPropagation()}
                       >
+
                         <button
-                          onClick={() => handleOpen(item.id)}
-                          className="text-brand font-semibold text-xs hover:underline underline-offset-4 opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          Ouvrir
-                        </button>
-                        <button
-                          onClick={() =>
+                          onClick={(e) => {
+                            e.stopPropagation()
                             setOpenMenuId(openMenuId === item.id ? null : item.id)
+                          }
                           }
                           className="p-1.5 text-ink-subtle hover:text-ink-secondary transition-colors rounded-lg hover:bg-surface-muted"
                         >
                           <MoreVertical className="w-4 h-4 stroke-[1.5]" />
                         </button>
                         {openMenuId === item.id && (
-                          <div className="absolute right-0 top-8 z-10 bg-white border border-line rounded-panel shadow-card-md py-1 min-w-[140px]">
+                          <div className="absolute right-0  top-8 z-10 bg-white border border-line rounded-panel shadow-card-md py-1 min-w-[140px]">
                             <button
                               onClick={() => handleDelete(item.id)}
                               className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-danger hover:bg-danger-light transition-colors"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                               Supprimer
+                            </button>
+
+                            <button
+                              onClick={() => handleOpen(item.id)}
+                              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-brand hover:bg-brand/10 transition-colors"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              Ouvrir
                             </button>
                           </div>
                         )}
