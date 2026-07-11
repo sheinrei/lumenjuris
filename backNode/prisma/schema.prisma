@@ -122,6 +122,8 @@ enum ApprovalStatus {
 
 // --- UTILISATEUR ---
 
+/// Compte utilisateur principal : identité, rôle, statut de vérification et bannissement.
+/// Nœud central du schéma — toutes les entités de l'application sont rattachées à un User.
 model User {
   idUser           Int     @id @default(autoincrement())
   role             Role    @default(USER)
@@ -163,6 +165,8 @@ model User {
 }
 
 // --- AUTH VIA PROVIDER ---
+
+/// Compte tiers OAuth (Google). Stocke le providerId et l'avatar pour la connexion via provider externe.
 model AuthProviderAccount {
   idAuthProvider Int          @id @default(autoincrement())
   providerId     String       @unique
@@ -174,6 +178,7 @@ model AuthProviderAccount {
   user   User @relation(fields: [userId], references: [idUser])
 }
 
+/// Préférences UI et paramètres de compte de l'utilisateur, stockés en JSON pour rester flexibles.
 model UserPreference {
   idUserPreference  Int   @id @default(autoincrement())
   preferenceUI      Json?
@@ -185,6 +190,8 @@ model UserPreference {
 }
 
 // --- ENTREPRISE ---
+
+/// Entreprise liée à un utilisateur : infos juridiques (SIREN, NAF, statut) issues de l'API Sirene.
 model Enterprise {
   idEnterprise        Int     @id @default(autoincrement())
   siren               String?
@@ -202,6 +209,7 @@ model Enterprise {
   address Address?
 }
 
+/// Adresse postale d'une entreprise. Séparée pour normaliser les données géographiques.
 model Address {
   idAddress  Int     @id @default(autoincrement())
   address    String?
@@ -214,6 +222,9 @@ model Address {
 }
 
 // --- SECURITE ---
+
+/// Tokens sécurisés à usage unique : reset de mot de passe, vérification email, 2FA, etc.
+/// Chaque token a un type, un statut (ACTIVE/EXPIRED/USED) et une date d'expiration.
 model Token {
   idToken   Int        @id @default(autoincrement())
   token     String     @unique
@@ -227,6 +238,8 @@ model Token {
 
 // --- EVENTS ---
 
+/// Événement applicatif lié à un utilisateur (ex : génération de document sur mesure).
+/// Sert de déclencheur et de conteneur pour certains workflows asynchrones.
 model Event {
   idEvent   Int      @id @default(autoincrement())
   type      String
@@ -239,6 +252,8 @@ model Event {
   documentCustom DocumentCustom?
 }
 
+/// Document généré à la demande pour un utilisateur, rattaché à un Event.
+/// Contient le contenu du template rendu (type + HTML/texte).
 model DocumentCustom {
   idDocumentCustom Int    @id @default(autoincrement())
   type             String
@@ -252,6 +267,8 @@ model DocumentCustom {
   event   Event? @relation(fields: [eventId], references: [idEvent])
 }
 
+/// Templates de documents globaux partagés (non liés à un utilisateur).
+/// Base de génération commune pour les documents standards de la plateforme.
 model DocumentTemplate {
   idDocument      Int    @id @default(autoincrement())
   type            String
@@ -260,6 +277,8 @@ model DocumentTemplate {
 
 // --- HISTORIQUE CHAT JURIDIQUE ---
 
+/// Historique complet du chat juridique d'un utilisateur, stocké en JSON dans une LongText.
+/// Une seule ligne par utilisateur, mise à jour à chaque nouvel échange.
 model ChatHistory {
   idChatHistory Int    @id @default(autoincrement())
   conversations String @db.LongText
@@ -270,6 +289,8 @@ model ChatHistory {
 
 // --- HISTORIQUE ANALYSES CONTRATS ---
 
+/// Analyse de contrat sauvegardée : métadonnées claires (type, score, clauses) + snapshot chiffré.
+/// Permet de rouvrir et comparer des analyses précédentes sans relancer l'IA.
 model ContractHistory {
   idHistory         Int      @id @default(autoincrement())
   externalId        String   @unique
@@ -293,6 +314,8 @@ model ContractHistory {
 
 // --- CREDIT ET PAYMENT ---
 
+/// Crédits disponibles d'un utilisateur : `creditIncluded` vient du plan, `creditAdded` sont des bonus.
+/// Décrémentés à chaque appel IA — épuisement (tous à 0) bloque les fonctionnalités payantes.
 model UserCredit {
   idUserCredit   Int @id @default(autoincrement())
   creditIncluded Int
@@ -306,6 +329,8 @@ model UserCredit {
 
 // --- SUIVI D'USAGE DES FONCTIONNALITÉS ---
 
+/// Trace chaque appel à une fonctionnalité IA (feature, userId, date).
+/// Alimente le tableau de bord monitoring : activité, top users, détection d'abus.
 model FeatureUsage {
   id        Int      @id @default(autoincrement())
   feature   String
@@ -319,6 +344,7 @@ model FeatureUsage {
   @@index([createdAt])
 }
 
+/// Abonnement d'un utilisateur à un plan tarifaire : statut, dates de début/expiration, référence Stripe.
 model Subscription {
   idSubscription       Int                @id @default(autoincrement())
   status               SubscriptionStatus
@@ -337,6 +363,7 @@ model Subscription {
   facture Facture[]
 }
 
+/// Définition d'un plan tarifaire : nom, prix, intervalle de facturation et crédits inclus.
 model Plan {
   idPlan         Int    @id @default(autoincrement())
   name           String
@@ -348,6 +375,7 @@ model Plan {
   subscription Subscription[]
 }
 
+/// Facture générée pour un abonnement, associée à une transaction Stripe.
 model Facture {
   idFacture       Int      @id @default(autoincrement())
   price           Int
@@ -361,6 +389,8 @@ model Facture {
 }
 
 // --- RESSOURCE LLM ---
+
+/// Référentiel des modèles LLM disponibles avec leurs prix d'entrée/sortie par million de tokens.
 model Llm {
   idLlm            Int    @id @default(autoincrement())
   name             String @unique
@@ -374,6 +404,8 @@ model Llm {
 
 // --- MODELES DE CONTRATS (import + playbook + génération) ---
 
+/// Template de contrat importé ou créé par un utilisateur : structure chiffrée + métadonnées.
+/// Base de la génération IA personnalisée (avec playbook de règles et notes doctrinales associées).
 model ContractTemplate {
   idTemplate         Int      @id @default(autoincrement())
   externalId         String   @unique
@@ -395,6 +427,8 @@ model ContractTemplate {
   @@index([userId])
 }
 
+/// Playbook de règles juridiques associé à un template (instructions, garde-fous de négociation).
+/// Guide la génération IA et la logique de repli entre positions contractuelles.
 model TemplatePlaybook {
   idPlaybook  Int      @id @default(autoincrement())
   rulesText   String   @db.LongText
@@ -406,6 +440,7 @@ model TemplatePlaybook {
   template   ContractTemplate @relation(fields: [templateId], references: [idTemplate], onDelete: Cascade)
 }
 
+/// Note doctrinale rattachée à une clause d'un template : conseils d'interprétation et références juridiques.
 model DoctrinalNote {
   idNote      Int      @id @default(autoincrement())
   externalId  String   @unique
@@ -421,6 +456,7 @@ model DoctrinalNote {
   @@index([templateId])
 }
 
+/// Log de chaque génération de contrat depuis un template : variables utilisées, tokens consommés et résultat chiffré.
 model GenerationLog {
   idLog           Int      @id @default(autoincrement())
   externalId      String   @unique
@@ -438,6 +474,8 @@ model GenerationLog {
 
 // --- E-SIGNATURE : enveloppes de contrats à signer ---
 
+/// Enveloppe de signature électronique entre un utilisateur et sa contrepartie.
+/// Champs de signature chiffrés AES-256-GCM ; suivi complet du cycle de vie (DRAFT → SIGNED).
 model SignatureEnvelope {
   idEnvelope           Int            @id @default(autoincrement())
   externalId           String         @unique
@@ -473,6 +511,7 @@ model SignatureEnvelope {
 
 // --- ASSETS UTILISATEUR (filigranes) ---
 
+/// Images uploadées par l'utilisateur (ex : filigrane sur contrats exportés), stockées en JSON.
 model UserUpload {
   idUserUpload    Int    @id @default(autoincrement())
   uploadedImages  Json
@@ -481,6 +520,8 @@ model UserUpload {
   user   User @relation(fields: [userId], references: [idUser], onDelete: Cascade)
 }
 
+/// Consommation LLM globale agrégée par modèle et par jour (upsert journalier).
+/// Permet le suivi des coûts globaux de la plateforme dans le monitoring.
 model LlmUsage {
   idLlmUsage   Int      @id @default(autoincrement())
   startAt      DateTime
@@ -496,6 +537,8 @@ model LlmUsage {
   @@unique([llmId, startAt])
 }
 
+/// Consommation LLM par utilisateur, modèle et jour (upsert journalier).
+/// Permet le suivi individuel des coûts et l'identification des top consommateurs.
 model UserLlmUsage {
   idUserLlmUsage Int      @id @default(autoincrement())
   startAt        DateTime
@@ -515,17 +558,9 @@ model UserLlmUsage {
   @@index([userId])
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CONTRATHÈQUE — repository central des contrats (liste + fiche + import IA)
-//
-// Principe directeur : "l'IA suggère, le système garde-fou, l'humain décide".
-// Stockage hybride : métadonnées en colonnes claires (filtres/tri/KPI), PDF
-// sur le filesystem chiffré, accès tracés dans AuditLog (RGPD by design).
-//
-// Anticipe les briques V2 (négociation collaborative, suivi d'échéances) via
-// des champs nullable, SANS les implémenter.
-// ─────────────────────────────────────────────────────────────────────────────
-
+/// Contrat de la contrathèque : métadonnées claires (filtres/KPI) + PDF chiffré sur filesystem.
+/// Nœud central du module — relié aux clauses, tags, dossiers, avenants et journal d'audit.
+/// Principe : "l'IA suggère, le système garde-fou, l'humain décide."
 model Contract {
   idContract       Int            @id @default(autoincrement())
   externalId       String         @unique
@@ -593,8 +628,8 @@ model Contract {
   @@index([folderId])
 }
 
-// Un champ de métadonnée extrait par IA + son état de validation humaine.
-// Matérialise le "trust but verify" : confidence_score + validation_status.
+/// Champ de métadonnée extrait par IA sur un contrat (montant, loi applicable, préavis…).
+/// Implémente le "trust but verify" : score de confiance + statut de validation humaine (suggéré/validé/corrigé).
 model ContractMetadataField {
   idField          Int                   @id @default(autoincrement())
   fieldKey         String // ex: "amount", "governing_law", "notice_period_days"
@@ -614,7 +649,7 @@ model ContractMetadataField {
   @@index([contractId])
 }
 
-// Avenant lié à un contrat parent.
+/// Avenant lié à un contrat parent : modification contractuelle documentée avec date et résumé.
 model Amendment {
   idAmendment      Int       @id @default(autoincrement())
   externalId       String    @unique
@@ -631,7 +666,7 @@ model Amendment {
   @@index([parentContractId])
 }
 
-// Version successive d'un contrat (historique documentaire).
+/// Version successive d'un contrat : historique documentaire pour comparer les évolutions du texte.
 model ContractVersion {
   idVersion        Int      @id @default(autoincrement())
   versionNumber    Int      @default(1)
@@ -648,7 +683,7 @@ model ContractVersion {
   @@index([contractId])
 }
 
-// Label coloré transverse (organisation hybride dossiers + tags).
+/// Label coloré créé par l'utilisateur pour organiser ses contrats (système de tags libre).
 model Tag {
   idTag      Int      @id @default(autoincrement())
   externalId String   @unique
@@ -664,7 +699,7 @@ model Tag {
   @@index([userId])
 }
 
-// Table de jonction many-to-many Contract <-> Tag.
+/// Table de jonction many-to-many entre Contract et Tag.
 model ContractTag {
   contractId Int
   tagId      Int
@@ -676,7 +711,7 @@ model ContractTag {
   @@index([tagId])
 }
 
-// Arborescence de dossiers (self-relation parent/enfant).
+/// Dossier de classement des contrats avec arborescence parent/enfant (self-relation).
 model Folder {
   idFolder   Int      @id @default(autoincrement())
   externalId String   @unique
@@ -696,7 +731,8 @@ model Folder {
   @@index([parentId])
 }
 
-// Journal d'audit horodaté (import, validation IA, modif, accès document…).
+/// Journal d'audit RGPD : trace toutes les actions sensibles sur les contrats (import, accès, export…).
+/// Immuable par design — chaque action crée une nouvelle ligne, jamais de mise à jour.
 model AuditLog {
   idAudit       Int         @id @default(autoincrement())
   action        AuditAction
@@ -717,8 +753,8 @@ model AuditLog {
   @@index([entityType, entityId])
 }
 
-// Clause réutilisable de la bibliothèque (référentiel de clauses approuvées).
-// Pilier de la génération et de la négociation : positions idéale / repli / ligne rouge.
+/// Clause réutilisable de la bibliothèque juridique : catégorisée par type et position de négociation.
+/// Stocke trois positions (idéale / acceptable / ligne rouge) pour guider la stratégie contractuelle.
 model Clause {
   idClause   Int            @id @default(autoincrement())
   externalId String         @unique
@@ -741,7 +777,7 @@ model Clause {
   @@index([category])
 }
 
-// Commentaire collaboratif rattaché à un contrat (fil de négociation).
+/// Commentaire collaboratif ancré sur un contrat, avec fil de discussion et statut "résolu".
 model ContractComment {
   idComment  Int      @id @default(autoincrement())
   externalId String   @unique
@@ -811,6 +847,8 @@ enum NegotiationAuditAction {
   ABORTED
 }
 
+/// Session de négociation d'un contrat : orchestre le workflow entre partie interne et contrepartie.
+/// Agrège les versions, propositions de clauses, commentaires, participants et journal d'audit.
 model NegotiationSession {
   idNegotiation      Int               @id @default(autoincrement())
   externalId         String            @unique
@@ -833,6 +871,7 @@ model NegotiationSession {
   @@index([ownerUserId])
 }
 
+/// Version immuable du texte contractuel pendant la négociation. Base de comparaison entre rounds.
 model NegotiationVersion {
   idVersion      Int      @id @default(autoincrement())
   externalId     String   @unique
@@ -850,6 +889,8 @@ model NegotiationVersion {
   @@index([negotiationId])
 }
 
+/// Proposition de modification d'une clause pendant la négociation.
+/// Suit le statut de la proposition : proposée / acceptée / rejetée / contre-proposée.
 model ClauseProposal {
   idProposal          Int            @id @default(autoincrement())
   externalId          String         @unique
@@ -870,6 +911,8 @@ model ClauseProposal {
   @@index([clauseRef])
 }
 
+/// Commentaire ancré sur le texte d'une version de négociation (avec surlignement optionnel).
+/// Peut être interne (équipe) ou visible par la contrepartie, et marqué comme résolu.
 model NegotiationComment {
   idComment           Int               @id @default(autoincrement())
   externalId          String            @unique
@@ -894,6 +937,8 @@ model NegotiationComment {
   @@index([clauseRef])
 }
 
+/// Participant à une session de négociation (interne ou externe).
+/// Définit le côté (INTERNAL/EXTERNAL) et les droits (lecture / commentaire / proposition / validation).
 model NegotiationParticipant {
   idParticipant Int             @id @default(autoincrement())
   externalId    String          @unique
@@ -910,6 +955,7 @@ model NegotiationParticipant {
   @@index([negotiationId])
 }
 
+/// Accès invité temporaire à une négociation via un token secret, limité dans le temps et révocable.
 model GuestAccess {
   idGuest       Int       @id @default(autoincrement())
   externalId    String    @unique
@@ -926,6 +972,7 @@ model GuestAccess {
   @@index([token])
 }
 
+/// Journal d'audit des événements de négociation : trace qui a fait quoi et quand.
 model NegotiationAudit {
   idAudit       Int                    @id @default(autoincrement())
   action        NegotiationAuditAction
