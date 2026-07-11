@@ -70,80 +70,68 @@ export class Mailer {
   }
 
   private createHtmlHeader() {
-    return `
-        <tr>
-            <td style="background: linear-gradient(135deg, #c8deff 0%, #9bc0f6 100%); padding: 32px 40px;">
-                <table width="100%" cellpadding="0" cellspacing="0">
-
-                
-                    <tr>
-                        <td>
-                            <span style="color:#ffffff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
-                                         font-size:20px; font-weight:700; letter-spacing:-0.3px;">
-                                
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="22 20 200 36" width="166.66666666666666" height="30" aria-label="LumenJuris" role="img">
-                                <circle cx="34" cy="40" fill="none" r="9" stroke="#0D6EFD" stroke-width="2"></circle>
-                                <circle cx="34" cy="40" fill="#0D6EFD" r="4"></circle>
-                                Lumen Juris
-                                </text>
-                                </svg>
-                                         Lumen Juris
-                            </span>
-                        </td>
-                        <td style="text-align:right;">
-                            <span style="color:rgba(255,255,255,0.7); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
-                                         font-size:11px; font-weight:500; letter-spacing:1px; text-transform:uppercase;">
-                                Intelligence Juridique
-                            </span>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
+    return `    
+      <tr>
+        <td style="background-color:#0B1F3A; padding:28px 40px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td width="34" style="width:34px; padding-right:10px;" valign="middle">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="26" height="26" aria-label="LumenJuris" role="img" style="display:block;">
+                  <circle cx="16" cy="16" r="13" fill="none" stroke="#5B9DF5" stroke-width="2"></circle>
+                  <circle cx="16" cy="16" r="4.5" fill="#5B9DF5"></circle>
+                </svg>
+              </td>
+              <td valign="middle" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; font-size:20px; letter-spacing:-0.3px; white-space:nowrap;">
+                <span style="font-weight:700; color:#FFFFFF;">Lumen</span><span style="font-weight:400; color:#9CB8E8;"> Juris</span>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
     `;
   }
 
   private createHtmlFooter() {
     const year = new Date().getFullYear();
     return `
-        <tr>
-            <td style="padding: 32px 40px 24px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
-                        font-size:14px; color:#374151; border-top: 1px solid #f3f4f6;">
-                Cordialement,<br>
-                <strong style="color:#111827;">L'équipe Lumen Juris</strong>
-            </td>
-        </tr>
+      <tr>
+          <td style="padding: 32px 40px 24px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+                      font-size:14px; line-height:1.6; color:#374151;">
+              Cordialement,<br>
+              <strong style="color:#111827;">L'équipe Lumen Juris</strong>
+          </td>
+      </tr>
 
-        <tr>
-            <td style="background-color:#fafafa; padding: 24px 40px; border-top: 1px solid #f0f0f0;">
-                <table width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                        <td style="text-align:center; padding-bottom:12px;">
-                            <a href="https://lumenjuris.com"
-                               style="color:#716af9; text-decoration:none; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
-                                      font-size:13px; font-weight:600;">
-                                lumenjuris.com
-                            </a>
-                            &nbsp;&nbsp;·&nbsp;&nbsp;
-                            <a href="mailto:contact@lumenjuris.com"
-                               style="color:#6b7280; text-decoration:none; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
-                                      font-size:13px;">
-                                contact@lumenjuris.com
-                            </a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="text-align:center;">
-                            <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
-                                         font-size:11px; color:#9ca3af;">
-                                &copy; ${year} Lumen Juris — Tous droits réservés.
-                            </span>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    `;
+      <tr>
+          <td style="background-color:#f7f9fc; padding: 24px 40px; border-top: 2px solid #e8edf5">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                      <td style="text-align:center; padding-bottom:12px;">
+                          <a href="https://lumenjuris.com"
+                             style="color:#0D6EFD; text-decoration:none; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+                                    font-size:13px; font-weight:600;">
+                              lumenjuris.com
+                          </a>
+                          <span style="color:#c7ced9; font-size:13px; padding:0 10px;">&middot;</span>
+                          <a href="mailto:contact@lumenjuris.com"
+                             style="color:#6b7280; text-decoration:none; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+                                    font-size:13px;">
+                              contact@lumenjuris.com
+                          </a>
+                      </td>
+                  </tr>
+                  <tr>
+                      <td style="text-align:center;">
+                          <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+                                       font-size:11px; color:#9ca3af;">
+                              &copy; ${year} Lumen Juris — Tous droits réservés.
+                          </span>
+                      </td>
+                  </tr>
+              </table>
+          </td>
+      </tr>
+      `;
   }
 
   private createHtmlFullContent(htmlContent: string) {
