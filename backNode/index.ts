@@ -21,6 +21,8 @@ import routerContract from "./src/route/apiContract.js";
 import routerClause from "./src/route/apiClause.js";
 import routerAdmin from "./src/route/apiAdmin.js";
 import routerNegotiation from "./src/route/apiNegotiation.js";
+import routerLegalWatch from "./src/route/apiLegalWatch.js";
+
 import cors from "cors";
 import { seedBootstrapUsers } from "./src/services/bootstrapUsers.js";
 import { seedPlans } from "./src/services/planSeeder.js";
@@ -69,6 +71,7 @@ app.use("/contract-history", routerContractHistory);
 app.use("/chat-history", routerChatHistory);
 app.use("/billing", routerBilling);
 app.use("/veille", routerVeille);
+app.use("/legal-watch", routerLegalWatch);
 app.use("/user-uploads", routerUserUploads);
 app.use("/feedback", routerFeedback);
 app.use("/template", routerTemplate);

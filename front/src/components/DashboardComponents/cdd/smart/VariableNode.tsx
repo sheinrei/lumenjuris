@@ -16,12 +16,13 @@ function VariableView({ node, updateAttributes }: NodeViewProps) {
         value={value}
         placeholder={label}
         title={label}
+        data-var-name={node.attrs.name as string}
         onChange={(e) => updateAttributes({ value: e.target.value })}
         size={Math.max(6, (value || label).length)}
-        className={`mx-0.5 inline rounded px-1 text-[13px] font-medium outline-none transition ${
+        className={`mx-0.5 inline rounded-chip px-1.5 py-[1px] text-[13px] font-medium outline-none transition focus:ring-2 focus:ring-brand/25 ${
           value
-            ? "bg-[#354F99]/10 text-[#354F99] hover:bg-[#354F99]/15"
-            : "bg-amber-200/70 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-200"
+            ? "bg-brand-light text-brand ring-1 ring-brand/15 hover:bg-brand-light/70"
+            : "bg-amber-100 text-amber-800 ring-1 ring-amber-300/80 hover:bg-amber-200/80"
         }`}
       />
     </NodeViewWrapper>

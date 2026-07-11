@@ -1,52 +1,68 @@
 import * as React from "react";
-import Header from "./Header";
 import ClauseList from "./ClauseList";
 import ClauseDetail from "./ClauseDetail";
 import AnalysisForm from "./AnalysisForm";
 import StatusMessage, { Status } from "./StatusMessage";
 import { AnalysisContext, ClauseRisk } from "../core/types";
-import { analyzeContract, DEFAULT_CONTEXT } from "../core/lumenService";
+import { analyzeContract } from "../core/lumenService";
 import { clearHighlights, getDocumentText, highlightClauses, selectClause } from "../core/wordDocument";
 
-type Screen = "home" | "form" | "results";
+type Screen = "form" | "results";
+
+/** Pastille compacte : nombre de clauses détectées, teintée selon la sévérité la plus haute. */
+function ClauseCountBadge({ clauses }: { clauses: ClauseRisk[] }) {
+  const maxScore = Math.max(...clauses.map((c) => c.riskScore));
+  const css = maxScore >= 4 ? "high" : maxScore >= 3 ? "medium" : "low";
+  return (
+    <span className={`lj-count-badge ${css}`}>
+      {clauses.length} clause{clauses.length > 1 ? "s" : ""} détectée{clauses.length > 1 ? "s" : ""}
+    </span>
+  );
+}
 
 const App: React.FC = () => {
-  const [screen, setScreen] = React.useState<Screen>("home");
+  const [screen, setScreen] = React.useState<Screen>("form");
   const [documentText, setDocumentText] = React.useState("");
   const [analyzing, setAnalyzing] = React.useState(false);
-  const [progress, setProgress] = React.useState<string | null>(null);
+  const [highlighting, setHighlighting] = React.useState(false);
   const [status, setStatus] = React.useState<Status | null>(null);
   const [clauses, setClauses] = React.useState<ClauseRisk[]>([]);
   const [missingIds, setMissingIds] = React.useState<string[]>([]);
+  const [appliedIds, setAppliedIds] = React.useState<string[]>([]);
   const [selected, setSelected] = React.useState<ClauseRisk | null>(null);
 
-  /** Étape 1 : lecture du document puis ouverture du formulaire contextuel. */
-  const handleStart = async () => {
-    setStatus(null);
-    try {
-      const text = await getDocumentText();
-      if (!text || text.trim().length < 100) {
-        setStatus({ kind: "warn", text: "Document vide ou trop court." });
-        return;
-      }
-      setDocumentText(text);
-      setScreen("form");
-    } catch (error) {
-      setStatus({ kind: "err", text: String(error) });
-    }
-  };
+  // Lecture du document dès l'ouverture, pour pré-remplir le formulaire (IA).
+  React.useEffect(() => {
+    getDocumentText()
+      .then(setDocumentText)
+      .catch(() => {
+        /* best-effort */
+      });
+  }, []);
 
-  /** Étape 2 : analyse avec le contexte du formulaire (ou par défaut si « Ignorer »). */
+  /** Lance l'analyse avec le contexte du formulaire (texte lu à la volée). */
   const handleAnalyze = async (context: AnalysisContext) => {
+    setStatus(null);
+    let text = "";
+    try {
+      text = await getDocumentText();
+    } catch (error) {
+      setStatus({ kind: "err", text: `Lecture du document impossible : ${String(error)}` });
+      return;
+    }
+    if (!text || text.trim().length < 100) {
+      setStatus({ kind: "warn", text: "Document vide ou trop court : ouvrez un contrat dans Word." });
+      return;
+    }
+
     setScreen("results");
     setAnalyzing(true);
-    setStatus(null);
     setSelected(null);
     setClauses([]);
     setMissingIds([]);
+    setAppliedIds([]);
     try {
-      setProgress("Analyse IA en cours…");
-      const found = await analyzeContract(documentText, context);
+      const found = await analyzeContract(text, context);
       setClauses(found);
 
       if (found.length === 0) {
@@ -55,104 +71,79 @@ const App: React.FC = () => {
       }
 
       // Liste affichée immédiatement, surlignage en arrière-plan.
-      setStatus({ kind: "ok", text: `${found.length} clause(s) détectée(s) — surlignage…` });
+      setHighlighting(true);
       void highlightClauses(found)
-        .then((report) => {
-          setMissingIds(report.missing);
-          setStatus({
-            kind: "ok",
-            text:
-              `${found.length} clause(s), ${report.located.length} surlignée(s)` +
-              (report.missing.length ? `, ${report.missing.length} non localisée(s).` : "."),
-          });
-        })
-        .catch((e) => {
-          setStatus({ kind: "warn", text: `Surlignage impossible : ${String(e)}` });
-        });
+        .then((report) => setMissingIds(report.missing))
+        .catch((e) => setStatus({ kind: "warn", text: `Surlignage impossible : ${String(e)}` }))
+        .finally(() => setHighlighting(false));
     } catch (error) {
       setStatus({
         kind: "err",
         text: `Analyse échouée : ${error instanceof Error ? error.message : String(error)}. La plateforme LumenJuris est-elle démarrée ?`,
       });
     } finally {
-      setProgress(null);
       setAnalyzing(false);
     }
   };
 
-  const handleClear = async () => {
-    await clearHighlights();
+  /** Retour au formulaire pour relancer une analyse (efface les surlignages). */
+  const handleNewAnalysis = async () => {
+    await clearHighlights().catch(() => {});
     setClauses([]);
     setMissingIds([]);
     setSelected(null);
     setStatus(null);
-    setScreen("home");
+    setScreen("form");
   };
 
   /* ---------- Fiche détail (fenêtre modale de la plateforme) ---------- */
   if (selected) {
     return (
-      <div>
-        <Header />
-        <main className="lj-content">
-          <ClauseDetail clause={selected} onClose={() => setSelected(null)} />
-        </main>
-      </div>
-    );
-  }
-
-  /* ---------- Formulaire contextuel (avant analyse) ---------- */
-  if (screen === "form") {
-    return (
-      <div>
-        <Header />
-        <main className="lj-content">
-          <AnalysisForm
-            documentText={documentText}
-            onSubmit={handleAnalyze}
-            onSkip={() =>
-              handleAnalyze({
-                ...DEFAULT_CONTEXT,
-                specificQuestions: "Analyse générale des risques",
-                missionContext: "Analyse contractuelle",
-              })
-            }
-            onCancel={() => setScreen("home")}
-          />
-        </main>
-      </div>
-    );
-  }
-
-  /* ---------- Accueil / résultats ---------- */
-  return (
-    <div>
-      <Header />
       <main className="lj-content">
-        <div className="lj-card">
-          <h3 style={{ margin: 0 }}>Analyse des risques</h3>
-          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <button className="lj-btn" onClick={handleStart} disabled={analyzing}>
-              {analyzing ? "Analyse en cours…" : "🔍 Analyser le document"}
-            </button>
-            {clauses.length > 0 && (
-              <button className="lj-btn secondary" onClick={handleClear} disabled={analyzing}>
-                Effacer
-              </button>
-            )}
-          </div>
-          {progress && <div className="lj-status warn">{progress}</div>}
-          <StatusMessage status={status} />
-        </div>
-
-        <ClauseList
-          clauses={clauses}
-          missingIds={missingIds}
-          onOpen={(clause) => setSelected(clause)}
-          onLocate={(clause) => selectClause(clause.id)}
+        <ClauseDetail
+          clause={selected}
+          onClose={() => setSelected(null)}
+          onApplied={(id) => setAppliedIds((prev) => (prev.includes(id) ? prev : [...prev, id]))}
         />
       </main>
-    </div>
+    );
+  }
+
+  /* ---------- Accueil = formulaire de contexte (champs directs) ---------- */
+  if (screen === "form") {
+    return (
+      <main className="lj-content">
+        <AnalysisForm documentText={documentText} analyzing={analyzing} status={status} onSubmit={handleAnalyze} />
+      </main>
+    );
+  }
+
+  /* ---------- Résultats : liste des clauses ---------- */
+  return (
+    <main className="lj-content">
+      <div className="lj-card">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <button className="lj-btn secondary small" onClick={handleNewAnalysis} disabled={analyzing || highlighting}>
+            ← Nouvelle analyse
+          </button>
+          {!analyzing && !highlighting && clauses.length > 0 && <ClauseCountBadge clauses={clauses} />}
+        </div>
+        {analyzing && <p className="lj-muted" style={{ margin: "8px 0 0" }}>Analyse IA en cours…</p>}
+        {highlighting && <p className="lj-muted" style={{ margin: "8px 0 0" }}>Surlignage dans le document…</p>}
+        <StatusMessage status={status} />
+      </div>
+
+      <ClauseList
+        clauses={clauses}
+        missingIds={missingIds}
+        appliedIds={appliedIds}
+        onOpen={(clause) => {
+          // Sélectionne la clause surlignée dans le document, puis ouvre sa fiche.
+          void selectClause(clause.id);
+          setSelected(clause);
+        }}
+      />
+    </main>
   );
 };
 

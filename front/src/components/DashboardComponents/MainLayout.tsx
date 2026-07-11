@@ -16,11 +16,13 @@ import {
   Users,
   PanelLeft,
   X,
+  Sparkles,
 } from "lucide-react";
 
 import HeaderNavigationBar from "../MainHeader/HeaderNavigationBar";
 import { FeedbackWidget } from "../common/FeedbackWidget";
 import { useTemplateNotificationStore } from "../../store/templateNotificationStore";
+import { useLegalWatchStore } from "../../store/legalWatchStore";
 import { LumenJurisLogo } from "../common/LumenJurisLogo";
 import { useUserStore } from "../../store/userStore";
 
@@ -38,6 +40,8 @@ interface NavItem {
   label: string;
   path: string;
   children?: NavSubItem[];
+  /** Pastille : nombre d'alertes de veille juridique non lues. */
+  notificationKey?: "legalWatchUnread";
 }
 
 const navItems: NavItem[] = [
@@ -45,9 +49,10 @@ const navItems: NavItem[] = [
   { icon: Library, label: "Contrathèque", path: "/contratheque" },
   {
     icon: FileText,
-    label: "Générateur de modèles",
+    label: "Générateur de contrat",
     path: "/generateur",
     children: [
+      { icon: Sparkles, label: "Créer de zéro", path: "/contrat-generation?section=scratch" },
       { icon: Upload, label: "Importer un modèle", path: "/contrat-generation?section=import" },
       { icon: BookOpen, label: "Bibliothèque de modèles", path: "/contrat-generation?section=library", notificationKey: "templateAdded" },
       { icon: Droplets, label: "Mes images", path: "/generateur/filigranes" },
@@ -57,7 +62,7 @@ const navItems: NavItem[] = [
   { icon: ScrollText, label: "Bibliothèque de clauses", path: "/clauses" },
   { icon: ShieldCheck, label: "Analyse des risques", path: "/conformite" },
   { icon: MessageSquare, label: "Chat juridique", path: "/chatjuridique" },
-  { icon: Newspaper, label: "Veille information", path: "/veille" },
+  { icon: Newspaper, label: "Veille", path: "/veille", notificationKey: "legalWatchUnread" },
 ];
 
 // Breakpoint Tailwind `md` = 768px. On garde la même valeur en JS pour rester cohérent.
@@ -99,6 +104,8 @@ function NavChildLink({ child, onNavigate }: { child: NavSubItem; onNavigate: ()
 
 function NavItemRow({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
   const location = useLocation();
+  const legalWatchUnread = useLegalWatchStore((s) => s.unreadCount);
+  const badgeCount = item.notificationKey === "legalWatchUnread" ? legalWatchUnread : 0;
   const hasChildren = !!item.children?.length;
   const isParentActive = location.pathname.startsWith(item.path);
   const [hovered, setHovered] = useState(false);
@@ -148,7 +155,12 @@ function NavItemRow({ item, onNavigate }: { item: NavItem; onNavigate: () => voi
           {({ isActive }) => (
             <>
               <item.icon className={`h-4 w-4 shrink-0 transition-colors ${isActive ? "text-brand" : "text-ink-subtle"}`} />
-              <span>{item.label}</span>
+              <span className="flex-1">{item.label}</span>
+              {badgeCount > 0 && (
+                <span className="text-[10px] font-bold text-white bg-brand px-1.5 py-0.5 rounded-full">
+                  {badgeCount > 99 ? "99+" : badgeCount}
+                </span>
+              )}
             </>
           )}
         </NavLink>
@@ -161,6 +173,14 @@ export function MainLayout() {
   const userData = useUserStore((s) => s.userData);
   const isAdmin = userData?.profile?.role === "ADMIN";
   const location = useLocation();
+  const refreshUnreadCount = useLegalWatchStore((s) => s.refreshUnreadCount);
+
+  // Pastille veille juridique : chargée à l'ouverture, rafraîchie toutes les 5 min.
+  useEffect(() => {
+    refreshUnreadCount();
+    const interval = setInterval(refreshUnreadCount, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [refreshUnreadCount]);
 
   // sidebarOpen pilote à la fois :
   // - le drawer mobile/tablette (overlay)

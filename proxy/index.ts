@@ -1116,6 +1116,22 @@ app.get("/api/clause/:externalId", auth, (req, res) => relayToNode(req, res, `/c
 app.patch("/api/clause/:externalId", auth, (req, res) => relayToNode(req, res, `/clause/${encodeURIComponent(req.params.externalId as string)}`));
 app.delete("/api/clause/:externalId", auth, (req, res) => relayToNode(req, res, `/clause/${encodeURIComponent(req.params.externalId as string)}`));
 
+// ─── Veille juridique (alertes + digest jurisprudence) ───
+// Jobs du pipeline (rôle vérifié côté backNode)
+app.post("/api/legal-watch/ingest", auth, (req, res) => relayToNode(req, res, "/legal-watch/ingest"));
+app.post("/api/legal-watch/enrich", auth, (req, res) => relayToNode(req, res, "/legal-watch/enrich"));
+app.post("/api/legal-watch/publish", auth, (req, res) => relayToNode(req, res, "/legal-watch/publish"));
+app.post("/api/legal-watch/run", auth, (req, res) => relayToNode(req, res, "/legal-watch/run"));
+// Consultation
+app.get("/api/legal-watch/alerts", auth, (req, res) => relayToNode(req, res, withQuery("/legal-watch/alerts", req)));
+app.patch("/api/legal-watch/alerts/:externalId", auth, (req, res) => relayToNode(req, res, `/legal-watch/alerts/${encodeURIComponent(req.params.externalId as string)}`));
+app.get("/api/legal-watch/digest", auth, (req, res) => relayToNode(req, res, withQuery("/legal-watch/digest", req)));
+app.get("/api/legal-watch/unread-count", auth, (req, res) => relayToNode(req, res, "/legal-watch/unread-count"));
+app.get("/api/legal-watch/status", auth, (req, res) => relayToNode(req, res, "/legal-watch/status"));
+app.get("/api/legal-watch/config", auth, (req, res) => relayToNode(req, res, "/legal-watch/config"));
+app.patch("/api/legal-watch/sources/:name", auth, (req, res) => relayToNode(req, res, `/legal-watch/sources/${encodeURIComponent(req.params.name as string)}`));
+app.patch("/api/legal-watch/concepts/:concept", auth, (req, res) => relayToNode(req, res, `/legal-watch/concepts/${encodeURIComponent(req.params.concept as string)}`));
+
 // ─── Administration (gestion des utilisateurs & rôles) ───
 app.get("/api/admin/users", auth, (req, res) => relayToNode(req, res, "/admin/users"));
 app.patch("/api/admin/users/:idUser/role", auth, (req, res) => relayToNode(req, res, `/admin/users/${encodeURIComponent(req.params.idUser as string)}/role`));

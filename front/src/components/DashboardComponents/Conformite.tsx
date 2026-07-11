@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Toaster, toast } from "react-hot-toast";
 import {
   Plus,
   Search,
@@ -10,13 +11,18 @@ import {
   FileText,
   MoreVertical,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  FolderPlus,
+  Check,
+  Loader2,
 } from "lucide-react";
 import {
   loadContractHistoryIndex,
+  loadContractHistorySnapshot,
   deleteContractHistoryEntry,
   type ContractHistoryItem,
 } from "../../utils/contractHistory";
+import { contractApi } from "./contratheque/api";
 
 type RiskLevel = "Élevé" | "Moyen" | "Faible" | "—";
 
@@ -60,6 +66,8 @@ export function Conformite() {
   const [priorityFilter, setPriorityFilter] = useState("Tous");
   const [history, setHistory] = useState<ContractHistoryItem[]>([]);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [addState, setAddState] = useState<Record<string, "saving" | "done">>({});
+
   useEffect(() => {
     loadContractHistoryIndex().then(setHistory).catch(() => { });
   }, []);
@@ -79,6 +87,43 @@ export function Conformite() {
       window.removeEventListener("click", handleClickOutside);
     };
   }, []);
+  /** Enregistre le document analysé dans la contrathèque (charge le texte du snapshot). */
+  const handleAddToContratheque = async (item: ContractHistoryItem) => {
+    if (addState[item.id]) return;
+    setAddState((s) => ({ ...s, [item.id]: "saving" }));
+    try {
+      const snapshot = await loadContractHistorySnapshot(item.id);
+      if (!snapshot) throw new Error("Document introuvable.");
+      const title =
+        (item.fileName || "Contrat analysé").replace(/\.[^.]+$/, "").trim() ||
+        "Contrat analysé";
+      const contractType =
+        (snapshot.contract.contractType ||
+          snapshot.currentAnalysisContext?.contractType ||
+          item.contractType ||
+          "").trim() || null;
+      await contractApi.create({
+        title,
+        contractType,
+        ocrText: snapshot.contract.content,
+        status: "DRAFT",
+      });
+      setAddState((s) => ({ ...s, [item.id]: "done" }));
+      toast.success("Ajouté à la contrathèque.");
+    } catch (e) {
+      setAddState((s) => {
+        const next = { ...s };
+        delete next[item.id];
+        return next;
+      });
+      const msg = e instanceof Error ? e.message : "";
+      toast.error(
+        /403|éditeur|editor/i.test(msg)
+          ? "Réservé aux rôles Juriste et Administrateur."
+          : "Échec de l'ajout à la contrathèque.",
+      );
+    }
+  };
 
   const handleDelete = async (id: string) => {
     await deleteContractHistoryEntry(id);
@@ -100,6 +145,7 @@ export function Conformite() {
   const conformityAvg = avgScore(history);
 
   return (
+    <>
     <div className="space-y-5">
       {/* Title + CTA */}
       <div className="flex items-start justify-between gap-4">
@@ -121,7 +167,7 @@ export function Conformite() {
 
       {/* KPI */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <KpiCard label="Total documents" value={history.length} icon={BarChart3} accent="#354F99" />
+        <KpiCard label="Total documents" value={history.length} icon={BarChart3} accent="#2C3A5E" />
         <KpiCard label="Risque élevé" value={highRiskCount} icon={ShieldAlert} accent="#dc2626" />
         <KpiCard
           label="Conformité moy."
@@ -229,6 +275,32 @@ export function Conformite() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
+                            handleOpen(item.id)}
+                          }
+                          className="text-brand font-semibold text-xs hover:underline underline-offset-4 opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          Ouvrir
+                        </button>
+                        <button
+                          onClick={() => handleAddToContratheque(item)}
+                          disabled={addState[item.id] === "saving"}
+                          title={
+                            addState[item.id] === "done"
+                              ? "Ajouté à la contrathèque"
+                              : "Ajouter à la contrathèque"
+                          }
+                          className="p-1.5 text-ink-subtle hover:text-brand transition-colors rounded-lg hover:bg-surface-muted disabled:opacity-50"
+                        >
+                          {addState[item.id] === "done" ? (
+                            <Check className="w-4 h-4 text-success stroke-[1.5]" />
+                          ) : addState[item.id] === "saving" ? (
+                            <Loader2 className="w-4 h-4 animate-spin stroke-[1.5]" />
+                          ) : (
+                            <FolderPlus className="w-4 h-4 stroke-[1.5]" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() =>{
                             setOpenMenuId(openMenuId === item.id ? null : item.id)
                           }
                           }
@@ -276,6 +348,8 @@ export function Conformite() {
         </table>
       </div>
     </div>
+    <Toaster position="top-right" />
+    </>
   );
 }
 

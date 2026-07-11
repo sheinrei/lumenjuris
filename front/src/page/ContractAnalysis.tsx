@@ -6,6 +6,7 @@ import { DocumentViewer, DocumentViewerRef } from "../components/ContractAnalysi
 import { EnhancedClauseDetail } from "../components/ContractAnalysis/EnhancedClauseDetail/EnhancedClauseDetail";
 import { clearEnhancedClauseCaches } from "../components/ContractAnalysis/EnhancedClauseDetail/enhancedClauseCaches";
 import { ActionButtons } from "../components/ContractAnalysis/ActionButtons";
+import { AddToContrathequeButton } from "../components/ContractAnalysis/AddToContrathequeButton";
 import { ContextualAnalysisForm } from "../components/ContractAnalysis/ContextualAnalysisForm";
 import React, { Suspense } from "react";
 const MarketComparison = React.lazy(() =>
@@ -725,11 +726,18 @@ export default function ContractAnalysis() {
   // Déclenche automatiquement l'analyse si un fichier OU un texte est passé via navigation state
   // (ex. depuis la génération de contrats : « Réviser (risques) »).
   useEffect(() => {
-    const state = location.state as
-      | { file?: File; text?: string; fileName?: string; historyId?: string }
-      | null;
-
-    if (state?.file) {
+    const state = location.state as {
+      file?: File;
+      text?: string;
+      fileName?: string;
+      historyId?: string;
+    } | null;
+    if (state?.historyId) {
+      // Ouverture d'une analyse depuis la liste d'historique (page Conformité).
+      const historyId = state.historyId;
+      navigate(".", { replace: true, state: null });
+      void handleOpenHistoryItem(historyId);
+    } else if (state?.file) {
       const navigationUploadKey = `${location.key}:${getFileUploadKey(state.file)}`;
       if (consumedNavigationUploadKeys.has(navigationUploadKey)) return;
       consumedNavigationUploadKeys.add(navigationUploadKey);
@@ -1091,6 +1099,14 @@ export default function ContractAnalysis() {
                   isRelaunchingAnalysis={displayedIsProcessing}
                   onSuggestedClauses={handleMarketAnalysisClick}
                   isLoadingSuggested={isMarketAnalysisLoading}
+                  extraActions={
+                    contract ? (
+                      <AddToContrathequeButton
+                        contract={contract}
+                        context={currentAnalysisContext}
+                      />
+                    ) : null
+                  }
                 />
               </div>
             </div>
