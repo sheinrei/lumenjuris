@@ -13,9 +13,9 @@ import {
   BookOpen,
   Upload,
   ScrollText,
-  Users,
   PanelLeft,
   X,
+  ShieldHalf
 } from "lucide-react";
 
 import HeaderNavigationBar from "../MainHeader/HeaderNavigationBar";
@@ -38,6 +38,7 @@ interface NavItem {
   label: string;
   path: string;
   children?: NavSubItem[];
+  isAdmin?:boolean
 }
 
 const navItems: NavItem[] = [
@@ -58,6 +59,7 @@ const navItems: NavItem[] = [
   { icon: ShieldCheck, label: "Analyse des risques", path: "/conformite" },
   { icon: MessageSquare, label: "Chat juridique", path: "/chatjuridique" },
   { icon: Newspaper, label: "Veille information", path: "/veille" },
+
 ];
 
 // Breakpoint Tailwind `md` = 768px. On garde la même valeur en JS pour rester cohérent.
@@ -236,11 +238,11 @@ export function MainLayout() {
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <ul className="flex flex-col gap-0.5">
             {navItems.map((item) => (
-              <NavItemRow key={item.path} item={item} onNavigate={handleNavigate} />
+               <NavItemRow key={item.path} item={item} onNavigate={handleNavigate} />
             ))}
             {isAdmin && (
               <NavItemRow
-                item={{ icon: Users, label: "Utilisateurs", path: "/utilisateurs" }}
+                item={{ icon: ShieldHalf, label: "Monitoring", path: "/monitoring" }}
                 onNavigate={handleNavigate}
               />
             )}

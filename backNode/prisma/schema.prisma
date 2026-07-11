@@ -131,6 +131,7 @@ model User {
   password         String?
   isVerified       Boolean @default(false)
   twoFactorEnabled Boolean @default(false)
+  isBanned         Boolean @default(false)
   cgu              Boolean @default(false)
   stripeCustomerId String?
 
@@ -143,6 +144,7 @@ model User {
 
   userCredit        UserCredit?
   preference        UserPreference?
+  featureUsages     FeatureUsage[]
   documentCustom    DocumentCustom[]
   contractHistory   ContractHistory[]
   chatHistory       ChatHistory?
@@ -300,6 +302,21 @@ model UserCredit {
 
   userId Int  @unique
   user   User @relation(fields: [userId], references: [idUser])
+}
+
+// --- SUIVI D'USAGE DES FONCTIONNALITÉS ---
+
+model FeatureUsage {
+  id        Int      @id @default(autoincrement())
+  feature   String
+  userId    Int?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [idUser], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([feature])
+  @@index([createdAt])
 }
 
 model Subscription {

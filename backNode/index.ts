@@ -21,6 +21,7 @@ import routerContract from "./src/route/apiContract.js";
 import routerClause from "./src/route/apiClause.js";
 import routerAdmin from "./src/route/apiAdmin.js";
 import routerNegotiation from "./src/route/apiNegotiation.js";
+import routerFeatureEvent from "./src/route/apiFeatureEvent.js";
 import cors from "cors";
 import { seedBootstrapUsers } from "./src/services/bootstrapUsers.js";
 import { seedPlans } from "./src/services/planSeeder.js";
@@ -76,6 +77,7 @@ app.use("/signature-envelope", routerSignature);
 app.use("/contract", routerContract);
 app.use("/clause", routerClause);
 app.use("/admin", routerAdmin);
+app.use("/feature-event", routerFeatureEvent);
 app.use("/negotiation", routerNegotiation);
 
 app.get("/health", (req: Request, res: Response) => {
