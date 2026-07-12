@@ -64,7 +64,6 @@ const navItems: NavItem[] = [
   { icon: ShieldCheck, label: "Analyse des risques", path: "/conformite" },
   { icon: MessageSquare, label: "Chat juridique", path: "/chatjuridique" },
   { icon: Newspaper, label: "Veille", path: "/veille", notificationKey: "legalWatchUnread" },
-  { icon: Newspaper, label: "Veille information", path: "/veille" },
 
 ];
 

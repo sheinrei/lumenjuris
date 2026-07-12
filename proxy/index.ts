@@ -243,8 +243,7 @@ async function logOpenAiTokens(data: PythonJsonResponse, userId?: number): Promi
   }
 }
 
-// ─── Feature usage tracking ────────────────────────────────────────────────────
-
+// Trancking des fonctionalités pour analyse et monitoring
 async function trackFeature(feature: string, userId?: number): Promise<void> {
   if (!userId) return;
   try {
@@ -272,7 +271,7 @@ function withTracking(
   };
 }
 
-// ─────────────���────────────────────────────────────���────────────────────────────
+// ────────────────────────────────────────────────────────────────────────────
 
 function handleExtractDocumentText(req: Request, res: Response): void {
   relayStreamToPython(req, res, "/extract-document-text");
@@ -435,6 +434,10 @@ function handleBillingPlans(req: Request, res: Response): void {
 
 function handleBillingSubscription(req: Request, res: Response): void {
   relayToNode(req, res, "/billing/subscription");
+}
+
+function handleBillingPaymentFailed(req: Request, res: Response): void {
+  relayToNode(req, res, "/billing/payment-failed");
 }
 
 function handleBillingAddCredits(req: Request, res: Response): void {
@@ -1073,6 +1076,7 @@ app.post("/api/billing/payment-intent", auth, handleBillingPaymentIntent);
 app.get("/api/billing/plans", auth, handleBillingPlans);
 app.post("/api/billing/subscription", auth, handleBillingSubscription);
 app.get("/api/billing/subscription", auth, handleBillingSubscription);
+app.post("/api/billing/payment-failed", auth, handleBillingPaymentFailed);
 app.put("/api/billing/add-credits", auth, handleBillingAddCredits);
 app.put("/api/billing/remove-credits", auth, handleBillingRemoveCredits);
 app.get("/api/billing/credits", auth, handleBillingCredits);
@@ -1101,7 +1105,10 @@ app.post("/api/template/:externalId/generate", auth, handleTemplateGenerate);
 // Signature électronique (routes authentifiées)
 app.get("/api/signature-envelope/stats", auth, handleSignatureStats);
 app.get("/api/signature-envelope", auth, handleSignatureList);
-app.post("/api/signature-envelope", auth, handleSignatureCreate);
+app.post("/api/signature-envelope", auth, (req, res) => {
+  void trackFeature("esignature", res.locals.userId as number | undefined);
+  handleSignatureCreate(req, res);
+});
 app.delete("/api/signature-envelope/:externalId", auth, handleSignatureDelete);
 
 // Signature électronique (routes PUBLIQUES — pas d'auth, token dans l'URL)
@@ -1129,7 +1136,10 @@ app.delete("/api/contract/folders/:externalId", auth, (req, res) => relayToNode(
 
 // Liste + création
 app.get("/api/contract", auth, (req, res) => relayToNode(req, res, withQuery("/contract", req)));
-app.post("/api/contract", auth, (req, res) => relayToNode(req, res, "/contract"));
+app.post("/api/contract", auth, (req, res) => {
+  void trackFeature("contract_library", res.locals.userId as number | undefined);
+  relayToNode(req, res, "/contract");
+});
 
 // Sous-ressources d'un contrat
 app.get("/api/contract/:externalId/document", auth, (req, res) => relayToNodeRaw(req, res, `/contract/${encodeURIComponent(req.params.externalId as string)}/document`));
@@ -1151,22 +1161,35 @@ app.delete("/api/contract/:externalId", auth, (req, res) => relayToNode(req, res
 // ─── Bibliothèque de clauses ───
 app.get("/api/clause/stats", auth, (req, res) => relayToNode(req, res, "/clause/stats"));
 app.get("/api/clause", auth, (req, res) => relayToNode(req, res, withQuery("/clause", req)));
-app.post("/api/clause", auth, (req, res) => relayToNode(req, res, "/clause"));
+app.post("/api/clause", auth, (req, res) => {
+  void trackFeature("clause_library", res.locals.userId as number | undefined);
+  relayToNode(req, res, "/clause");
+});
 app.post("/api/clause/:externalId/use", auth, (req, res) => relayToNode(req, res, `/clause/${encodeURIComponent(req.params.externalId as string)}/use`));
 app.get("/api/clause/:externalId", auth, (req, res) => relayToNode(req, res, `/clause/${encodeURIComponent(req.params.externalId as string)}`));
 app.patch("/api/clause/:externalId", auth, (req, res) => relayToNode(req, res, `/clause/${encodeURIComponent(req.params.externalId as string)}`));
 app.delete("/api/clause/:externalId", auth, (req, res) => relayToNode(req, res, `/clause/${encodeURIComponent(req.params.externalId as string)}`));
 
 // ─── Veille juridique (alertes + digest jurisprudence) ───
-// Jobs du pipeline (rôle vérifié côté backNode)
+// Jobs du pipeline (rôle vérifié côté backNode) — l'enrichissement consomme du LLM, on le track
 app.post("/api/legal-watch/ingest", auth, (req, res) => relayToNode(req, res, "/legal-watch/ingest"));
-app.post("/api/legal-watch/enrich", auth, (req, res) => relayToNode(req, res, "/legal-watch/enrich"));
+app.post("/api/legal-watch/enrich", auth, (req, res) => {
+  void trackFeature("legal_watch_run", res.locals.userId as number | undefined);
+  relayToNode(req, res, "/legal-watch/enrich");
+});
 app.post("/api/legal-watch/publish", auth, (req, res) => relayToNode(req, res, "/legal-watch/publish"));
-app.post("/api/legal-watch/run", auth, (req, res) => relayToNode(req, res, "/legal-watch/run"));
-// Consultation
+app.post("/api/legal-watch/run", auth, (req, res) => {
+  void trackFeature("legal_watch_run", res.locals.userId as number | undefined);
+  relayToNode(req, res, "/legal-watch/run");
+});
+// Consultation — la lecture du digest est l'usage utilisateur de la veille
+// (unread-count est appelé automatiquement par le header : non tracké pour ne pas fausser les stats)
 app.get("/api/legal-watch/alerts", auth, (req, res) => relayToNode(req, res, withQuery("/legal-watch/alerts", req)));
 app.patch("/api/legal-watch/alerts/:externalId", auth, (req, res) => relayToNode(req, res, `/legal-watch/alerts/${encodeURIComponent(req.params.externalId as string)}`));
-app.get("/api/legal-watch/digest", auth, (req, res) => relayToNode(req, res, withQuery("/legal-watch/digest", req)));
+app.get("/api/legal-watch/digest", auth, (req, res) => {
+  void trackFeature("legal_watch", res.locals.userId as number | undefined);
+  relayToNode(req, res, withQuery("/legal-watch/digest", req));
+});
 app.get("/api/legal-watch/unread-count", auth, (req, res) => relayToNode(req, res, "/legal-watch/unread-count"));
 app.get("/api/legal-watch/status", auth, (req, res) => relayToNode(req, res, "/legal-watch/status"));
 app.get("/api/legal-watch/config", auth, (req, res) => relayToNode(req, res, "/legal-watch/config"));
@@ -1180,6 +1203,7 @@ app.get("/api/admin/revenue", auth, (req, res) => relayToNode(req, res, "/admin/
 app.get("/api/admin/users/:idUser/details", auth, (req, res) => relayToNode(req, res, `/admin/users/${encodeURIComponent(req.params.idUser as string)}/details`));
 app.patch("/api/admin/users/:idUser/ban", auth, (req, res) => relayToNode(req, res, `/admin/users/${encodeURIComponent(req.params.idUser as string)}/ban`));
 app.get("/api/admin/feature-usage", auth, (req, res) => relayToNode(req, res, `/admin/feature-usage${req.query.days ? `?days=${encodeURIComponent(req.query.days as string)}` : ""}`));
+app.get("/api/admin/feature-usage/users/:idUser", auth, (req, res) => relayToNode(req, res, `/admin/feature-usage/users/${encodeURIComponent(req.params.idUser as string)}${req.query.days ? `?days=${encodeURIComponent(req.query.days as string)}` : ""}`));
 app.get("/api/admin/overview", auth, (req, res) => relayToNode(req, res, "/admin/overview"));
 
 // ─── Négociation (module isolé) ───
@@ -1187,7 +1211,10 @@ app.get("/api/admin/overview", auth, (req, res) => relayToNode(req, res, "/admin
 app.get("/api/negotiation/public/:token", (req, res) => relayToNode(req, res, `/negotiation/public/${encodeURIComponent(req.params.token as string)}`));
 app.post("/api/negotiation/public/:token/comments", (req, res) => relayToNode(req, res, `/negotiation/public/${encodeURIComponent(req.params.token as string)}/comments`));
 // Entrée & liste
-app.post("/api/negotiation/enter", auth, (req, res) => relayToNode(req, res, "/negotiation/enter"));
+app.post("/api/negotiation/enter", auth, (req, res) => {
+  void trackFeature("negotiation", res.locals.userId as number | undefined);
+  relayToNode(req, res, "/negotiation/enter");
+});
 app.get("/api/negotiation/contract/:contractExternalId", auth, (req, res) => relayToNode(req, res, `/negotiation/contract/${encodeURIComponent(req.params.contractExternalId as string)}`));
 // Sous-ressources (avant /:externalId nu)
 app.post("/api/negotiation/:externalId/abort", auth, (req, res) => relayToNode(req, res, `/negotiation/${encodeURIComponent(req.params.externalId as string)}/abort`));
