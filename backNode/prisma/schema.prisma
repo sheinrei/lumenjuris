@@ -169,7 +169,7 @@ model AuthProviderAccount {
 
   //relation
   userId Int
-  user   User @relation(fields: [userId], references: [idUser])
+  user   User @relation(fields: [userId], references: [idUser], onDelete: Cascade)
 }
 
 model UserPreference {
@@ -179,7 +179,7 @@ model UserPreference {
 
   //relation
   userId Int  @unique
-  user   User @relation(fields: [userId], references: [idUser])
+  user   User @relation(fields: [userId], references: [idUser], onDelete: Cascade)
 }
 
 // --- ENTREPRISE ---
@@ -196,7 +196,7 @@ model Enterprise {
 
   //relation
   userId  Int      @unique
-  user    User     @relation(fields: [userId], references: [idUser])
+  user    User     @relation(fields: [userId], references: [idUser], onDelete: Cascade)
   address Address?
 }
 
@@ -220,7 +220,7 @@ model Token {
   status    TokenState @default(ACTIVE)
   //relation
   userId    Int
-  user      User       @relation(fields: [userId], references: [idUser])
+  user      User       @relation(fields: [userId], references: [idUser], onDelete: Cascade)
 }
 
 // --- EVENTS ---
@@ -233,7 +233,7 @@ model Event {
 
   //relation
   userId         Int
-  user           User            @relation(fields: [userId], references: [idUser])
+  user           User            @relation(fields: [userId], references: [idUser], onDelete: Cascade)
   documentCustom DocumentCustom?
 }
 
@@ -244,7 +244,7 @@ model DocumentCustom {
 
   //relation
   userId Int?
-  user   User? @relation(fields: [userId], references: [idUser])
+  user   User? @relation(fields: [userId], references: [idUser], onDelete: Cascade)
 
   eventId Int?   @unique
   event   Event? @relation(fields: [eventId], references: [idEvent])
@@ -299,7 +299,7 @@ model UserCredit {
   //relation
 
   userId Int  @unique
-  user   User @relation(fields: [userId], references: [idUser])
+  user   User @relation(fields: [userId], references: [idUser], onDelete: Cascade)
 }
 
 model Subscription {
@@ -312,7 +312,7 @@ model Subscription {
 
   //relation
   userId Int  @unique
-  user   User @relation(fields: [userId], references: [idUser])
+  user   User @relation(fields: [userId], references: [idUser], onDelete: Cascade)
 
   planId Int
   plan   Plan @relation(fields: [planId], references: [idPlan])

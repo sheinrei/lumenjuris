@@ -352,6 +352,10 @@ function handleNodeUserExportData(req: Request, res: Response): void {
   relayToNode(req, res, `/user/export-data`);
 }
 
+function handleNodeUserConfirmDelete(req: Request, res: Response): void {
+  relayToNode(req, res, `/user/confirm-delete`);
+}
+
 function handleNodeUserDeleteAccount(req: Request, res: Response): void {
   relayToNode(req, res, `/user/account`);
 }
@@ -1163,7 +1167,8 @@ app.put("/api/user/preferences/ui", auth, handleNodeUserPreferencesUI);
 app.post("/api/user/two-factor", auth, handleNodeUserTwoFactor);
 app.post("/api/user/two-factor/verify", auth, handleNodeUserTwoFactorVerify);
 app.post("/api/user/export-data", auth, handleNodeUserExportData);
-app.delete("/api/user/account", auth, handleNodeUserDeleteAccount);
+app.post("/api/user/confirm-delete", auth, handleNodeUserConfirmDelete);
+app.post("/api/user/account", auth, handleNodeUserDeleteAccount);
 app.get("/api/enterprise", auth, handleNodeEnterpriseGet);
 app.put("/api/enterprise", auth, handleNodeEnterpriseUpdate);
 app.get("/api/contract-history", auth, handleNodeContractHistory);

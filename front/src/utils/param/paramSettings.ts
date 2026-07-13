@@ -84,6 +84,7 @@ export function getParamConfirmationModalContent({
   onPasswordConfirm,
   onProfileUpdateConfirm,
   onExportDataConfirm,
+  onSendMailDeleteAccountConfirm,
   onDeleteAccountConfirm,
 }: {
   activeConfirmationModal: AccountConfirmationModal | null;
@@ -92,6 +93,7 @@ export function getParamConfirmationModalContent({
   onPasswordConfirm: () => void;
   onProfileUpdateConfirm: () => void;
   onExportDataConfirm: () => void;
+  onSendMailDeleteAccountConfirm: () => void;
   onDeleteAccountConfirm: () => void;
 }): ConfirmationModalContent | null {
   switch (activeConfirmationModal) {
@@ -141,11 +143,23 @@ export function getParamConfirmationModalContent({
           onExportDataConfirm();
         },
       };
-    case "delete_account":
+    case "delete_account_mail":
       return {
         title: "Supprimer mon compte",
         description:
           "Vous recevrez un email de confirmation et cette action entraînera la suppression de toutes vos données.",
+        confirmLabel: "Supprimer mon compte",
+        confirmClassName: "bg-red-600 text-white hover:bg-red-700",
+        onConfirm: () => {
+          onSendMailDeleteAccountConfirm();
+          onClose();
+        },
+      };
+    case "delete_account":
+      return {
+        title: "Supprimer mon compte",
+        description:
+          "Votre compte et vos données seront totalement supprimées.",
         confirmLabel: "Supprimer mon compte",
         confirmClassName: "bg-red-600 text-white hover:bg-red-700",
         onConfirm: () => {

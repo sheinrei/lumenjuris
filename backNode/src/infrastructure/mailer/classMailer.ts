@@ -6,6 +6,7 @@ import { templateInvoiceEmail } from "./template/invoiceEmail.js";
 import { templateWelcomeFreemium } from "./template/welcomeFreemium.js";
 import { generateInvoicePDF, type InvoiceData } from "../pdf/invoicePDF.js";
 import { templateExportData } from "./template/userData.js";
+import { templateDeleteAccount } from "./template/deleteAccount.js";
 
 import { logger } from "../../logger/logger.js";
 
@@ -205,6 +206,33 @@ export class Mailer {
       const mailOptions = this.createOption(
         html,
         "Réinitialisation de votre mot de passe Lumen Juris",
+      );
+      const sending = await transporter.sendMail(mailOptions);
+
+      if (!sending.messageId) {
+        throw new Error(
+          `Echec lors de l'envoie d'un email, id indisponible de retour indisponible.\n ${sending}`,
+        );
+      }
+      return {
+        success: !!sending.messageId,
+        message: sending.messageId
+          ? `Un email a été envoyé à votre adresse ${this.email}, veuillez consulter votre boîte de réception pour réinitialiser votre mot de passe.`
+          : "Une erreur est survenue avec le serveur nous n'avons pas pu envoyer votre email.",
+      };
+    } catch (err) {
+      return this.errorCatching(err);
+    }
+  }
+
+  async sendDeleteAccount(resetLink: string, username?: string) {
+    try {
+      const html = this.createHtmlFullContent(
+        templateDeleteAccount(resetLink, username),
+      );
+      const mailOptions = this.createOption(
+        html,
+        "Suppression de votre compte",
       );
       const sending = await transporter.sendMail(mailOptions);
 
