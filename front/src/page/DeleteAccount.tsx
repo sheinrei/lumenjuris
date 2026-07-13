@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate, redirect } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Button } from "../components/ui/Button";
 import { ConfirmationModal } from "../components/ui/ConfirmationModal";
 import { getParamConfirmationModalContent } from "../utils/param/paramSettings";
@@ -10,7 +10,6 @@ type AccountConfirmationModal = "export_data" | "delete_account";
 
 export function ConfirmDeleteAccountPage() {
   const { token } = useParams<{ token: string }>();
-  const navigate = useNavigate();
 
   const [activeConfirmationModal, setActiveConfirmationModal] =
     useState<AccountConfirmationModal | null>(null);
