@@ -19,6 +19,8 @@ interface ActionButtonsProps {
   isRelaunchingAnalysis?: boolean;
   onSuggestedClauses?: () => void;
   isLoadingSuggested?: boolean;
+  /** Actions supplémentaires (ex. « Ajouter à la contrathèque »). */
+  extraActions?: React.ReactNode;
 }
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
@@ -31,6 +33,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   isRelaunchingAnalysis = false,
   onSuggestedClauses,
   isLoadingSuggested = false,
+  extraActions,
 }) => {
   const patches = useDocumentTextStore((state) => state.patches);
   const activePatchCount = patches.filter((p) => p.active).length;
@@ -98,6 +101,9 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
               {isLoadingSuggested ? "Analyse en cours…" : "Clauses suggérées"}
             </button>
           )}
+
+          {extraActions}
+
         </div>
 
         {activePatchCount > 0 && (

@@ -86,7 +86,7 @@ routerLlm.get(
 routerLlm.get("/usage/history", async (req: Request, res: Response) => {
   try {
     // Clamp entre 1 et 90 jours pour éviter des requêtes trop lourdes
-    const days = Math.min(Math.max(Number(req.query.days) || 7, 1), 90);
+    const days = Math.min(Math.max(Number(req.query.days) || 7, 1), 1825);
     const llm = new Llm();
     const result = await llm.getUsageHistory(days);
     return res.status(result.success ? 200 : 500).json(result);

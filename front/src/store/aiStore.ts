@@ -53,9 +53,11 @@ export const useAIStore = create<AIState>()(
         }
 
         const request = (async (): Promise<ClauseAI> => {
-          const prompt = `Tu es un avocat canadien spécialisé.
+          const prompt = `Tu es un avocat français spécialisé en droit des contrats.
 Analyse la clause suivante:
 """${clause.content}"""
+
+RÈGLE DE STYLE : n'utilise JAMAIS d'énumérations en chiffres romains ((i), (ii), (iii), i., ii.…) ; rédige en phrases complètes, ou numérote 1. 2. 3. si nécessaire.
 
 Réponds STRICTEMENT en JSON:
 {
@@ -111,6 +113,8 @@ Réponds STRICTEMENT en JSON:
         }
       },
     }),
-    { name: 'justiclause-ai-cache-v2' }
+    // v3 : invalide les analyses en cache produites avec l'ancien prompt
+    // (énumérations romaines « (i) (ii) (iii) » et persona « avocat canadien »).
+    { name: 'justiclause-ai-cache-v3' }
   )
 );

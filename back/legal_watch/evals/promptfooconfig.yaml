@@ -1,0 +1,201 @@
+# Evals Promptfoo de l'enrichissement LLM (brique critique de la veille).
+#
+# Lancement (depuis la racine lumenjuris/, OPENAI_API_KEY dans l'env) :
+#   npx promptfoo@latest eval -c back/legal_watch/evals/promptfooconfig.yaml
+#   npx promptfoo@latest view   # rapport interactif
+#
+# Le prompt testé est LE prompt de production (enrichment.build_prompt),
+# via prompt.py — aucune divergence possible entre evals et pipeline.
+
+description: "Veille juridique — enrichissement des décisions CDD (liste fermée, format JSON, calibrage impact)"
+
+prompts:
+  - file://prompt.py:generate_prompt
+
+providers:
+  - id: openai:gpt-4o-mini
+    config:
+      temperature: 0
+      response_format:
+        type: json_object
+
+defaultTest:
+  assert:
+    # Format : JSON valide avec exactement les champs attendus
+    - type: is-json
+      value:
+        type: object
+        required: [summary, legalDomain, concepts, impactLevel, isEvolution, confidence]
+        properties:
+          summary: { type: string, minLength: 1 }
+          legalDomain: { type: string }
+          concepts: { type: array, items: { type: string } }
+          impactLevel: { type: string, enum: [haut, moyen, faible] }
+          isEvolution: { type: boolean }
+          confidence: { type: number, minimum: 0, maximum: 1 }
+    # Liste fermée : aucun concept inventé
+    - type: javascript
+      value: |
+        const ALLOWED = ["motif_recours_cdd","accroissement_temporaire_activite","requalification_cdi","duree_maximale_renouvellement","delai_de_carence","mentions_obligatoires_cdd","indemnite_precarite","rupture_anticipee_cdd","transmission_tardive_contrat"];
+        const o = JSON.parse(output);
+        return o.concepts.every(c => ALLOWED.includes(c)) || `concept hors liste fermée : ${o.concepts.filter(c => !ALLOWED.includes(c))}`;
+    # Le résumé n'est jamais un conseil ni une certitude assénée
+    - type: javascript
+      value: |
+        const o = JSON.parse(output);
+        const s = o.summary.toLowerCase();
+        const forbidden = ["nous vous conseillons", "vous devez", "il faut impérativement", "nous recommandons"];
+        return forbidden.every(f => !s.includes(f)) || "le résumé contient un conseil";
+
+tests:
+  # ── Cas 1 : précision nouvelle — transmission tardive (impact haut attendu) ──
+  - description: "Transmission tardive : précision nouvelle → haut, evolution"
+    vars:
+      title: "Cass. soc., pourvoi n° 24-12.345"
+      rawText: |
+        LA COUR DE CASSATION, CHAMBRE SOCIALE. Selon l'arrêt attaqué, M. X a été
+        engagé par la société Y en contrat à durée déterminée pour accroissement
+        temporaire d'activité ; le contrat, signé le 4 du mois, ne lui a été
+        transmis que douze jours après son embauche. Le salarié a saisi la
+        juridiction prud'homale d'une demande de requalification en contrat à
+        durée indéterminée. La cour d'appel a accueilli cette demande.
+        Vu l'article L. 1242-13 du code du travail : contrairement à sa
+        jurisprudence antérieure, la chambre retient désormais que la
+        transmission tardive du contrat de travail à durée déterminée, au-delà
+        du délai de deux jours ouvrables suivant l'embauche, n'entraîne plus à
+        elle seule la requalification en contrat à durée indéterminée, mais
+        ouvre droit, pour le salarié, à une indemnité qui ne peut être
+        supérieure à un mois de salaire. PAR CES MOTIFS, la Cour CASSE ET
+        ANNULE l'arrêt rendu par la cour d'appel.
+    assert:
+      - type: javascript
+        value: |
+          const o = JSON.parse(output);
+          if (!o.concepts.includes("transmission_tardive_contrat")) return "concept transmission_tardive_contrat manquant";
+          if (o.legalDomain !== "droit_travail_contrats_precaires") return `mauvais domaine : ${o.legalDomain}`;
+          if (o.impactLevel !== "haut") return `revirement → impact haut attendu, obtenu : ${o.impactLevel}`;
+          if (o.isEvolution !== true) return "revirement → isEvolution true attendu";
+          return true;
+
+  # ── Cas 2 : confirmation — délai de carence (impact moyen attendu) ──────────
+  - description: "Délai de carence : confirmation avec application notable → moyen"
+    vars:
+      title: "Cass. soc., pourvoi n° 24-23.456"
+      rawText: |
+        LA COUR DE CASSATION, CHAMBRE SOCIALE. Mme Z a été engagée par la
+        société W suivant plusieurs contrats à durée déterminée successifs sur
+        le même poste de travail, sans qu'aucun délai de carence n'ait été
+        respecté entre les contrats. Ainsi que la Cour l'a déjà jugé, il
+        résulte de l'article L. 1244-3 du code du travail qu'à l'expiration
+        d'un contrat de travail à durée déterminée, il ne peut être recouru,
+        pour pourvoir le poste du salarié dont le contrat a pris fin, ni à un
+        contrat à durée déterminée ni à un contrat de travail temporaire,
+        avant l'expiration d'un délai de carence. La cour d'appel, qui a
+        constaté la succession de contrats sans délai de carence sur le même
+        poste, en a exactement déduit que la relation de travail devait être
+        requalifiée en contrat à durée indéterminée. PAR CES MOTIFS, REJETTE
+        le pourvoi.
+    assert:
+      - type: javascript
+        value: |
+          const o = JSON.parse(output);
+          if (!o.concepts.includes("delai_de_carence")) return "concept delai_de_carence manquant";
+          if (o.isEvolution !== false) return "confirmation → isEvolution false attendu";
+          if (o.impactLevel === "haut") return "confirmation → impact haut trop élevé";
+          return true;
+
+  # ── Cas 3 : hors périmètre — bail commercial ─────────────────────────────────
+  - description: "Hors périmètre : bail commercial → hors_perimetre, concepts vides"
+    vars:
+      title: "Cass. civ. 3e, pourvoi n° 24-34.567"
+      jurisdiction: "civ3"
+      rawText: |
+        LA COUR DE CASSATION, TROISIÈME CHAMBRE CIVILE. La société bailleresse
+        a délivré à la société locataire un congé avec refus de renouvellement
+        du bail commercial portant sur des locaux à usage de bureaux. La cour
+        d'appel a fixé le montant de l'indemnité d'éviction en tenant compte
+        de la valeur du droit au bail et des frais de réinstallation. Il
+        résulte de l'article L. 145-14 du code de commerce que l'indemnité
+        d'éviction doit comprendre notamment la valeur marchande du fonds de
+        commerce. PAR CES MOTIFS, REJETTE le pourvoi.
+    assert:
+      - type: javascript
+        value: |
+          const o = JSON.parse(output);
+          if (o.legalDomain !== "hors_perimetre") return `hors_perimetre attendu, obtenu : ${o.legalDomain}`;
+          if (o.concepts.length !== 0) return `concepts vides attendus, obtenu : ${o.concepts}`;
+          return true;
+
+  # ── Cas 4 : multi-concepts — motif imprécis + mentions obligatoires ─────────
+  - description: "Motif de recours imprécis + mentions obligatoires → détection multiple"
+    vars:
+      title: "Cass. soc., pourvoi n° 24-45.678"
+      rawText: |
+        LA COUR DE CASSATION, CHAMBRE SOCIALE. M. A a été engagé suivant
+        contrat à durée déterminée mentionnant comme motif « surcroît
+        d'activité », sans autre précision. Vu les articles L. 1242-12 et
+        L. 1242-2 du code du travail : le contrat de travail à durée
+        déterminée est établi par écrit et comporte la définition précise de
+        son motif ; à défaut, il est réputé conclu pour une durée
+        indéterminée. La seule mention « surcroît d'activité », sans
+        indication permettant de vérifier la réalité de l'accroissement
+        temporaire d'activité invoqué, ne satisfait pas à cette exigence. La
+        cour d'appel a exactement décidé que le contrat devait être requalifié
+        en contrat à durée indéterminée. PAR CES MOTIFS, REJETTE le pourvoi.
+    assert:
+      - type: javascript
+        value: |
+          const o = JSON.parse(output);
+          const hasMotif = o.concepts.includes("motif_recours_cdd") || o.concepts.includes("mentions_obligatoires_cdd");
+          if (!hasMotif) return "motif_recours_cdd ou mentions_obligatoires_cdd attendu";
+          if (o.legalDomain !== "droit_travail_contrats_precaires") return `mauvais domaine : ${o.legalDomain}`;
+          return true;
+
+  # ── Cas 5 : rupture anticipée — confirmation (impact non haut) ──────────────
+  - description: "Rupture anticipée sans faute grave : confirmation → moyen/faible"
+    vars:
+      title: "Cass. soc., pourvoi n° 24-56.789"
+      rawText: |
+        LA COUR DE CASSATION, CHAMBRE SOCIALE. La société B a rompu de manière
+        anticipée le contrat à durée déterminée de Mme C au motif d'une
+        insuffisance professionnelle. Selon une jurisprudence constante,
+        l'insuffisance professionnelle ne constitue pas une faute grave au
+        sens de l'article L. 1243-1 du code du travail. La rupture anticipée
+        du contrat de travail à durée déterminée intervenue en dehors des cas
+        prévus par ce texte ouvre droit pour le salarié, en application de
+        l'article L. 1243-4, à des dommages et intérêts d'un montant au moins
+        égal aux rémunérations qu'il aurait perçues jusqu'au terme du contrat.
+        PAR CES MOTIFS, REJETTE le pourvoi.
+    assert:
+      - type: javascript
+        value: |
+          const o = JSON.parse(output);
+          if (!o.concepts.includes("rupture_anticipee_cdd")) return "concept rupture_anticipee_cdd manquant";
+          if (o.impactLevel === "haut") return "jurisprudence constante → impact haut trop élevé";
+          if (o.isEvolution !== false) return "jurisprudence constante → isEvolution false attendu";
+          return true;
+
+  # ── Cas 6 : indemnité de précarité + résumé prudent ─────────────────────────
+  - description: "Indemnité de précarité : formulation prudente du résumé"
+    vars:
+      title: "Cass. soc., pourvoi n° 24-67.890"
+      rawText: |
+        LA COUR DE CASSATION, CHAMBRE SOCIALE. M. D, engagé en contrat à durée
+        déterminée pour accroissement temporaire d'activité, a refusé à
+        l'issue de son contrat la conclusion d'un contrat à durée
+        indéterminée portant sur un emploi différent de celui qu'il occupait.
+        Il résulte de l'article L. 1243-8 du code du travail que l'indemnité
+        de fin de contrat, égale à 10 % de la rémunération totale brute versée
+        au salarié, n'est pas due lorsque la relation se poursuit par un
+        contrat à durée indéterminée portant sur le même emploi ou un emploi
+        similaire assorti d'une rémunération au moins équivalente. Tel n'étant
+        pas le cas en l'espèce, l'indemnité de précarité restait due. PAR CES
+        MOTIFS, CASSE ET ANNULE l'arrêt attaqué.
+    assert:
+      - type: javascript
+        value: |
+          const o = JSON.parse(output);
+          if (!o.concepts.includes("indemnite_precarite")) return "concept indemnite_precarite manquant";
+          const s = o.summary;
+          const prudent = /la cour|la chambre sociale|retient|juge|décide|rappelle/i.test(s);
+          return prudent || "le résumé doit attribuer l'interprétation à la Cour (« la Cour retient que… »)";

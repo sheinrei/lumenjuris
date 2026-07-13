@@ -55,11 +55,9 @@ class JsonLogger {
 
   time(label: string) {
     this.log("info", `TIMER_START:${label}`);
-    console.time(label);
   }
 
   timeEnd(label: string) {
-    console.timeEnd(label);
     this.log("info", `TIMER_END:${label}`);
   }
 }

@@ -1,4 +1,11 @@
-import { ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, FileText, Trash2 } from "lucide-react";
+import {
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  AlertTriangle,
+  FileText,
+  Trash2,
+} from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { fmtDate, daysUntil, RENEWAL_LABEL } from "./types";
 import type { ContractListItem, ListFilters } from "./types";
@@ -16,12 +23,21 @@ interface Props {
   onDelete?: (id: string, title: string) => void;
 }
 
+
+
 /** Tableau principal de la liste des contrats. */
 export function ContractTable({ items, loading, sortBy, sortDir, onSort, onOpen, canDelete, onDelete }: Props) {
+  console.log(items)
+  {/* Rendu du composant en instance de traitement */}
   if (loading) {
     return (
       <div className="bg-white rounded-card border border-line shadow-card overflow-hidden">
-        <TableHeader sortBy={sortBy} sortDir={sortDir} onSort={onSort} canDelete={canDelete} />
+        <TableHeader
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSort={onSort}
+          canDelete={canDelete}
+        />
         <div className="divide-y divide-line-subtle">
           {Array.from({ length: 6 }).map((_, i) => (
             <SkeletonRow key={i} canDelete={canDelete} />
@@ -31,6 +47,8 @@ export function ContractTable({ items, loading, sortBy, sortDir, onSort, onOpen,
     );
   }
 
+
+  { /* Rendu du composant lorseque la liste d'items est vide */}
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4 bg-white rounded-card border border-line shadow-card">
@@ -39,16 +57,25 @@ export function ContractTable({ items, loading, sortBy, sortDir, onSort, onOpen,
         </div>
         <div className="text-center">
           <p className="text-sm font-semibold text-ink">Aucun contrat trouvé</p>
-          <p className="text-xs text-ink-muted mt-1">Importez votre premier contrat pour commencer.</p>
+          <p className="text-xs text-ink-muted mt-1">
+            Importez votre premier contrat pour commencer.
+          </p>
         </div>
       </div>
     );
   }
 
+
+
   return (
     <div className="bg-white rounded-card border border-line shadow-card overflow-hidden">
       <table className="w-full text-left border-collapse">
-        <TableHeader sortBy={sortBy} sortDir={sortDir} onSort={onSort} canDelete={canDelete} />
+        <TableHeader
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSort={onSort}
+          canDelete={canDelete}
+        />
         <tbody className="divide-y divide-line-subtle">
           {items.map((c) => {
             const d = daysUntil(c.endDate);
@@ -80,18 +107,26 @@ export function ContractTable({ items, loading, sortBy, sortDir, onSort, onOpen,
                 </td>
 
                 {/* Type */}
-                <td className="px-4 py-3 text-xs text-ink-muted">{c.contractType ?? "—"}</td>
+                <td className="px-4 py-3 text-xs text-ink-muted">
+                  {c.contractType ?? "—"}
+                </td>
 
                 {/* Cocontractant */}
-                <td className="px-4 py-3 text-xs text-ink-secondary">{c.counterpartyName ?? "—"}</td>
+                <td className="px-4 py-3 text-xs text-ink-secondary">
+                  {c.counterpartyName ?? "—"}
+                </td>
 
                 {/* Signature */}
-                <td className="px-4 py-3 text-xs text-ink-muted whitespace-nowrap">{fmtDate(c.signatureDate)}</td>
+                <td className="px-4 py-3 text-xs text-ink-muted whitespace-nowrap">
+                  {fmtDate(c.signatureDate)}
+                </td>
 
                 {/* Échéance */}
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-ink-muted">{fmtDate(c.endDate)}</span>
+                    <span className="text-xs text-ink-muted">
+                      {fmtDate(c.endDate)}
+                    </span>
                     {urgent && (
                       <span
                         className="inline-flex items-center gap-0.5 text-[9px] font-bold text-warning-dark"
@@ -109,7 +144,9 @@ export function ContractTable({ items, loading, sortBy, sortDir, onSort, onOpen,
                 </td>
 
                 {/* Responsable */}
-                <td className="px-4 py-3 text-xs text-ink-muted">{c.responsibleName ?? "—"}</td>
+                <td className="px-4 py-3 text-xs text-ink-muted">
+                  {c.responsibleName ?? "—"}
+                </td>
 
                 {/* Tags */}
                 <td className="px-4 py-3">
@@ -118,13 +155,19 @@ export function ContractTable({ items, loading, sortBy, sortDir, onSort, onOpen,
                       <span
                         key={t.id}
                         className="text-[9px] font-semibold px-1.5 py-0.5 rounded-chip"
-                        style={{ backgroundColor: t.color + "22", color: t.color }}
+                        style={{
+                          backgroundColor: t.color + "22",
+                          color: t.color,
+                        }}
                       >
                         {t.label}
                       </span>
                     ))}
                     {c.renewalType === "TACIT" && (
-                      <span className="text-[9px] text-info" title="Tacite reconduction">
+                      <span
+                        className="text-[9px] text-info"
+                        title="Tacite reconduction"
+                      >
                         ↻ {RENEWAL_LABEL[c.renewalType]}
                       </span>
                     )}
@@ -135,7 +178,10 @@ export function ContractTable({ items, loading, sortBy, sortDir, onSort, onOpen,
                 {canDelete && (
                   <td className="px-4 py-3">
                     <button
-                      onClick={(e) => { e.stopPropagation(); onDelete?.(c.id, c.title); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete?.(c.id, c.title);
+                      }}
                       className="p-1.5 rounded-lg text-ink-subtle hover:text-danger hover:bg-danger-light transition-all opacity-0 group-hover:opacity-100"
                       title="Supprimer ce contrat"
                     >
@@ -152,9 +198,15 @@ export function ContractTable({ items, loading, sortBy, sortDir, onSort, onOpen,
   );
 }
 
+
+
+
 /** En-tête de tableau partagé (liste + skeleton). */
 function TableHeader({
-  sortBy, sortDir, onSort, canDelete,
+  sortBy,
+  sortDir,
+  onSort,
+  canDelete,
 }: {
   sortBy?: SortKey;
   sortDir?: "asc" | "desc";
@@ -164,12 +216,36 @@ function TableHeader({
   return (
     <thead className="bg-surface-subtle border-b border-line text-ink-subtle text-[10px] uppercase tracking-widest font-semibold">
       <tr>
-        <Th label="Intitulé"      k="title"         sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+        <Th
+          label="Intitulé"
+          k="title"
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSort={onSort}
+        />
         <th className="px-4 py-3">Type</th>
         <th className="px-4 py-3">Cocontractant</th>
-        <Th label="Signature"     k="signatureDate" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-        <Th label="Échéance"      k="endDate"       sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
-        <Th label="Statut"        k="status"        sortBy={sortBy} sortDir={sortDir} onSort={onSort} />
+        <Th
+          label="Signature"
+          k="signatureDate"
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSort={onSort}
+        />
+        <Th
+          label="Échéance"
+          k="endDate"
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSort={onSort}
+        />
+        <Th
+          label="Statut"
+          k="status"
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSort={onSort}
+        />
         <th className="px-4 py-3">Responsable</th>
         <th className="px-4 py-3">Tags</th>
         {canDelete && <th className="px-4 py-3 w-10" />}
@@ -188,13 +264,27 @@ function SkeletonRow({ canDelete }: { canDelete?: boolean }) {
           <div className="h-3.5 w-36 rounded bg-surface-muted" />
         </div>
       </td>
-      <td className="px-4 py-3"><div className="h-3 w-16 rounded bg-surface-muted" /></td>
-      <td className="px-4 py-3"><div className="h-3 w-24 rounded bg-surface-muted" /></td>
-      <td className="px-4 py-3"><div className="h-3 w-16 rounded bg-surface-muted" /></td>
-      <td className="px-4 py-3"><div className="h-3 w-16 rounded bg-surface-muted" /></td>
-      <td className="px-4 py-3"><div className="h-4 w-20 rounded-chip bg-surface-muted" /></td>
-      <td className="px-4 py-3"><div className="h-3 w-20 rounded bg-surface-muted" /></td>
-      <td className="px-4 py-3"><div className="h-3 w-12 rounded bg-surface-muted" /></td>
+      <td className="px-4 py-3">
+        <div className="h-3 w-16 rounded bg-surface-muted" />
+      </td>
+      <td className="px-4 py-3">
+        <div className="h-3 w-24 rounded bg-surface-muted" />
+      </td>
+      <td className="px-4 py-3">
+        <div className="h-3 w-16 rounded bg-surface-muted" />
+      </td>
+      <td className="px-4 py-3">
+        <div className="h-3 w-16 rounded bg-surface-muted" />
+      </td>
+      <td className="px-4 py-3">
+        <div className="h-4 w-20 rounded-chip bg-surface-muted" />
+      </td>
+      <td className="px-4 py-3">
+        <div className="h-3 w-20 rounded bg-surface-muted" />
+      </td>
+      <td className="px-4 py-3">
+        <div className="h-3 w-12 rounded bg-surface-muted" />
+      </td>
       {canDelete && <td className="px-4 py-3" />}
     </tr>
   );
@@ -202,7 +292,11 @@ function SkeletonRow({ canDelete }: { canDelete?: boolean }) {
 
 /** Cellule d'en-tête triable. */
 function Th({
-  label, k, sortBy, sortDir, onSort,
+  label,
+  k,
+  sortBy,
+  sortDir,
+  onSort,
 }: {
   label: string;
   k: SortKey;
@@ -221,7 +315,11 @@ function Th({
       >
         {label}
         {active ? (
-          sortDir === "asc" ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+          sortDir === "asc" ? (
+            <ArrowUp className="w-3 h-3" />
+          ) : (
+            <ArrowDown className="w-3 h-3" />
+          )
         ) : (
           <ArrowUpDown className="w-3 h-3 opacity-40" />
         )}

@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="fr" data-framework="typescript">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lumen Juris — Assistant Contrats</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+
+    <style>
+        :root {
+            --lj-blue: #0D6EFD;
+            --lj-navy: #0A2540;
+            --lj-bg: #f6f8fb;
+            --lj-line: #e2e8f0;
+            --lj-red: #dc2626;
+            --lj-amber: #d97706;
+            --lj-green: #16a34a;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            font-size: 13px;
+            color: var(--lj-navy);
+            background: var(--lj-bg);
+        }
+
+        .lj-header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--lj-line);
+            padding: 12px 14px 10px;
+        }
+        .lj-header .lj-subtitle {
+            margin-top: 2px;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .lj-tabs {
+            display: flex;
+            background: #ffffff;
+            border-bottom: 1px solid var(--lj-line);
+        }
+        .lj-tab {
+            flex: 1;
+            border: none;
+            background: none;
+            padding: 9px 4px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .lj-tab.active {
+            color: var(--lj-blue);
+            border-bottom-color: var(--lj-blue);
+        }
+
+        .lj-content { padding: 6px 14px 24px; }
+
+        .lj-card {
+            background: #ffffff;
+            border: 1px solid var(--lj-line);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+        }
+        .lj-card h3 {
+            margin: 0 0 6px;
+            font-size: 13px;
+        }
+        .lj-muted { color: #64748b; font-size: 12px; }
+
+        .lj-stats {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .lj-stat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            background: var(--lj-bg);
+            border: 1px solid var(--lj-line);
+            border-radius: 6px;
+            padding: 6px 4px;
+        }
+        .lj-stat-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--lj-navy);
+        }
+        .lj-stat-label {
+            font-size: 10.5px;
+            color: #64748b;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .lj-btn {
+            display: inline-block;
+            border: none;
+            border-radius: 6px;
+            background: var(--lj-blue);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 12.5px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        .lj-btn:hover { background: #0b5ed7; }
+        .lj-btn:disabled { background: #93b8f5; cursor: default; }
+        .lj-btn.secondary {
+            background: #ffffff;
+            color: var(--lj-navy);
+            border: 1px solid #cbd5e1;
+        }
+        .lj-btn.secondary:hover { background: #f1f5f9; }
+        .lj-btn.small { padding: 5px 9px; font-size: 12px; }
+
+        .lj-status {
+            margin: 8px 0 0;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        .lj-status.ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .lj-status.warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+        .lj-status.err { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+        .lj-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .lj-badge.high { background: #fee2e2; color: var(--lj-red); }
+        .lj-badge.medium { background: #fef3c7; color: var(--lj-amber); }
+        .lj-badge.low { background: #dcfce7; color: var(--lj-green); }
+
+        .lj-count-badge {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .lj-count-badge.high { background: #fee2e2; color: var(--lj-red); }
+        .lj-count-badge.medium { background: #fef3c7; color: var(--lj-amber); }
+        .lj-count-badge.low { background: #dcfce7; color: var(--lj-green); }
+
+        .lj-clause-text {
+            white-space: pre-wrap;
+            font-size: 12px;
+            line-height: 1.5;
+            background: #f8fafc;
+            border: 1px solid var(--lj-line);
+            border-radius: 6px;
+            padding: 8px;
+            margin: 8px 0;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+
+        .lj-list { margin: 6px 0 0; padding-left: 18px; }
+        .lj-list li { margin-bottom: 5px; line-height: 1.45; }
+
+        .lj-section-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 700;
+            font-size: 12.5px;
+            margin: 12px 0 4px;
+        }
+
+        a { color: var(--lj-blue); }
+
+        .lj-input, .lj-textarea {
+            width: 100%;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 7px 9px;
+            font-size: 12.5px;
+            font-family: inherit;
+            color: var(--lj-navy);
+            margin-bottom: 8px;
+            background: #ffffff;
+        }
+        .lj-input:focus, .lj-textarea:focus { outline: 2px solid #bfdbfe; border-color: var(--lj-blue); }
+
+        .lj-label {
+            display: block;
+            font-weight: 600;
+            font-size: 12px;
+            margin: 6px 0 3px;
+        }
+
+        .lj-clickable { cursor: pointer; }
+        .lj-clickable:hover { border-color: var(--lj-blue); box-shadow: 0 1px 4px rgba(13, 110, 253, 0.15); }
+
+        .lj-radio {
+            display: flex;
+            align-items: flex-start;
+            gap: 7px;
+            margin: 4px 0;
+            font-size: 12.5px;
+            cursor: pointer;
+            line-height: 1.4;
+        }
+        .lj-radio input { margin-top: 2px; }
+    </style>
+</head>
+
+<body>
+    <div id="container"></div>
+</body>
+
+</html>

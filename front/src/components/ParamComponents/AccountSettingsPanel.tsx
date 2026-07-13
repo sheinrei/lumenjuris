@@ -24,7 +24,6 @@ import { useState, useRef, useEffect } from "react";
 
 import { fetchProxy } from "../../utils/fetchProxy";
 
-
 type PasswordDialogMode = "change" | "add" | null;
 
 type AccountSettingsPanelProps = {
@@ -42,6 +41,14 @@ type AccountSettingsPanelProps = {
   onProfileUpdateSuccessClose: () => void;
   profileUpdateError: boolean;
   onProfileUpdateErrorClose: () => void;
+  exportDataSuccess: boolean;
+  onExportDataSuccessClose: () => void;
+  exportDataError: boolean;
+  onExportDataErrorClose: () => void;
+  deleteMailSuccess: boolean;
+  onDeleteMailSuccessClose: () => void;
+  deleteMailError: boolean;
+  onDeleteMailErrorClose: () => void;
   onPasswordChange: (value: string) => void;
   onPasswordBlur: () => void;
   onCancelProfileEdit: () => void;
@@ -63,6 +70,14 @@ export function AccountSettingsPanel({
   onProfileUpdateSuccessClose,
   profileUpdateError,
   onProfileUpdateErrorClose,
+  exportDataSuccess,
+  onExportDataSuccessClose,
+  exportDataError,
+  onExportDataErrorClose,
+  deleteMailSuccess,
+  onDeleteMailSuccessClose,
+  deleteMailError,
+  onDeleteMailErrorClose,
   onCancelProfileEdit,
   onTwoFactorCheckedChange,
   onPasswordAdded,
@@ -228,6 +243,42 @@ export function AccountSettingsPanel({
             onClose={onProfileUpdateErrorClose}
           />
         )}
+        {exportDataSuccess && (
+          <AlertBanner
+            title="Export demandé avec succès !"
+            variant="success"
+            detail="Un e-mail contenant toutes les informations liées à votre compte vous a été envoyé."
+            duration={7000}
+            onClose={onExportDataSuccessClose}
+          />
+        )}
+        {exportDataError && (
+          <AlertBanner
+            title="Échec de l'exportation !"
+            variant="error"
+            detail="Une erreur est survenue lors de la récupération de vos données. Veuillez réessayer."
+            duration={7000}
+            onClose={onExportDataErrorClose}
+          />
+        )}
+        {deleteMailSuccess && (
+          <AlertBanner
+            title="Suppression de compte demandé avec succès !"
+            variant="success"
+            detail="Un e-mail contenant le lien pour supprimer votre compte vous a été envoyé."
+            duration={7000}
+            onClose={onDeleteMailSuccessClose}
+          />
+        )}
+        {deleteMailError && (
+          <AlertBanner
+            title="Échec de la demande de suppression de compte !"
+            variant="error"
+            detail="Une erreur est survenue lors de l'envoi du lien pour supprimer votre compte. Veuillez réessayer."
+            duration={7000}
+            onClose={onDeleteMailErrorClose}
+          />
+        )}
 
         {isEditingProfile ? (
           <>
@@ -312,7 +363,7 @@ export function AccountSettingsPanel({
             if (!open) resetPasswordDialog();
           }}
         >
-          <DialogContent className="sm:max-w-sm">
+          <DialogContent className="sm:max-w-sm bg-white">
             <form
               onSubmit={handleSubmitNewPassword}
               className="flex flex-col gap-4"

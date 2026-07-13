@@ -61,9 +61,9 @@ CONTEXTE:
 
 INSTRUCTIONS CRITIQUES:
 1. Compare ce contrat aux STANDARDS DU MARCHÉ pour ce type précis
-2. Identifie les clauses qui MANQUENT mais qui devraient y être
+2. Identifie les clauses qui MANQUENT mais qui devraient être présentes
 3. Base-toi sur:
-   - La législation applicable
+   - La législation français applicable en vigueur
    - Les usages du secteur
    - La jurisprudence récente
    - Les bonnes pratiques contractuelles
@@ -144,6 +144,9 @@ Réponds UNIQUEMENT avec le JSON complet et valide.`;
   }
 }
 
+
+
+
 export async function compareToMarketStandards(
   contractText: string,
   contractType: string,
@@ -186,7 +189,6 @@ FORMAT DE RÉPONSE JSON:
     }
   ]
 }
-
 Réponds UNIQUEMENT avec le JSON.`;
 
   try {
@@ -261,6 +263,8 @@ Réponds UNIQUEMENT avec le JSON.`;
   }
 }
 
+
+
 export async function performCompleteMarketAnalysis(
   contractText: string,
   contractType: string,
@@ -296,6 +300,10 @@ export async function performCompleteMarketAnalysis(
     scoreConformite,
   };
 }
+
+
+
+
 
 function calculateConformityScore(
   clausesManquantes: MissingClause[],

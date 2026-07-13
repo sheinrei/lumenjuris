@@ -11,7 +11,7 @@ const routerBilling: Router = express.Router();
 // Crée un customer Stripe pour l'utilisateur connecté (ou renvoie l'existant)
 routerBilling.post(
   "/customer",
-  authMiddleware,
+  authMiddleware, 
   async (req: Request, res: Response) => {
     const idUser = Number(req.idUser);
 
@@ -40,6 +40,9 @@ routerBilling.post(
       user.email,
       name,
     );
+
+
+    console.log("result at de la creation d'un customers stripe : \n" , result)
 
     if (!result.success || !result.customerId) {
       return res.status(500).json({ success: false, message: result.message });

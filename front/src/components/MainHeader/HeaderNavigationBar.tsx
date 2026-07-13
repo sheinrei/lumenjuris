@@ -12,6 +12,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
+  DropdownMenuItem
 } from "../ui/DropDownMenu";
 
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -220,6 +221,9 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
             </DropdownMenuContent>
           </DropdownMenu>
 
+
+
+
           <div className="flex items-center pl-1">
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -230,7 +234,8 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
                     </button>
                   ) : (
                     <button
-                      className="h-9 w-9 rounded-full border border-line bg-white flex items-center justify-center text-ink-secondary hover:border-brand/40 hover:text-brand transition-all cursor-pointer"
+                      className="h-9 w-9 rounded-full border border-line bg-white flex items-center justify-center
+                       text-ink-secondary hover:border-brand/40 hover:text-brand transition-all cursor-pointer"
                       title="Mon compte"
                     >
                       <User className="h-4 w-4" strokeWidth={1.75} />
@@ -244,14 +249,14 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
                 alignOffset={2}
                 className="min-w-28 bg-lumenjuris-sidebar ring-lumenjuris/60 font-medium text-sm px-4 py-2 flex flex-col items-start gap-2"
               >
-                <button
+                <DropdownMenuItem
                   onClick={handleUserLogout}
                   className="cursor-pointer inline-flex justify-center items-center gap-1 py-1 text-gray-400 hover:text-white transition-all delay-100"
                 >
                   <LogOutIcon size={16} />
                   Logout
-                </button>
-                <button
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={() => {
                     if (onNavClick?.() === false) return;
                     navigate("/mon-compte");
@@ -260,8 +265,8 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
                 >
                   <User size={16} />
                   Mon compte
-                </button>
-                <button
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={() => {
                     navigate("/souscription");
                   }}
@@ -269,7 +274,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
                 >
                   <HandCoinsIcon size={16} />
                   Formules
-                </button>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

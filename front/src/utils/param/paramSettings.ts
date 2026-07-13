@@ -84,6 +84,7 @@ export function getParamConfirmationModalContent({
   onPasswordConfirm,
   onProfileUpdateConfirm,
   onExportDataConfirm,
+  onSendMailDeleteAccountConfirm,
   onDeleteAccountConfirm,
 }: {
   activeConfirmationModal: AccountConfirmationModal | null;
@@ -92,6 +93,7 @@ export function getParamConfirmationModalContent({
   onPasswordConfirm: () => void;
   onProfileUpdateConfirm: () => void;
   onExportDataConfirm: () => void;
+  onSendMailDeleteAccountConfirm: () => void;
   onDeleteAccountConfirm: () => void;
 }): ConfirmationModalContent | null {
   switch (activeConfirmationModal) {
@@ -134,12 +136,22 @@ export function getParamConfirmationModalContent({
     case "export_data":
       return {
         title: "Exporter mes données",
-        description:
-          "Vous recevrez prochainement un email contenant toutes les informations liées à votre compte.",
+        description: "Souhaitez-vous recevoir un mail contenant vos données ?",
         confirmLabel: "Exporter mes données",
         confirmClassName: "bg-lumenjuris text-white hover:bg-lumenjuris/90",
         onConfirm: () => {
           onExportDataConfirm();
+        },
+      };
+    case "delete_account_mail":
+      return {
+        title: "Supprimer mon compte",
+        description:
+          "Vous recevrez un email de confirmation contenant le lien de suppression de toutes vos données.",
+        confirmLabel: "Supprimer mon compte",
+        confirmClassName: "bg-red-600 text-white hover:bg-red-700",
+        onConfirm: () => {
+          onSendMailDeleteAccountConfirm();
           onClose();
         },
       };
@@ -147,7 +159,7 @@ export function getParamConfirmationModalContent({
       return {
         title: "Supprimer mon compte",
         description:
-          "Vous recevrez un email de confirmation et cette action entraînera la suppression de toutes vos données.",
+          "Votre compte et vos données seront totalement supprimées.",
         confirmLabel: "Supprimer mon compte",
         confirmClassName: "bg-red-600 text-white hover:bg-red-700",
         onConfirm: () => {
@@ -158,4 +170,6 @@ export function getParamConfirmationModalContent({
     default:
       return null;
   }
+
+  onDeleteAccountConfirm();
 }

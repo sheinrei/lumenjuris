@@ -6,6 +6,7 @@ import {
   DocumentViewer,
   DocumentViewerRef,
 } from "../components/ContractAnalysis/DocumentViewer";
+import { AddToContrathequeButton } from "../components/ContractAnalysis/AddToContrathequeButton";
 
 // ===> ACTION 3 : CORRIGER L'IMPORT ICI
 import { EnhancedClauseDetail } from "../components/ContractAnalysis/EnhancedClauseDetail/EnhancedClauseDetail";
@@ -147,6 +148,15 @@ function mapEnterpriseToAnalysisContext(
     : undefined;
 }
 
+
+
+
+
+
+
+
+
+// ─── Page principale ──────────────────────────────────────────────────────────
 export default function ContractAnalysis() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -255,7 +265,7 @@ export default function ContractAnalysis() {
     (s) => s.setAppliedRecommendations,
   );
 
-  // Ref pour controler le DocumentViewer
+  // Ref pour contrôler le DocumentViewer
   const documentViewerRef = useRef<DocumentViewerRef>(null);
   const [recommendationIndex, setRecommandationIndex] = useState<number>(0);
   const handleIncrementIndexRecommendation = () =>
@@ -443,7 +453,7 @@ export default function ContractAnalysis() {
         });
 
         if (!response.ok)
-          throw new Error(`Analyse échoué (${response.status})`);
+          throw new Error(`Analyse échouée (${response.status})`);
         const data = (await response.json()) as {
           success: boolean;
           clauses: ClauseRisk[];
@@ -853,7 +863,7 @@ export default function ContractAnalysis() {
     const preparationKey = `file:${getFileUploadKey(file)}`;
 
     if (documentPreparationRef.current) {
-      console.warn("Upload ignorÃ©: une prÃ©paration est déjà en cours.");
+      console.warn("Upload ignoré: une préparation est déjà en cours.");
       return;
     }
 
@@ -882,18 +892,39 @@ export default function ContractAnalysis() {
     }
   };
 
+    // Déclenche automatiquement l'analyse si un fichier OU un texte est passé via navigation state
+  // (ex. depuis la génération de contrats : « Réviser (risques) »).
   useEffect(() => {
-    const file = (location.state as { file?: File } | null)?.file;
-    if (file) {
-      const navigationUploadKey = `${location.key}:${getFileUploadKey(file)}`;
-
-      if (consumedNavigationUploadKeys.has(navigationUploadKey)) {
-        return;
-      }
-
+    const state = location.state as {
+      file?: File;
+      text?: string;
+      fileName?: string;
+      historyId?: string;
+    } | null;
+    if (state?.historyId) {
+      // Ouverture d'une analyse depuis la liste d'historique (page Conformité).
+      const historyId = state.historyId;
+      navigate(".", { replace: true, state: null });
+      void handleOpenHistoryItem(historyId);
+    } else if (state?.file) {
+      const navigationUploadKey = `${location.key}:${getFileUploadKey(state.file)}`;
+      if (consumedNavigationUploadKeys.has(navigationUploadKey)) return;
       consumedNavigationUploadKeys.add(navigationUploadKey);
       navigate(".", { replace: true, state: null });
-      onFileUpload(file);
+      onFileUpload(state.file);
+    } else if (state?.text && state.text.trim()) {
+      const fileName = state.fileName || "Contrat généré";
+      const navigationTextKey = `${location.key}:text:${fileName}:${state.text.length}`;
+      if (consumedNavigationUploadKeys.has(navigationTextKey)) return;
+      consumedNavigationUploadKeys.add(navigationTextKey);
+      navigate(".", { replace: true, state: null });
+      void onTextSubmit(state.text, fileName);
+    } else if (state?.historyId) {
+      const navigationHistoryKey = `${location.key}:history:${state.historyId}`;
+      if (consumedNavigationUploadKeys.has(navigationHistoryKey)) return;
+      consumedNavigationUploadKeys.add(navigationHistoryKey);
+      navigate(".", { replace: true, state: null });
+      void handleOpenHistoryItem(state.historyId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -902,7 +933,7 @@ export default function ContractAnalysis() {
     const preparationKey = `text:${fileName}:${text.length}`;
 
     if (documentPreparationRef.current) {
-      console.warn("Soumission ignorée: une prÃ©paration est déjà en cours.");
+      console.warn("Soumission ignorée: une préparation est déjà en cours.");
       return;
     }
 
@@ -981,7 +1012,7 @@ export default function ContractAnalysis() {
     };
 
     console.log(
-      "Début onContextualAnalysis avec contexte:",
+      "🚀 Début onContextualAnalysis avec contexte:",
       contextWithEnterprise,
     );
     void startTemporaryAnalysis(
@@ -1000,7 +1031,7 @@ export default function ContractAnalysis() {
       await handleMarketAnalysis();
       setShowMarketAnalysis(true);
     } catch (error) {
-      console.error("Erreur analyse de marchÃ©:", error);
+      console.error("Erreur analyse de marché:", error);
     }
   };
 
@@ -1163,7 +1194,7 @@ export default function ContractAnalysis() {
                   onTextSubmit={onTextSubmit}
                   isProcessing={displayedIsProcessing}
                   processingPhase={displayedProcessingPhase}
-                  analyseCredit={9999}
+                  analyseCredit={9999 /* bypass dev — crédits réels: analyseCredit */}
                 />
               </div>
             </div>

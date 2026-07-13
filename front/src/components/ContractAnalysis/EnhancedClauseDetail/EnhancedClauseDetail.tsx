@@ -27,12 +27,8 @@ import {
 } from "./enhancedClauseCaches";
 //fin de refactor
 
-const CLAUSE_AI_MODEL_OPTIONS: { value: OpenAIModelId; label: string }[] = [
-  { value: "gpt-4o", label: "4o" },
-  { value: "gpt-4o-mini", label: "4o mini" },
-  { value: "gpt-5.2", label: "5.2" },
-  { value: "gpt-5.4-nano", label: "5.4 nano" },
-];
+/** Modèle unique pour l'analyse de clause (problèmes, recommandations, questions). */
+const CLAUSE_AI_MODEL: OpenAIModelId = "gpt-5.4-nano";
 
 // util
 export const copyToClipboard = (txt: string) =>
@@ -77,15 +73,13 @@ export const EnhancedClauseDetail: React.FC<Props> = ({
   onClose,
   recommendationIndex,
   setRecommendationIndex,
-  isSensitive = true,
 }) => {
   if (!clause) return;
 
   const [tab, setTab] = useState<Tab>("overview");
   const [expanded, setExpanded] = useState(false);
-  const [clauseAiModel, setClauseAiModel] = useState<OpenAIModelId>(
-    isSensitive ? "gpt-5.4-nano" : "gpt-4o",
-  );
+  // Modèle fixe : 5.4 nano (le sélecteur « Comparaison IA » a été retiré du produit).
+  const clauseAiModel = CLAUSE_AI_MODEL;
   const [alternatives, setAlternatives] = useState<Recommendation[] | null>(
     null,
   );
@@ -211,12 +205,6 @@ export const EnhancedClauseDetail: React.FC<Props> = ({
           originalTextGlobal={originalTextGlobal}
           recommendationIndex={recommendationIndex}
           setRecommendationIndex={setRecommendationIndex}
-          clauseAiModel={clauseAiModel}
-          clauseAiModelOptions={CLAUSE_AI_MODEL_OPTIONS}
-          onClauseAiModelChange={(model) => {
-            setAlternatives(null);
-            setClauseAiModel(model);
-          }}
         />
       );
     }
@@ -240,11 +228,7 @@ export const EnhancedClauseDetail: React.FC<Props> = ({
             </div>
           }
         >
-          <ChatUI
-            clauseAiModel={clauseAiModel}
-            clauseAiModelOptions={CLAUSE_AI_MODEL_OPTIONS}
-            onClauseAiModelChange={setClauseAiModel}
-          />
+          <ChatUI clauseAiModel={clauseAiModel} />
         </Suspense>
       );
 
