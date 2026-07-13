@@ -12,6 +12,7 @@ import { Subscription } from "../services/classSubscription.js";
 import { normalizeAccountParameters } from "../utils/normalizeAccountParameters.js";
 import { normalizePreferenceUI } from "../utils/normalizePreferenceUI.js";
 import { getUserFullExport } from "../services/getUserData.js";
+import { readLog, writeLog} from "./apiFeedback.js";
 
 import {
   loginLimiter,
@@ -736,7 +737,7 @@ routerUser.post(
 );
 
 routerUser.post("/confirm-delete", async (req: Request, res: Response) => {
-  const { token } = req.body;
+  const { token, reason} = req.body;
 
   if (!token) {
     return res.status(400).json({ success: false, message: "Token manquant" });
@@ -752,6 +753,24 @@ routerUser.post("/confirm-delete", async (req: Request, res: Response) => {
         success: false,
         message: "Le lien est invalide ou a expiré",
       });
+    }
+
+    if (reason?.trim()) {
+      try {
+      const entries = readLog();
+      entries.unshift({
+        id: crypto.randomUUID(),
+        date: new Date().toISOString(),
+        comment: reason.trim().slice(0, 1000),
+        context: "suppression_compte",
+        page: "/user/deleteaccount",
+        userId: String(tokenEntry.userId),
+      })
+      writeLog(entries);
+      } catch (err) {
+        console.error("Erreur de réception indiquant la raison de la suppression de compte");
+        return res.status(500).json({success: false, message : "Une erreur est survenue"});
+      }
     }
 
     await prisma.$transaction([

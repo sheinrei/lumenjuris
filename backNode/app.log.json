@@ -1,1 +1,8 @@
 { "timestamp": "2026-06-30T18:20:34.388Z", "level": "info", "message": "Verification du transporter SMTP" }
+{"timestamp":"2026-07-13T08:49:27.811Z","level":"error","message":"Erreur lors de la verification du transporteur","data":{"code":"ETIMEDOUT","command":"CONN"}}
+{"timestamp":"2026-07-13T08:59:18.392Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-13T09:14:35.084Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-13T09:17:09.678Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-13T09:18:10.971Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-13T09:18:15.933Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-13T09:19:13.381Z","level":"info","message":"Verification du transporter SMTP"}

@@ -34,6 +34,7 @@ import { SignerPage } from "./page/SignerPage";
 
 import { usePageLoaded } from "./hooks/usePageLoaded";
 import { Loader } from "./components/common/Loader";
+import { PublicLayout } from "./components/DashboardComponents/PublicLayout";
 
 export function App() {
   //Hook pour détecter le chargement complet de la page
@@ -147,11 +148,10 @@ export function App() {
         <Route path="/verify-account" element={<VerifyAccount />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/souscription" element={<Subscription />} />
-
-        <Route
-          path="/user/deleteaccount/:token"
-          element={<ConfirmDeleteAccountPage />}
-        />
+        
+        <Route element={<PublicLayout />}>
+          <Route path="/user/deleteaccount/:token" element={<ConfirmDeleteAccountPage />} />
+        </Route>
 
         {/* Page publique de signature pour le cocontractant — sans auth */}
         <Route path="/signer/:token" element={<SignerPage />} />

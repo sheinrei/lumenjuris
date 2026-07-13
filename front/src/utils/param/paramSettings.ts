@@ -147,7 +147,7 @@ export function getParamConfirmationModalContent({
       return {
         title: "Supprimer mon compte",
         description:
-          "Vous recevrez un email de confirmation et cette action entraînera la suppression de toutes vos données.",
+          "Vous recevrez un email de confirmation contenant le lien de suppression de toutes vos données.",
         confirmLabel: "Supprimer mon compte",
         confirmClassName: "bg-red-600 text-white hover:bg-red-700",
         onConfirm: () => {
