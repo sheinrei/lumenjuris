@@ -6,7 +6,7 @@ import {
 import { ChatHistory } from "./classChatHistory.js";
 import { User, UserPreferenceDTO, UserPreferenceService } from "./classUser.js";
 import { ClauseService, ClauseDTO } from "./classClause.js";
-import { Subscription, ReturnData } from "./classSubscription.js";
+import { Subscription, ReturnDataSubscription } from "./classSubscription.js";
 import { ContractService, ContractListItemDTO } from "./classContract.js";
 import {
   ContractTemplateService,
@@ -20,7 +20,7 @@ import { FolderService, FolderDTO } from "./classFolder.js";
 import { TagService, TagDTO } from "./classTag.js";
 import {
   SignatureEnvelopeService,
-  SignatureEnvelopeDTO,
+  SignatureEnvelopeNoTokenDTO,
 } from "./classSignatureEnvelope.js";
 import {
   NegotiationSessionDTO,
@@ -40,8 +40,8 @@ export type UserFullExport = {
   tags: TagDTO[]; // NOUVEAU
   clauses: ClauseDTO[];
   templates: ContractTemplateDTO[];
-  signatureEnvelopes: SignatureEnvelopeDTO[];
-  subscription: ReturnData;
+  signatureEnvelopes: SignatureEnvelopeNoTokenDTO[];
+  subscription: ReturnDataSubscription;
   chatHistory: any[];
   contractHistory: ContractHistoryItemDTO[];
   negotiationSessions: NegotiationSessionDTO[];
@@ -61,7 +61,7 @@ export async function getUserFullExport(
       folders,
       tags,
       templates,
-      signatureEnvelope,
+      signatureEnvelopes,
       subscription,
       chatHistoryResult,
       contractHistory,
@@ -96,18 +96,13 @@ export async function getUserFullExport(
       ...cleanProfile
     } = profileResult.data;
 
-    const cleanSignatureEnvelopes = (signatureEnvelope || []).map(
-      (envelope) => {
-        const { signingToken, ...rest } = envelope;
-        return {
-          ...rest,
-          signingToken: "",
-        };
-      },
+    const cleanSignatureEnvelope = signatureEnvelopes.map(
+      ({ signingToken, ...cleanEnvelope }) => cleanEnvelope,
     );
 
     const cleanSubscription = {
       ...subscription,
+      success: undefined,
       stripeSubscriptionId: undefined,
       stripePriceId: undefined,
     };
@@ -152,7 +147,7 @@ export async function getUserFullExport(
       tags: tags || [],
       clauses: clauses || [],
       templates: templates || [],
-      signatureEnvelopes: cleanSignatureEnvelopes,
+      signatureEnvelopes: cleanSignatureEnvelope,
       subscription: cleanSubscription,
       chatHistory: chatHistoryResult || [],
       contractHistory: contractHistory || [],

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ClauseAI, ClauseRisk, JurisprudenceCase, Recommendation } from "../core/types";
 import { fetchClauseDetail, fetchJurisprudence, fetchRecommendations, askQuestion } from "../core/lumenService";
-import { applyRecommendationTracked, selectClause } from "../core/wordDocument";
+import { applyRecommendationTracked } from "../core/wordDocument";
 import StatusMessage, { Status, TRACKED_OK, TRACKED_UNSUPPORTED } from "./StatusMessage";
 
 type Tab = "overview" | "cases" | "question";
@@ -9,14 +9,15 @@ type Tab = "overview" | "cases" | "question";
 interface Props {
   clause: ClauseRisk;
   onClose: () => void;
+  onApplied?: (clauseId: string) => void;
 }
 
 const riskBadge = (score: number): { label: string; css: string } =>
   score >= 4
-    ? { label: `Risque élevé ${score}/5`, css: "high" }
+    ? { label: `${score}/5`, css: "high" }
     : score >= 3
-      ? { label: `Risque modéré ${score}/5`, css: "medium" }
-      : { label: `Risque faible ${score}/5`, css: "low" };
+      ? { label: `${score}/5`, css: "medium" }
+      : { label: `${score}/5`, css: "low" };
 
 /**
  * Fiche détail d'une clause — reprise de la fenêtre modale
@@ -24,7 +25,7 @@ const riskBadge = (score: number): { label: string; css: string } =>
  * Question), adaptée au volet Word : les recommandations s'appliquent
  * directement dans le document, en suivi des modifications.
  */
-const ClauseDetail: React.FC<Props> = ({ clause, onClose }) => {
+const ClauseDetail: React.FC<Props> = ({ clause, onClose, onApplied }) => {
   const [tab, setTab] = React.useState<Tab>("overview");
   const [ai, setAi] = React.useState<ClauseAI | null>(null);
   const [recommendations, setRecommendations] = React.useState<Recommendation[] | null>(null);
@@ -36,6 +37,7 @@ const ClauseDetail: React.FC<Props> = ({ clause, onClose }) => {
   const [question, setQuestion] = React.useState("");
   const [answer, setAnswer] = React.useState<string | null>(null);
   const [asking, setAsking] = React.useState(false);
+  const [textExpanded, setTextExpanded] = React.useState(false);
 
   // Détail IA (problèmes / conseil) + recommandations, comme la modale plateforme.
   React.useEffect(() => {
@@ -84,6 +86,7 @@ const ClauseDetail: React.FC<Props> = ({ clause, onClose }) => {
         });
       } else {
         setStatus(tracked ? TRACKED_OK : TRACKED_UNSUPPORTED);
+        onApplied?.(clause.id);
       }
     } catch (error) {
       setStatus({ kind: "err", text: `Échec de l'application : ${String(error)}` });
@@ -117,17 +120,10 @@ const ClauseDetail: React.FC<Props> = ({ clause, onClose }) => {
           </button>
           <span className={`lj-badge ${badge.css}`}>{badge.label}</span>
         </div>
-        <h3 style={{ margin: "8px 0 2px" }}>{clause.type}</h3>
-        <p className="lj-muted" style={{ margin: "2px 0" }}>
-          {clause.justification}
-        </p>
-        <button className="lj-btn secondary small" onClick={() => selectClause(clause.id)} style={{ marginTop: 6 }}>
-          📍 Voir dans le document
-        </button>
         <StatusMessage status={status} />
       </div>
 
-      {/* Onglets, comme la modale plateforme */}
+      {/* Onglets remontés, juste sous l'en-tête */}
       <nav className="lj-tabs" style={{ marginBottom: 10 }}>
         <button className={`lj-tab ${tab === "overview" ? "active" : ""}`} onClick={() => setTab("overview")}>
           Aperçu
@@ -142,8 +138,24 @@ const ClauseDetail: React.FC<Props> = ({ clause, onClose }) => {
 
       {tab === "overview" && (
         <>
-          {/* Problèmes (issues du ClauseAI) — le texte de la clause n'est pas
-              répété ici : il est visible (surligné) dans le document Word. */}
+          {/* Aperçu du texte exactement surligné dans le document — replié si long. */}
+          <div className="lj-card">
+            <div className="lj-section-title">📄 Aperçu de la clause</div>
+            <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.5, margin: "2px 0 0" }}>
+              {textExpanded || clause.content.length <= 220 ? clause.content : `${clause.content.slice(0, 220)}…`}
+            </div>
+            {clause.content.length > 220 && (
+              <button
+                className="lj-btn secondary small"
+                onClick={() => setTextExpanded(!textExpanded)}
+                style={{ marginTop: 8 }}
+              >
+                {textExpanded ? "▲ Réduire" : "▼ Voir le texte complet"}
+              </button>
+            )}
+          </div>
+
+          {/* Problèmes (issues du ClauseAI) */}
           <div className="lj-card">
             <div className="lj-section-title">⚠️ Problèmes</div>
             {!ai ? (
@@ -177,7 +189,7 @@ const ClauseDetail: React.FC<Props> = ({ clause, onClose }) => {
               recommendations.map((reco, i) => (
                 <div key={i} style={{ marginBottom: 12 }}>
                   {reco.title && <strong style={{ fontSize: 12.5 }}>{reco.title}</strong>}
-                  <div className="lj-clause-text">{reco.clauseText}</div>
+                  <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.5, margin: "4px 0" }}>{reco.clauseText}</div>
                   <p className="lj-muted" style={{ margin: "4px 0 6px" }}>
                     <strong>Avantages :</strong> {reco.benefits}
                     {reco.riskReduction && (

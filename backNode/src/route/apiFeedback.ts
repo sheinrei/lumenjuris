@@ -22,7 +22,7 @@ interface FeedbackEntry {
   userId?: string;
 }
 
-function readLog(): FeedbackEntry[] {
+export function readLog(): FeedbackEntry[] {
   try {
     if (!fs.existsSync(LOG_FILE)) return [];
     const raw = fs.readFileSync(LOG_FILE, "utf-8");
@@ -32,7 +32,7 @@ function readLog(): FeedbackEntry[] {
   }
 }
 
-function writeLog(entries: FeedbackEntry[]): void {
+export function writeLog(entries: FeedbackEntry[]): void {
   fs.writeFileSync(LOG_FILE, JSON.stringify(entries, null, 2), "utf-8");
 }
 
@@ -87,6 +87,49 @@ routerFeedback.get(
       return res.status(200).json({ success: true, data: entries, total: entries.length });
     } catch (err) {
       console.error("[feedback] GET error", err);
+      return res.status(500).json({ success: false, message: "Erreur serveur." });
+    }
+  },
+);
+
+// DELETE /feedback/bulk — suppression multiple (body: { ids: string[] })
+routerFeedback.delete(
+  "/bulk",
+  authMiddleware,
+  (req: Request, res: Response) => {
+    try {
+      const { ids } = req.body as { ids?: unknown };
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ success: false, message: "ids doit être un tableau non vide." });
+      }
+      const toDelete = new Set(ids.filter((id): id is string => typeof id === "string"));
+      const entries = readLog();
+      const filtered = entries.filter((e) => !toDelete.has(e.id));
+      writeLog(filtered);
+      return res.status(200).json({ success: true, deleted: entries.length - filtered.length });
+    } catch (err) {
+      console.error("[feedback] DELETE bulk error", err);
+      return res.status(500).json({ success: false, message: "Erreur serveur." });
+    }
+  },
+);
+
+// DELETE /feedback/:id — suppression d'un seul feedback
+routerFeedback.delete(
+  "/:id",
+  authMiddleware,
+  (req: Request, res: Response) => {
+    try {
+      const { id } = req.params as { id: string };
+      const entries = readLog();
+      const filtered = entries.filter((e) => e.id !== id);
+      if (filtered.length === entries.length) {
+        return res.status(404).json({ success: false, message: "Feedback introuvable." });
+      }
+      writeLog(filtered);
+      return res.status(200).json({ success: true });
+    } catch (err) {
+      console.error("[feedback] DELETE error", err);
       return res.status(500).json({ success: false, message: "Erreur serveur." });
     }
   },

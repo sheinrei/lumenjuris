@@ -66,20 +66,48 @@
             border-bottom-color: var(--lj-blue);
         }
 
-        .lj-content { padding: 12px 14px 24px; }
+        .lj-content { padding: 6px 14px 24px; }
 
         .lj-card {
             background: #ffffff;
             border: 1px solid var(--lj-line);
             border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 12px;
+            padding: 10px 12px;
+            margin-bottom: 10px;
         }
         .lj-card h3 {
             margin: 0 0 6px;
             font-size: 13px;
         }
         .lj-muted { color: #64748b; font-size: 12px; }
+
+        .lj-stats {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .lj-stat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            background: var(--lj-bg);
+            border: 1px solid var(--lj-line);
+            border-radius: 6px;
+            padding: 6px 4px;
+        }
+        .lj-stat-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--lj-navy);
+        }
+        .lj-stat-label {
+            font-size: 10.5px;
+            color: #64748b;
+            text-align: center;
+            line-height: 1.2;
+        }
 
         .lj-btn {
             display: inline-block;
@@ -122,6 +150,17 @@
         .lj-badge.high { background: #fee2e2; color: var(--lj-red); }
         .lj-badge.medium { background: #fef3c7; color: var(--lj-amber); }
         .lj-badge.low { background: #dcfce7; color: var(--lj-green); }
+
+        .lj-count-badge {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .lj-count-badge.high { background: #fee2e2; color: var(--lj-red); }
+        .lj-count-badge.medium { background: #fef3c7; color: var(--lj-amber); }
+        .lj-count-badge.low { background: #dcfce7; color: var(--lj-green); }
 
         .lj-clause-text {
             white-space: pre-wrap;

@@ -8,6 +8,10 @@ export type ReturnData<T = any> = {
   data?: T;
 };
 
+export type ReturnDataSubscription<T = any> = {
+  data?: T;
+};
+
 function buildInvoiceNumber(idFacture: number, date: Date): string {
   const yyyymmdd = date.toISOString().slice(0, 10).replace(/-/g, "");
   return `LJ-${yyyymmdd}-${String(idFacture).padStart(4, "0")}`;

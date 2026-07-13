@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Toaster, toast } from "react-hot-toast";
 import {
   Plus,
   Search,
@@ -10,12 +11,18 @@ import {
   FileText,
   MoreVertical,
   Trash2,
+  ExternalLink,
+  FolderPlus,
+  Check,
+  Loader2,
 } from "lucide-react";
 import {
   loadContractHistoryIndex,
+  loadContractHistorySnapshot,
   deleteContractHistoryEntry,
   type ContractHistoryItem,
 } from "../../utils/contractHistory";
+import { contractApi } from "./contratheque/api";
 
 type RiskLevel = "Élevé" | "Moyen" | "Faible" | "—";
 
@@ -28,10 +35,10 @@ function getRiskLevel(score?: number): RiskLevel {
 
 function getRiskStyles(level: RiskLevel): string {
   switch (level) {
-    case "Élevé":  return "text-danger-dark border-danger/20 bg-danger-light";
-    case "Moyen":  return "text-warning-dark border-warning/20 bg-warning-light";
+    case "Élevé": return "text-danger-dark border-danger/20 bg-danger-light";
+    case "Moyen": return "text-warning-dark border-warning/20 bg-warning-light";
     case "Faible": return "text-success-dark border-success/20 bg-success-light";
-    default:       return "text-ink-subtle border-line bg-surface-muted";
+    default: return "text-ink-subtle border-line bg-surface-muted";
   }
 }
 
@@ -59,14 +66,63 @@ export function Conformite() {
   const [priorityFilter, setPriorityFilter] = useState("Tous");
   const [history, setHistory] = useState<ContractHistoryItem[]>([]);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [addState, setAddState] = useState<Record<string, "saving" | "done">>({});
 
   useEffect(() => {
-    loadContractHistoryIndex().then(setHistory).catch(() => {});
+    loadContractHistoryIndex().then(setHistory).catch(() => { });
   }, []);
 
   const handleOpen = (id: string) => {
     console.log("Id du contract à ouvrir :", id)
     navigate(`/analyzer`, { state: { historyId: id } });
+  };
+
+  //Handle de la fermeture de la modale "Action"
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setOpenMenuId(null);
+    };
+    window.addEventListener("click", handleClickOutside);
+    return () => {
+      window.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
+  /** Enregistre le document analysé dans la contrathèque (charge le texte du snapshot). */
+  const handleAddToContratheque = async (item: ContractHistoryItem) => {
+    if (addState[item.id]) return;
+    setAddState((s) => ({ ...s, [item.id]: "saving" }));
+    try {
+      const snapshot = await loadContractHistorySnapshot(item.id);
+      if (!snapshot) throw new Error("Document introuvable.");
+      const title =
+        (item.fileName || "Contrat analysé").replace(/\.[^.]+$/, "").trim() ||
+        "Contrat analysé";
+      const contractType =
+        (snapshot.contract.contractType ||
+          snapshot.currentAnalysisContext?.contractType ||
+          item.contractType ||
+          "").trim() || null;
+      await contractApi.create({
+        title,
+        contractType,
+        ocrText: snapshot.contract.content,
+        status: "DRAFT",
+      });
+      setAddState((s) => ({ ...s, [item.id]: "done" }));
+      toast.success("Ajouté à la contrathèque.");
+    } catch (e) {
+      setAddState((s) => {
+        const next = { ...s };
+        delete next[item.id];
+        return next;
+      });
+      const msg = e instanceof Error ? e.message : "";
+      toast.error(
+        /403|éditeur|editor/i.test(msg)
+          ? "Réservé aux rôles Juriste et Administrateur."
+          : "Échec de l'ajout à la contrathèque.",
+      );
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -89,6 +145,7 @@ export function Conformite() {
   const conformityAvg = avgScore(history);
 
   return (
+    <>
     <div className="space-y-5">
       {/* Title + CTA */}
       <div className="flex items-start justify-between gap-4">
@@ -110,7 +167,7 @@ export function Conformite() {
 
       {/* KPI */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <KpiCard label="Total documents" value={history.length} icon={BarChart3} accent="#354F99" />
+        <KpiCard label="Total documents" value={history.length} icon={BarChart3} accent="#2C3A5E" />
         <KpiCard label="Risque élevé" value={highRiskCount} icon={ShieldAlert} accent="#dc2626" />
         <KpiCard
           label="Conformité moy."
@@ -148,7 +205,7 @@ export function Conformite() {
       </div>
 
       {/* History table */}
-      <div className="bg-white border border-line rounded-card overflow-hidden shadow-card">
+      <div className="bg-white border border-line rounded-card shadow-card">
         <table className="w-full text-left border-collapse">
           <thead className="bg-surface-subtle border-b border-line text-ink-subtle text-[10px] uppercase tracking-widest font-semibold">
             <tr>
@@ -208,33 +265,65 @@ export function Conformite() {
                         {formatDate(item.createdAt)}
                       </span>
                     </td>
+
                     <td className="px-6 py-5 text-right">
                       <div
                         className="relative inline-flex items-center gap-2"
                         onClick={(e) => e.stopPropagation()}
                       >
+
                         <button
-                          onClick={() => handleOpen(item.id)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleOpen(item.id)}
+                          }
                           className="text-brand font-semibold text-xs hover:underline underline-offset-4 opacity-0 group-hover:opacity-100 transition-all"
                         >
                           Ouvrir
                         </button>
                         <button
-                          onClick={() =>
+                          onClick={() => handleAddToContratheque(item)}
+                          disabled={addState[item.id] === "saving"}
+                          title={
+                            addState[item.id] === "done"
+                              ? "Ajouté à la contrathèque"
+                              : "Ajouter à la contrathèque"
+                          }
+                          className="p-1.5 text-ink-subtle hover:text-brand transition-colors rounded-lg hover:bg-surface-muted disabled:opacity-50"
+                        >
+                          {addState[item.id] === "done" ? (
+                            <Check className="w-4 h-4 text-success stroke-[1.5]" />
+                          ) : addState[item.id] === "saving" ? (
+                            <Loader2 className="w-4 h-4 animate-spin stroke-[1.5]" />
+                          ) : (
+                            <FolderPlus className="w-4 h-4 stroke-[1.5]" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() =>{
                             setOpenMenuId(openMenuId === item.id ? null : item.id)
+                          }
                           }
                           className="p-1.5 text-ink-subtle hover:text-ink-secondary transition-colors rounded-lg hover:bg-surface-muted"
                         >
                           <MoreVertical className="w-4 h-4 stroke-[1.5]" />
                         </button>
                         {openMenuId === item.id && (
-                          <div className="absolute right-0 top-8 z-10 bg-white border border-line rounded-panel shadow-card-md py-1 min-w-[140px]">
+                          <div className="absolute right-0  top-8 z-10 bg-white border border-line rounded-panel shadow-card-md py-1 min-w-[140px]">
                             <button
                               onClick={() => handleDelete(item.id)}
                               className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-danger hover:bg-danger-light transition-colors"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                               Supprimer
+                            </button>
+
+                            <button
+                              onClick={() => handleOpen(item.id)}
+                              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-brand hover:bg-brand/10 transition-colors"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              Ouvrir
                             </button>
                           </div>
                         )}
@@ -259,6 +348,8 @@ export function Conformite() {
         </table>
       </div>
     </div>
+    <Toaster position="top-right" />
+    </>
   );
 }
 

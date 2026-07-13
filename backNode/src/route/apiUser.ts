@@ -12,6 +12,7 @@ import { Subscription } from "../services/classSubscription.js";
 import { normalizeAccountParameters } from "../utils/normalizeAccountParameters.js";
 import { normalizePreferenceUI } from "../utils/normalizePreferenceUI.js";
 import { getUserFullExport } from "../services/getUserData.js";
+import { readLog, writeLog} from "./apiFeedback.js";
 
 import {
   loginLimiter,
@@ -692,16 +693,106 @@ routerUser.post(
   },
 );
 
-routerUser.delete(
+routerUser.post(
   "/account",
   authMiddleware,
-  async (_req: Request, res: Response) => {
-    return res.status(200).json({
-      success: true,
-      message: "La suppression du compte n'est pas encore branchée.",
+  async (req: Request, res: Response) => {
+    const userId = Number(req.idUser);
+    const user = await prisma.user.findUnique({
+      where: {
+        idUser: userId,
+      },
     });
+
+    if (!userId || !user) {
+      return res.status(401).json({
+        success: false,
+        message: "Utilisateurs non identifiés.",
+      });
+    }
+
+    const email = String(user.email);
+    const prenom = String(user.prenom);
+
+    try {
+      const token = await new Token().createToken(userId, "deleteAccount");
+      const url = `${process.env.HOST_FRONT}/user/deleteaccount/${token.token}`;
+      await new Mailer(email).sendDeleteAccount(url, prenom);
+
+      return res.status(200).json({
+        success: true,
+        message: "Le mail de suppression de compte a bien été envoyé",
+      });
+    } catch (error) {
+      console.error(
+        "Erreur lors de la demande de suppression de compte:",
+        error,
+      );
+      return res.status(500).json({
+        success: false,
+        message: "Une erreur est survenue, veuillez réessayer.",
+      });
+    }
   },
 );
+
+routerUser.post("/confirm-delete", async (req: Request, res: Response) => {
+  const { token, reason} = req.body;
+
+  if (!token) {
+    return res.status(400).json({ success: false, message: "Token manquant" });
+  }
+
+  try {
+    const tokenEntry = await prisma.token.findFirst({
+      where: { token: token, type: "deleteAccount" },
+    });
+
+    if (!tokenEntry || new Date() > tokenEntry.expiresAt) {
+      return res.status(400).json({
+        success: false,
+        message: "Le lien est invalide ou a expiré",
+      });
+    }
+
+    if (reason?.trim()) {
+      try {
+      const entries = readLog();
+      entries.unshift({
+        id: crypto.randomUUID(),
+        date: new Date().toISOString(),
+        comment: reason.trim().slice(0, 1000),
+        context: "suppression_compte",
+        page: "/user/deleteaccount",
+        userId: String(tokenEntry.userId),
+      })
+      writeLog(entries);
+      } catch (err) {
+        console.error("Erreur de réception indiquant la raison de la suppression de compte");
+        return res.status(500).json({success: false, message : "Une erreur est survenue"});
+      }
+    }
+
+    await prisma.$transaction([
+      prisma.token.update({
+        where: { idToken: tokenEntry.idToken },
+        data: { status: "USED" },
+      }),
+      prisma.user.delete({
+        where: { idUser: tokenEntry.userId },
+      }),
+    ]);
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Votre compte a bien été supprimé" });
+  } catch (error) {
+    console.error("Erreur de la confirmation de suppression du compte", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Une erreur est survenue" });
+  }
+});
 
 // Route forgot password pour l'envoi du mail de réinitialisation
 routerUser.post(

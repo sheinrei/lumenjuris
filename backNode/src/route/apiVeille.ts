@@ -172,6 +172,7 @@ interface RawArticle {
   title: string;
   description: string;
   date: string;
+  isoDate: string; // date brute ISO (tri du fil côté front)
   source: string;
   link?: string;
 }
@@ -206,6 +207,7 @@ async function fetchFeedRaw(config: FeedConfig): Promise<RawArticle[]> {
       title: title.trim(),
       description: description.slice(0, 400),
       date: formatDate(item.pubDate ?? item.isoDate),
+      isoDate: item.isoDate ?? item.pubDate ?? "",
       source: `${label}${feed.title && feed.title !== label ? ` — ${feed.title}` : ""}`,
       link: item.link ?? undefined,
     });
@@ -242,6 +244,7 @@ async function classifyBatch(
 export interface VeilleArticle {
   tag: VeilleTag;
   date: string;
+  isoDate: string;
   title: string;
   summary: string;
   impact: string;
@@ -289,6 +292,7 @@ async function fetchAndClassifyAll(): Promise<VeilleArticle[]> {
       classified.push({
         tag,
         date: a.date,
+        isoDate: a.isoDate,
         title: a.title,
         summary:
           a.description || "Consultez le texte complet pour plus de détails.",
