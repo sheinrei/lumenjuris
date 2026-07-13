@@ -175,7 +175,7 @@ model AuthProviderAccount {
 
   //relation
   userId Int
-  user   User @relation(fields: [userId], references: [idUser])
+  user   User @relation(fields: [userId], references: [idUser], onDelete: Cascade)
 }
 
 /// Préférences UI et paramètres de compte de l'utilisateur, stockés en JSON pour rester flexibles.
@@ -186,7 +186,7 @@ model UserPreference {
 
   //relation
   userId Int  @unique
-  user   User @relation(fields: [userId], references: [idUser])
+  user   User @relation(fields: [userId], references: [idUser], onDelete: Cascade)
 }
 
 // --- ENTREPRISE ---
@@ -205,7 +205,7 @@ model Enterprise {
 
   //relation
   userId  Int      @unique
-  user    User     @relation(fields: [userId], references: [idUser])
+  user    User     @relation(fields: [userId], references: [idUser], onDelete: Cascade)
   address Address?
 }
 
@@ -233,7 +233,7 @@ model Token {
   status    TokenState @default(ACTIVE)
   //relation
   userId    Int
-  user      User       @relation(fields: [userId], references: [idUser])
+  user      User       @relation(fields: [userId], references: [idUser], onDelete: Cascade)
 }
 
 // --- EVENTS ---
@@ -248,7 +248,7 @@ model Event {
 
   //relation
   userId         Int
-  user           User            @relation(fields: [userId], references: [idUser])
+  user           User            @relation(fields: [userId], references: [idUser], onDelete: Cascade)
   documentCustom DocumentCustom?
 }
 
@@ -261,7 +261,7 @@ model DocumentCustom {
 
   //relation
   userId Int?
-  user   User? @relation(fields: [userId], references: [idUser])
+  user   User? @relation(fields: [userId], references: [idUser], onDelete: Cascade)
 
   eventId Int?   @unique
   event   Event? @relation(fields: [eventId], references: [idEvent])
@@ -324,7 +324,7 @@ model UserCredit {
   //relation
 
   userId Int  @unique
-  user   User @relation(fields: [userId], references: [idUser])
+  user   User @relation(fields: [userId], references: [idUser], onDelete: Cascade)
 }
 
 // --- SUIVI D'USAGE DES FONCTIONNALITÉS ---
@@ -355,7 +355,7 @@ model Subscription {
 
   //relation
   userId Int  @unique
-  user   User @relation(fields: [userId], references: [idUser])
+  user   User @relation(fields: [userId], references: [idUser], onDelete: Cascade)
 
   planId Int
   plan   Plan @relation(fields: [planId], references: [idPlan])

@@ -5,6 +5,8 @@ import { templateTwoFactor } from "./template/twoFactor.js";
 import { templateInvoiceEmail } from "./template/invoiceEmail.js";
 import { templateWelcomeFreemium } from "./template/welcomeFreemium.js";
 import { generateInvoicePDF, type InvoiceData } from "../pdf/invoicePDF.js";
+import { templateExportData } from "./template/userData.js";
+import { templateDeleteAccount } from "./template/deleteAccount.js";
 
 
 import { logger } from "../../logger/logger.js";
@@ -44,7 +46,7 @@ export class Mailer {
     console.error(
       `Une erreur est survenu lors d'un envoie d'un email' error : ${err}`,
     );
-    logger.error("Une erreur est survenu lors d'un envoie d'un email", err)
+    logger.error("Une erreur est survenu lors d'un envoie d'un email", err);
     return {
       success: false,
       message:
@@ -56,7 +58,11 @@ export class Mailer {
   private createOption(
     html: string,
     subject: string,
-    attachments?: Array<{ filename: string; content: Buffer; contentType: string }>,
+    attachments?: Array<{
+      filename: string;
+      content: Buffer;
+      contentType: string;
+    }>,
   ) {
     const textBrutFallback = html.replace(/<[^>]*>/g, "");
     return {
@@ -161,19 +167,18 @@ export class Mailer {
 </html>`;
   }
 
-
   /**
    * Initialise le transporter dés l'ouverture du serveur.
    */
   async initTransporter() {
     try {
-      await transporter.verify()
-      console.log("Transporteur envoie email SMTP prêt.")
-      logger.info("Verification du transporter SMTP")
+      await transporter.verify();
+      console.log("Transporteur envoie email SMTP prêt.");
+      logger.info("Verification du transporter SMTP");
     } catch (err) {
-      console.error("Erreur lors de la verification du transporteur")
-      logger.error("Erreur lors de la verification du transporteur", err)
-      throw err
+      console.error("Erreur lors de la verification du transporteur");
+      logger.error("Erreur lors de la verification du transporteur", err);
+      throw err;
     }
   }
 
@@ -231,6 +236,33 @@ export class Mailer {
     }
   }
 
+  async sendDeleteAccount(resetLink: string, username?: string) {
+    try {
+      const html = this.createHtmlFullContent(
+        templateDeleteAccount(resetLink, username),
+      );
+      const mailOptions = this.createOption(
+        html,
+        "Suppression de votre compte",
+      );
+      const sending = await transporter.sendMail(mailOptions);
+
+      if (!sending.messageId) {
+        throw new Error(
+          `Echec lors de l'envoie d'un email, id indisponible de retour indisponible.\n ${sending}`,
+        );
+      }
+      return {
+        success: !!sending.messageId,
+        message: sending.messageId
+          ? `Un email a été envoyé à votre adresse ${this.email}, veuillez consulter votre boîte de réception pour réinitialiser votre mot de passe.`
+          : "Une erreur est survenue avec le serveur nous n'avons pas pu envoyer votre email.",
+      };
+    } catch (err) {
+      return this.errorCatching(err);
+    }
+  }
+
   async sendTwoFactor(code: string, username?: string) {
     try {
       const html = this.createHtmlFullContent(
@@ -258,7 +290,9 @@ export class Mailer {
 
   async sendWelcomeFreemium(username?: string) {
     try {
-      const html = this.createHtmlFullContent(templateWelcomeFreemium(username));
+      const html = this.createHtmlFullContent(
+        templateWelcomeFreemium(username),
+      );
       const mailOptions = this.createOption(
         html,
         "Bienvenue sur Lumen Juris — votre formule Freemium est activée",
@@ -271,6 +305,36 @@ export class Mailer {
         );
       }
       return { success: true };
+    } catch (err) {
+      return this.errorCatching(err);
+    }
+  }
+
+  async sendUserData(fullExport: any, username?: string) {
+    try {
+      const html = this.createHtmlFullContent(templateExportData(username));
+      const mailOptions = this.createOption(
+        html,
+        "Lumen Juris - Vos données utilisateurs",
+      );
+
+      const jsonString = JSON.stringify(fullExport, null, 2);
+
+      mailOptions.attachments = [
+        {
+          filename: "export-data.json",
+          content: Buffer.from(jsonString, "utf-8"),
+          contentType: "application/json",
+        },
+      ];
+
+      const sending = await transporter.sendMail(mailOptions);
+
+      if (!sending.messageId) {
+        throw new Error(
+          `Echec lors de l'envoi du mail de récupération de données utilisateurs, messageId indisponible.\n ${sending}`,
+        );
+      }
     } catch (err) {
       return this.errorCatching(err);
     }

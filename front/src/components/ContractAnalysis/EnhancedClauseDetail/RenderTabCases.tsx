@@ -26,7 +26,7 @@ export const RenderTabCases: React.FC<TabCasesProps> = ({
             Aucun mot-clé disponible pour cette clause.
           </p>
         ) : (
-          <ul className="flex flex-wrap gap-2">
+          <ul className="flex flex-wrap gap-2 mb-2">
             {keywordSearches.map((ks) => (
               <li key={ks.query}>
                 <a

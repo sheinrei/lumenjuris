@@ -22,7 +22,7 @@ interface FeedbackEntry {
   userId?: string;
 }
 
-function readLog(): FeedbackEntry[] {
+export function readLog(): FeedbackEntry[] {
   try {
     if (!fs.existsSync(LOG_FILE)) return [];
     const raw = fs.readFileSync(LOG_FILE, "utf-8");
@@ -32,7 +32,7 @@ function readLog(): FeedbackEntry[] {
   }
 }
 
-function writeLog(entries: FeedbackEntry[]): void {
+export function writeLog(entries: FeedbackEntry[]): void {
   fs.writeFileSync(LOG_FILE, JSON.stringify(entries, null, 2), "utf-8");
 }
 

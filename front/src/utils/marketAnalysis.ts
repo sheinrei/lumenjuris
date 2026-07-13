@@ -6,8 +6,17 @@ export interface MissingClause {
   importance: "obligatoire" | "recommandé" | "utile";
   explicationAbsence: string;
   standardMarche: string;
-  suggestionAjout: string;
+  titreSuggestion: string;
+  corpsSuggestion: string;
   priorite: "critique" | "important" | "mineur";
+  detectedFormat?: "ArticleX" | "ARTICLE X" | "NumericOnly" | "Roman" | "None";
+  prefixTemplate?: string;
+  suffixTemplate?: string;
+  lastNumberType?: "arabic" | "roman" | "letters" | "words" | "none";
+  lastNumberValue?: number;
+  nextArticleHeader?: string;
+  clauseSize?: number;
+  anchorText?: string;
 }
 
 export interface MarketDeviation {
@@ -40,7 +49,11 @@ export async function performCompleteMarketAnalysis(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ contractText, contractType, detectedClauses }),
+    body: JSON.stringify({
+      contractText,
+      contractType,
+      detectedClauses,
+    }),
   });
   if (!res.ok) throw new Error(`market-analysis error ${res.status}`);
   return (await res.json()) as MarketAnalysisResult;

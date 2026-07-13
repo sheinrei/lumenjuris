@@ -14,8 +14,8 @@ interface ClausesSidebarProps {
 
 const LEGEND = [
   { label: "Critique", dot: "bg-red-500", text: "text-red-700" },
-  { label: "Moyen",    dot: "bg-orange-400", text: "text-orange-700" },
-  { label: "Modéré",  dot: "bg-green-500",  text: "text-green-700" },
+  { label: "Moyen", dot: "bg-orange-400", text: "text-orange-700" },
+  { label: "Modéré", dot: "bg-green-500", text: "text-green-700" },
 ] as const;
 
 export const ClausesSidebar: React.FC<ClausesSidebarProps> = ({
@@ -35,11 +35,12 @@ export const ClausesSidebar: React.FC<ClausesSidebarProps> = ({
   };
 
   const critiqueCount = clauses.filter((c) => c.riskScore === 5).length;
-  const moyenCount    = clauses.filter((c) => c.riskScore >= 3 && c.riskScore < 5).length;
+  const moyenCount = clauses.filter(
+    (c) => c.riskScore >= 3 && c.riskScore < 5,
+  ).length;
 
   return (
-    <div className="w-80 bg-white border-l border-gray-200 flex flex-col h-fit">
-
+    <div className="w-80 bg-white border rounded-lg flex flex-col h-fit m-2 p-2">
       {/* Header sticky */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 pt-4 pb-3">
         {/* Title + count */}
@@ -75,9 +76,14 @@ export const ClausesSidebar: React.FC<ClausesSidebarProps> = ({
 
         {/* Color legend */}
         <div className="flex items-center gap-3 text-[11px] text-gray-500 border-t border-gray-50 pt-2.5">
-          <span className="text-gray-400 font-medium uppercase tracking-wider text-[10px]">Légende</span>
+          <span className="text-gray-400 font-medium uppercase tracking-wider text-[10px]">
+            Légende
+          </span>
           {LEGEND.map(({ label, dot, text }) => (
-            <span key={label} className={`flex items-center gap-1 font-medium ${text}`}>
+            <span
+              key={label}
+              className={`flex items-center gap-1 font-medium ${text}`}
+            >
               <span className={`w-2 h-2 rounded-full ${dot} inline-block`} />
               {label}
             </span>
@@ -96,7 +102,6 @@ export const ClausesSidebar: React.FC<ClausesSidebarProps> = ({
           />
         ))}
       </div>
-
     </div>
   );
 };

@@ -1,7 +1,11 @@
 import { prisma } from "../../prisma/singletonPrisma.js";
 import crypto from "crypto";
 
-type TokenType = "verifyAccount" | "forgotPassword" | "twoFactor";
+type TokenType =
+  | "verifyAccount"
+  | "forgotPassword"
+  | "twoFactor"
+  | "deleteAccount";
 
 export class Token {
   private setExpiresAt(type: string) {
@@ -15,6 +19,9 @@ export class Token {
         today.setMinutes(today.getMinutes() + 15);
         return today;
       case "twoFactor":
+        today.setMinutes(today.getMinutes() + 15);
+        return today;
+      case "deleteAccount":
         today.setMinutes(today.getMinutes() + 15);
         return today;
       default:

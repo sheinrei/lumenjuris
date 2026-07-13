@@ -72,7 +72,7 @@ export const ChatUI: React.FC<ChatUIProps> = ({
           </div>
         </div>
         {messages.length === 0 && (
-          <div className="flex flex-wrap gap-1 -mx-1">
+          <div className="flex flex-wrap gap-1 -mx-1 ">
             {SUGGESTIONS.map((q) => (
               <button
                 key={q}

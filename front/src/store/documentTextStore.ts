@@ -21,6 +21,8 @@ interface DocumentTextState {
   currentText: string;
   htmlContent: string | null;
   patches: TextPatch[];
+  addedClauses: string[];
+  addClauseToTrack: (clauseNom: string) => void;
   lastAppliedRecommendationKey?: string;
   setOriginalText: (text: string) => void;
   setHtmlContent: (html: string | null) => void;
@@ -68,6 +70,9 @@ export const useDocumentTextStore = create<DocumentTextState>((set, get) => ({
   currentText: "",
   htmlContent: null,
   patches: [],
+  addedClauses: [],
+  addClauseToTrack: (clauseNom) =>
+    set((state) => ({ addedClauses: [...state.addedClauses, clauseNom] })),
   lastAppliedRecommendationKey: undefined,
 
   setHtmlContent: (html) => set({ htmlContent: html }),
@@ -89,7 +94,6 @@ export const useDocumentTextStore = create<DocumentTextState>((set, get) => ({
       patches: [],
       lastAppliedRecommendationKey: undefined,
     });
-    
   },
 
   applyPatch: ({

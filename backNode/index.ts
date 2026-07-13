@@ -45,7 +45,6 @@ const HOST_PROXY: string =
 
 const app = express();
 
-
 //SECURITE
 app.set("etag", false);
 const port = process.env.PORT || 3020;
@@ -55,12 +54,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
-    origin: process.env.NODE_ENV === "dev" ? ["http://localhost:5173", "http://localhost:3020", HOST_PROXY] : HOST_PROXY,
+    origin:
+      process.env.NODE_ENV === "dev"
+        ? ["http://localhost:5173", "http://localhost:3020", HOST_PROXY]
+        : HOST_PROXY,
     credentials: true,
   }),
 );
-app.use(globalLimiter)
-app.set("trust-proxy", 1)
+app.use(globalLimiter);
+app.set("trust-proxy", 1);
 // app.use(internalApiKeyMiddleware);
 
 app.use("/userassets", express.static(path.join(process.cwd(), "userassets")));
@@ -108,7 +110,7 @@ app.listen(port, async () => {
   
   try {
     await seedBootstrapUsers();
-    new Mailer("l.beaute@laposte.net").initTransporter()
+    new Mailer("l.beaute@laposte.net").initTransporter();
   } catch (err) {
     console.error(
       "Erreur lors de l'initialisation des utilisateurs de bootstrap:",
