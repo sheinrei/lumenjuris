@@ -1,12 +1,13 @@
 import * as React from "react";
 import { AnalysisContext } from "../core/types";
 import { DEFAULT_CONTEXT, detectContract } from "../core/lumenService";
+import StatusMessage, { Status } from "./StatusMessage";
 
 interface Props {
   documentText: string;
+  analyzing: boolean;
+  status: Status | null;
   onSubmit: (context: AnalysisContext) => void;
-  onSkip: () => void;
-  onCancel: () => void;
 }
 
 /** Placeholder adaptatif de la mission — repris du formulaire plateforme. */
@@ -28,11 +29,11 @@ function getMissionPlaceholder(contractType: string): string {
 }
 
 /**
- * 📋 Questions d'analyse personnalisée — réplique du formulaire contextuel de
- * la plateforme (ContextualAnalysisForm) : mêmes champs, même pré-remplissage
- * IA (/api/detect-contract), mêmes règles de validation.
+ * Écran d'accueil = contexte d'analyse (réplique du formulaire contextuel de
+ * la plateforme). Tous les champs sont présentés directement, pré-remplis par
+ * l'IA (/api/detect-contract) dès l'ouverture, puis l'analyse se lance ici même.
  */
-const AnalysisForm: React.FC<Props> = ({ documentText, onSubmit, onSkip, onCancel }) => {
+const AnalysisForm: React.FC<Props> = ({ documentText, analyzing, status, onSubmit }) => {
   const [context, setContext] = React.useState<AnalysisContext>({ ...DEFAULT_CONTEXT });
   const [detecting, setDetecting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -69,20 +70,14 @@ const AnalysisForm: React.FC<Props> = ({ documentText, onSubmit, onSkip, onCance
   }, [documentText]);
 
   const handleSubmit = () => {
+    // Seul le type de contrat (et la position si non équilibré) est requis :
+    // le reste est pré-rempli par l'IA et facultatif, pour lancer sans friction.
     if (!context.contractType.trim()) {
-      setError("Veuillez spécifier le type de contrat.");
+      setError("Indiquez au moins le type de contrat.");
       return;
     }
     if (!isEquitable && !context.userRole.trim()) {
-      setError("Veuillez spécifier votre position contractuelle.");
-      return;
-    }
-    if (!context.legalRegime?.trim()) {
-      setError("Veuillez renseigner le régime juridique.");
-      return;
-    }
-    if (!context.contractObjective?.trim()) {
-      setError("Veuillez renseigner l'objectif du contrat.");
+      setError("Indiquez votre position contractuelle.");
       return;
     }
     setError(null);
@@ -95,11 +90,12 @@ const AnalysisForm: React.FC<Props> = ({ documentText, onSubmit, onSkip, onCance
 
   return (
     <div className="lj-card">
-      <h3>📋 Questions d&apos;analyse personnalisée</h3>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <h3 style={{ margin: 0 }}>Analyser ce contrat</h3>
+        {detecting && <span className="lj-muted">Pré-remplissage IA…</span>}
+      </div>
 
-      {detecting && <div className="lj-status warn">Analyse du document pour pré-remplir le formulaire…</div>}
-
-      <label className="lj-label">Type de contrat :</label>
+      <label className="lj-label">Type de contrat</label>
       <input
         className="lj-input"
         type="text"
@@ -112,7 +108,7 @@ const AnalysisForm: React.FC<Props> = ({ documentText, onSubmit, onSkip, onCance
         <div className="lj-status ok">⚖️ Contrat équilibré : la position contractuelle est neutre.</div>
       ) : (
         <>
-          <label className="lj-label">Quelle est votre position contractuelle ?</label>
+          <label className="lj-label">Votre position contractuelle</label>
           <label className="lj-radio">
             <input
               type="radio"
@@ -140,7 +136,7 @@ const AnalysisForm: React.FC<Props> = ({ documentText, onSubmit, onSkip, onCance
         </>
       )}
 
-      <label className="lj-label">🎯 Orientation de l&apos;analyse :</label>
+      <label className="lj-label">🎯 Orientation de l&apos;analyse</label>
       <label className="lj-radio">
         <input
           type="radio"
@@ -178,7 +174,9 @@ const AnalysisForm: React.FC<Props> = ({ documentText, onSubmit, onSkip, onCance
         </span>
       </label>
 
-      <label className="lj-label">Régime juridique :</label>
+      <label className="lj-label">
+        Régime juridique <span className="lj-muted">(optionnel)</span>
+      </label>
       <input
         className="lj-input"
         type="text"
@@ -187,7 +185,9 @@ const AnalysisForm: React.FC<Props> = ({ documentText, onSubmit, onSkip, onCance
         onChange={(e) => setContext({ ...context, legalRegime: e.target.value })}
       />
 
-      <label className="lj-label">Objectif du contrat :</label>
+      <label className="lj-label">
+        Objectif du contrat <span className="lj-muted">(optionnel)</span>
+      </label>
       <input
         className="lj-input"
         type="text"
@@ -197,31 +197,22 @@ const AnalysisForm: React.FC<Props> = ({ documentText, onSubmit, onSkip, onCance
       />
 
       <label className="lj-label">
-        Mission spécifique <span className="lj-muted">(optionnel — améliore la précision)</span>
+        Mission spécifique <span className="lj-muted">(optionnel)</span>
       </label>
       <textarea
         className="lj-textarea"
-        rows={3}
+        rows={2}
         value={context.mission || ""}
         placeholder={getMissionPlaceholder(context.contractType)}
         onChange={(e) => setContext({ ...context, mission: e.target.value })}
       />
 
       {error && <div className="lj-status err">{error}</div>}
+      <StatusMessage status={status} />
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
-        <button className="lj-btn" onClick={handleSubmit}>
-          🚀 Analyse
-        </button>
-        <div>
-          <button className="lj-btn secondary small" onClick={onSkip} style={{ marginRight: 6 }}>
-            Ignorer
-          </button>
-          <button className="lj-btn secondary small" onClick={onCancel}>
-            Annuler
-          </button>
-        </div>
-      </div>
+      <button className="lj-btn" onClick={handleSubmit} disabled={analyzing} style={{ marginTop: 10, width: "100%" }}>
+        {analyzing ? "Analyse en cours…" : "🔍 Analyser le document"}
+      </button>
     </div>
   );
 };

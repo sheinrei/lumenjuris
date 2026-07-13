@@ -13,6 +13,8 @@ import { Label } from "../ui/Label";
 import { formatPrice } from "../../utils/format/formatPrice";
 import type { BillingInterval } from "../../types/subscriptionData";
 import type { CreditsPayload } from "../../types/creditsData";
+import { fetchProxy } from "../../utils/fetchProxy";
+
 
 const PROXY_URL: string =
   import.meta.env.VITE_URL_PROXY || "http://localhost:3000";
@@ -55,10 +57,20 @@ async function ensureStripeCustomer(): Promise<string | null> {
     headers: { "Content-Type": "application/json" },
     credentials: "include",
   });
+
+  const res2 = await fetchProxy("/api/billing/customer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  })
+  const data2 = await res2.json()
+  console.log("resultat de la requette data2 du stripe customers id", data2)
   const data = await res.json();
   if (!data.success) return null;
   return data.stripeCustomerId as string;
 }
+
+
 
 /**
  * Crée un PaymentIntent Stripe côté serveur pour le montant donné.

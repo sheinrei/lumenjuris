@@ -18,8 +18,8 @@ const LIBELLE_MOTIF: Record<string, string> = {
   faute_lourde: "Faute lourde — aucune indemnité",
 };
 
-const inputClass = "w-full text-sm border border-gray-300 rounded-md px-3 py-2 outline-none focus:border-lumenjuris focus:ring-1 focus:ring-lumenjuris transition-colors bg-white text-gray-800";
-const labelClass = "block text-sm font-medium text-gray-700 mb-1 whitespace-nowrap";
+const inputClass = "w-full text-sm border border-line rounded-lg px-3 py-2 outline-none focus:border-brand/40 focus:shadow-ring-brand transition-all bg-white text-ink";
+const labelClass = "block text-sm font-medium text-ink-secondary mb-1 whitespace-nowrap";
 
 export function Calculateur() {
   const [typeContrat, setTypeContrat] = useState<TypeContrat>("CDI");
@@ -77,8 +77,8 @@ export function Calculateur() {
     <div className="space-y-6 max-w-5xl">
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Simulateur d'indemnité légale de licenciement</h1>
-        <p className="text-sm text-gray-500 mt-1">Estimation basée sur le Code du travail français</p>
+        <h1 className="text-2xl font-bold text-ink tracking-tight">Simulateur d'indemnité légale de licenciement</h1>
+        <p className="text-sm text-ink-muted mt-1">Estimation basée sur le Code du travail français</p>
       </div>
 
       {alertError && (
@@ -93,9 +93,9 @@ export function Calculateur() {
 
       {/* Contenu côte à côte */}
       <div className="flex flex-col lg:flex-row gap-5 items-start">
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex-1 min-w-0 max-w-2xl">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Paramètres du calcul</p>
+      <div className="bg-white rounded-card border border-line shadow-card overflow-hidden flex-1 min-w-0 max-w-2xl">
+        <div className="px-6 py-4 border-b border-line">
+          <p className="text-xs font-semibold text-ink-subtle uppercase tracking-widest">Paramètres du calcul</p>
         </div>
         <div className="px-6 py-5 space-y-5">
 
@@ -128,7 +128,7 @@ export function Calculateur() {
             <div>
               <label className={labelClass}>
                 Ancienneté — Mois{" "}
-                <span className="text-gray-400 font-normal whitespace-nowrap">(0 à 11)</span>
+                <span className="text-ink-subtle font-normal whitespace-nowrap">(0 à 11)</span>
               </label>
               <input type="text" inputMode="numeric" value={ancienneteMois} onChange={onIntegerChange(setAncienneteMois)} className={inputClass} />
             </div>
@@ -139,21 +139,21 @@ export function Calculateur() {
             <div>
               <label className={labelClass}>
                 Salaire mensuel brut <br />
-                <span className="text-gray-400 font-normal whitespace-nowrap">(€ / mois)</span>
+                <span className="text-ink-subtle font-normal whitespace-nowrap">(€ / mois)</span>
               </label>
               <input type="text" inputMode="decimal" value={salaireMensuelBrut} onChange={onDecimalChange(setSalaireMensuelBrut)} className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>
                 Moyenne 12 derniers mois <br />
-                <span className="text-gray-400 font-normal whitespace-nowrap">(€ / mois)</span>
+                <span className="text-ink-subtle font-normal whitespace-nowrap">(€ / mois)</span>
               </label>
               <input type="text" inputMode="decimal" value={salaireMoyen12Mois} onChange={onDecimalChange(setSalaireMoyen12Mois)} className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>
                 Moyenne 3 derniers mois <br />
-                <span className="text-gray-400 font-normal whitespace-nowrap">(€ / mois)</span>
+                <span className="text-ink-subtle font-normal whitespace-nowrap">(€ / mois)</span>
               </label>
               <input type="text" inputMode="decimal" value={salaireMoyen3Mois} onChange={onDecimalChange(setSalaireMoyen3Mois)} className={inputClass} />
             </div>
@@ -163,14 +163,14 @@ export function Calculateur() {
           <div className="max-w-xs">
             <label className={labelClass}>
               Coefficient temps partiel{" "}
-              <span className="text-gray-400 font-normal whitespace-nowrap">(1 = temps plein)</span>
+              <span className="text-ink-subtle font-normal whitespace-nowrap">(1 = temps plein)</span>
             </label>
             <input type="text" inputMode="decimal" value={ratioTempsPartiel} onChange={onDecimalChange(setRatioTempsPartiel)} className={inputClass} />
           </div>
 
           <button
             onClick={lancerCalcul}
-            className="w-full bg-lumenjuris text-white text-sm font-semibold py-3 rounded-lg hover:bg-lumenjuris-dark transition-colors"
+            className="w-full bg-brand text-white text-sm font-semibold py-3 rounded-xl hover:bg-brand-hover transition-colors shadow-card"
           >
             Calculer
           </button>
@@ -179,23 +179,23 @@ export function Calculateur() {
 
       {/* Résultat */}
       {resultat && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden w-full lg:w-80 shrink-0">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Résultat</p>
+        <div className="bg-white rounded-card border border-line shadow-card overflow-hidden w-full lg:w-80 shrink-0">
+          <div className="px-6 py-4 border-b border-line">
+            <p className="text-xs font-semibold text-ink-subtle uppercase tracking-widest">Résultat</p>
           </div>
           <div className="px-6 py-5 space-y-4">
             <div className="text-center py-2">
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Indemnité estimée</p>
-              <p className="text-4xl font-bold text-lumenjuris">
+              <p className="text-[11px] font-semibold text-ink-subtle uppercase tracking-widest mb-1">Indemnité estimée</p>
+              <p className="text-4xl font-bold text-brand">
                 {resultat.indemnityAmount.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €
               </p>
-              <p className="text-xs text-gray-400 mt-1">Minimum légal</p>
+              <p className="text-xs text-ink-subtle mt-1">Minimum légal</p>
             </div>
 
             {resultat.errors.length > 0 ? (
               <ul className="space-y-1">
                 {resultat.errors.map((erreur) => (
-                  <li key={erreur} className="text-xs text-red-600">{erreur}</li>
+                  <li key={erreur} className="text-xs text-danger">{erreur}</li>
                 ))}
               </ul>
             ) : (
@@ -208,27 +208,27 @@ export function Calculateur() {
                   { label: "Tranche > 10 ans", value: `${resultat.breakdown.partAfter10Years.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €` },
                   { label: "Total estimé", value: `${resultat.indemnityAmount.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €`, bold: true },
                 ].map((ligne) => (
-                  <div key={ligne.label} className="flex items-center justify-between gap-4 text-sm border-b border-gray-100 pb-2.5 last:border-0 last:pb-0">
-                    <span className="text-gray-500">{ligne.label}</span>
-                    <span className={`font-medium text-right ${ligne.bold ? "text-gray-900" : "text-gray-700"}`}>{ligne.value}</span>
+                  <div key={ligne.label} className="flex items-center justify-between gap-4 text-sm border-b border-line-subtle pb-2.5 last:border-0 last:pb-0">
+                    <span className="text-ink-muted">{ligne.label}</span>
+                    <span className={`font-medium text-right ${ligne.bold ? "text-ink" : "text-ink-secondary"}`}>{ligne.value}</span>
                   </div>
                 ))}
               </dl>
             )}
 
-            <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-lg p-3">
-              <Info className="h-3.5 w-3.5 text-blue-400 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-blue-700 leading-relaxed">
+            <div className="flex items-start gap-2 bg-info-light border border-info/20 rounded-lg p-3">
+              <Info className="h-3.5 w-3.5 text-info shrink-0 mt-0.5" />
+              <p className="text-[11px] text-info-dark leading-relaxed">
                 Base légale : Art. R1234-2 du Code du travail. La convention collective peut prévoir une indemnité plus favorable.
               </p>
             </div>
 
-            <p className="text-[10px] text-gray-400 leading-relaxed">
+            <p className="text-[10px] text-ink-subtle leading-relaxed">
               <span className="font-semibold">Avertissement : </span>
               Cet outil fournit une estimation de l'indemnité <span className="italic">légale</span> de licenciement uniquement. Il ne prend pas en compte les dispositions conventionnelles, contractuelles ou les accords d'entreprise qui peuvent prévoir des montants supérieurs. Pour un calcul définitif, consultez un professionnel du droit du travail.
             </p>
 
-            <button className="w-full flex items-center justify-center gap-2 text-sm text-gray-500 border border-gray-200 rounded-lg py-2.5 hover:border-gray-300 transition-colors">
+            <button className="w-full flex items-center justify-center gap-2 text-sm text-ink-muted border border-line rounded-xl py-2.5 hover:border-line-emphasis transition-colors">
               <Download className="h-4 w-4" />
               Exporter le rapport
             </button>

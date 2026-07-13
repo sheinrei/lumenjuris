@@ -109,16 +109,16 @@ export function ParamCompte() {
     setAccountProvider(
       provider?.provider === "GOOGLE"
         ? {
-            provider: "GOOGLE",
-            googleConnectionPanelMode:
-              (
-                provider as {
-                  googleConnectionPanelMode?:
-                    | "google_only"
-                    | "google_with_password";
-                }
-              ).googleConnectionPanelMode ?? "google_only",
-          }
+          provider: "GOOGLE",
+          googleConnectionPanelMode:
+            (
+              provider as {
+                googleConnectionPanelMode?:
+                | "google_only"
+                | "google_with_password";
+              }
+            ).googleConnectionPanelMode ?? "google_only",
+        }
         : null,
     );
     setEnterpriseInitialSettings(
@@ -222,7 +222,7 @@ export function ParamCompte() {
       setProfileUpdateError(true);
       throw new Error(
         payload?.message ||
-          "Impossible de mettre a jour les informations du compte.",
+        "Impossible de mettre a jour les informations du compte.",
       );
     }
 
@@ -330,7 +330,7 @@ export function ParamCompte() {
           if (!response.ok || !payload?.success) {
             throw new Error(
               payload?.message ||
-                "Impossible d'envoyer le code de vérification.",
+              "Impossible d'envoyer le code de vérification.",
             );
           }
 

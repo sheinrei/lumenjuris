@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
+import { prisma } from "../../prisma/singletonPrisma.js";
 
-export function authMiddleware(
+export async function authMiddleware(
   req: Request,
   res: Response,
   next: NextFunction,
@@ -11,6 +12,23 @@ export function authMiddleware(
   }
   req.idUser = userId;
   req.role = (req.headers["x-user-role"] as string) || "USER";
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { idUser: Number(userId) },
+      select: { isBanned: true },
+    });
+    if (user?.isBanned) {
+      return res.status(403).json({
+        success: false,
+        message: "Votre compte a été suspendu. Contactez l'administrateur.",
+        banned: true,
+      });
+    }
+  } catch (err) {
+    console.error("[authMiddleware] ban check error:", err);
+  }
+
   next();
 }
 
@@ -19,7 +37,7 @@ export function authMiddlewareAdmin(
   res: Response,
   next: NextFunction,
 ) {
-  authMiddleware(req, res, () => {
+  void authMiddleware(req, res, () => {
     if (req.role !== "ADMIN") {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }

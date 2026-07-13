@@ -251,6 +251,37 @@ async function logOpenAiTokens(
   }
 }
 
+// ─── Feature usage tracking ────────────────────────────────────────────────────
+
+async function trackFeature(feature: string, userId?: number): Promise<void> {
+  if (!userId) return;
+  try {
+    await fetch(`${BACKNODE_URL}/feature-event`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-internal-api-key": process.env.INTERNAL_API_KEY || "",
+      },
+      body: JSON.stringify({ feature, userId }),
+    });
+  } catch (e: any) {
+    console.error("[feature-track] error:", e.message);
+  }
+}
+
+/** Compose le tracking d'une feature avec un callback existant (ex: logOpenAiTokens). */
+function withTracking(
+  feature: string,
+  base?: (data: PythonJsonResponse, userId?: number) => Promise<void>,
+): (data: PythonJsonResponse, userId?: number) => Promise<void> {
+  return async (data, userId) => {
+    void trackFeature(feature, userId);
+    if (base) await base(data, userId);
+  };
+}
+
+// ─────────────���────────────────────────────────────���────────────────────────────
+
 function handleExtractDocumentText(req: Request, res: Response): void {
   relayStreamToPython(req, res, "/extract-document-text");
 }
@@ -268,19 +299,34 @@ function handleJurisprudence(req: Request, res: Response): void {
 }
 
 function handleAnalyzeClause(req: Request, res: Response): void {
-  relayJsonToPython(req, res, "/analyze-clause", logOpenAiTokens);
+  relayJsonToPython(
+    req,
+    res,
+    "/analyze-clause",
+    withTracking("analyze_clause", logOpenAiTokens),
+  );
 }
 
 function handleChat(req: Request, res: Response): void {
-  relayJsonToPython(req, res, "/chat", logOpenAiTokens);
+  relayJsonToPython(req, res, "/chat", withTracking("chat", logOpenAiTokens));
 }
 
 function handleOpenAiChat(req: Request, res: Response): void {
-  relayJsonToPython(req, res, "/openai-chat", logOpenAiTokens);
+  relayJsonToPython(
+    req,
+    res,
+    "/openai-chat",
+    withTracking("openai_chat", logOpenAiTokens),
+  );
 }
 
 function handleOpenAiChat5(req: Request, res: Response): void {
-  relayJsonToPython(req, res, "/openai-chat-5", logOpenAiTokens);
+  relayJsonToPython(
+    req,
+    res,
+    "/openai-chat-5",
+    withTracking("openai_chat", logOpenAiTokens),
+  );
 }
 
 function handleHuggingFaceGenerate(req: Request, res: Response): void {
@@ -443,6 +489,10 @@ async function handleDetectContract(
   }
   try {
     const context = await detectContractWithAI(text);
+    void trackFeature(
+      "detect_contract",
+      res.locals.userId as number | undefined,
+    );
     res.json(context);
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Erreur interne";
@@ -473,6 +523,10 @@ async function handleMarketAnalysis(
       contractType,
       (detectedClauses ?? []) as any,
     );
+    void trackFeature(
+      "market_analysis",
+      res.locals.userId as number | undefined,
+    );
     res.json(result);
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Erreur interne";
@@ -502,6 +556,10 @@ async function handleRecommendClause(
       context as any,
       model,
     );
+    void trackFeature(
+      "recommend_clause",
+      res.locals.userId as number | undefined,
+    );
     res.json(recommendations);
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Erreur interne";
@@ -523,6 +581,10 @@ async function handleDetectLegalReferences(
   }
   try {
     const refs = await detectLegalReferences(clause as any);
+    void trackFeature(
+      "detect_legal_refs",
+      res.locals.userId as number | undefined,
+    );
     res.json(refs);
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Erreur interne";
@@ -562,6 +624,10 @@ async function handleSummarizeCase(req: Request, res: Response): Promise<void> {
   }
   try {
     const summary = await summarizeCaseInline(item as JurisprudenceCase);
+    void trackFeature(
+      "summarize_case",
+      res.locals.userId as number | undefined,
+    );
     res.json({ summary });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Erreur interne";
@@ -588,6 +654,10 @@ async function handleAnalyzeContract(
     const clauses = await analyzeContractWithAI(
       content,
       context,
+      res.locals.userId as number | undefined,
+    );
+    void trackFeature(
+      "analyze_contract",
       res.locals.userId as number | undefined,
     );
     res.json({ success: true, clauses });
@@ -832,6 +902,10 @@ async function handleTemplateGenerate(
       );
     }
 
+    void trackFeature(
+      "generate_contract",
+      res.locals.userId as number | undefined,
+    );
     res.json({
       success: true,
       content: aiData.content ?? "",
@@ -1013,6 +1087,11 @@ async function handleTemplateImport(
       }),
     });
     const saved = await saveRes.json();
+    if (saveRes.ok)
+      void trackFeature(
+        "import_template",
+        res.locals.userId as number | undefined,
+      );
     res.status(saveRes.ok ? 201 : saveRes.status).json(saved);
   } catch (e: any) {
     console.error("[template/import] error:", e.message);
@@ -1138,11 +1217,12 @@ app.post("/api/addin/login", async (req: Request, res: Response) => {
     });
   }
 });
+
 app.post("/api/auth/forgotpassword", handleNodeUserForgotPassword);
 app.post("/api/user/resetpassword", handleNodeUserResetPassword);
 app.get("/api/google", handleNodeGoogle);
-app.post("/api/billing/customer", handleBillingCustomer);
-app.post("/api/billing/payment-intent", handleBillingPaymentIntent);
+app.post("/api/billing/customer", auth, handleBillingCustomer);
+app.post("/api/billing/payment-intent", auth, handleBillingPaymentIntent);
 app.get("/api/veille", handleNodeVeille);
 app.get("/api/veille/debug", handleNodeVeilleDebug);
 app.get("/api/user-uploads", auth, handleUserUploadsGet);
@@ -1207,6 +1287,16 @@ app.post("/api/fetch-legal-texts", auth, handleFetchLegalTexts);
 app.post("/api/summarize-case", auth, handleSummarizeCase);
 app.post("/api/feedback", auth, handleFeedback);
 app.get("/api/feedback", auth, handleFeedback);
+app.delete("/api/feedback/bulk", auth, (req, res) =>
+  relayToNode(req, res, "/feedback/bulk"),
+);
+app.delete("/api/feedback/:id", auth, (req, res) =>
+  relayToNode(
+    req,
+    res,
+    `/feedback/${encodeURIComponent(req.params.id as string)}`,
+  ),
+);
 
 // Template de contrats
 app.post("/api/template/import", auth, handleTemplateImport);
@@ -1433,6 +1523,58 @@ app.delete("/api/clause/:externalId", auth, (req, res) =>
   ),
 );
 
+// ─── Veille juridique (alertes + digest jurisprudence) ───
+// Jobs du pipeline (rôle vérifié côté backNode)
+app.post("/api/legal-watch/ingest", auth, (req, res) =>
+  relayToNode(req, res, "/legal-watch/ingest"),
+);
+app.post("/api/legal-watch/enrich", auth, (req, res) =>
+  relayToNode(req, res, "/legal-watch/enrich"),
+);
+app.post("/api/legal-watch/publish", auth, (req, res) =>
+  relayToNode(req, res, "/legal-watch/publish"),
+);
+app.post("/api/legal-watch/run", auth, (req, res) =>
+  relayToNode(req, res, "/legal-watch/run"),
+);
+// Consultation
+app.get("/api/legal-watch/alerts", auth, (req, res) =>
+  relayToNode(req, res, withQuery("/legal-watch/alerts", req)),
+);
+app.patch("/api/legal-watch/alerts/:externalId", auth, (req, res) =>
+  relayToNode(
+    req,
+    res,
+    `/legal-watch/alerts/${encodeURIComponent(req.params.externalId as string)}`,
+  ),
+);
+app.get("/api/legal-watch/digest", auth, (req, res) =>
+  relayToNode(req, res, withQuery("/legal-watch/digest", req)),
+);
+app.get("/api/legal-watch/unread-count", auth, (req, res) =>
+  relayToNode(req, res, "/legal-watch/unread-count"),
+);
+app.get("/api/legal-watch/status", auth, (req, res) =>
+  relayToNode(req, res, "/legal-watch/status"),
+);
+app.get("/api/legal-watch/config", auth, (req, res) =>
+  relayToNode(req, res, "/legal-watch/config"),
+);
+app.patch("/api/legal-watch/sources/:name", auth, (req, res) =>
+  relayToNode(
+    req,
+    res,
+    `/legal-watch/sources/${encodeURIComponent(req.params.name as string)}`,
+  ),
+);
+app.patch("/api/legal-watch/concepts/:concept", auth, (req, res) =>
+  relayToNode(
+    req,
+    res,
+    `/legal-watch/concepts/${encodeURIComponent(req.params.concept as string)}`,
+  ),
+);
+
 // ─── Administration (gestion des utilisateurs & rôles) ───
 app.get("/api/admin/users", auth, (req, res) =>
   relayToNode(req, res, "/admin/users"),
@@ -1443,6 +1585,33 @@ app.patch("/api/admin/users/:idUser/role", auth, (req, res) =>
     res,
     `/admin/users/${encodeURIComponent(req.params.idUser as string)}/role`,
   ),
+);
+app.get("/api/admin/revenue", auth, (req, res) =>
+  relayToNode(req, res, "/admin/revenue"),
+);
+app.get("/api/admin/users/:idUser/details", auth, (req, res) =>
+  relayToNode(
+    req,
+    res,
+    `/admin/users/${encodeURIComponent(req.params.idUser as string)}/details`,
+  ),
+);
+app.patch("/api/admin/users/:idUser/ban", auth, (req, res) =>
+  relayToNode(
+    req,
+    res,
+    `/admin/users/${encodeURIComponent(req.params.idUser as string)}/ban`,
+  ),
+);
+app.get("/api/admin/feature-usage", auth, (req, res) =>
+  relayToNode(
+    req,
+    res,
+    `/admin/feature-usage${req.query.days ? `?days=${encodeURIComponent(req.query.days as string)}` : ""}`,
+  ),
+);
+app.get("/api/admin/overview", auth, (req, res) =>
+  relayToNode(req, res, "/admin/overview"),
 );
 
 // ─── Négociation (module isolé) ───

@@ -70,7 +70,7 @@ export function Contratheque() {
       tab={tab}
       onTab={setTab}
       canDelete={canDelete}
-      onOpen={(id) => navigate(`/contratheque/${id}`)}
+      onOpen={(id) => navigate(`/contratheque`, )}
       onImport={() => setImporting(true)}
     />
   );

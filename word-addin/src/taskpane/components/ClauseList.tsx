@@ -3,24 +3,35 @@ import { ClauseRisk } from "../core/types";
 
 const riskBadge = (score: number): { label: string; css: string } =>
   score >= 4
-    ? { label: `Risque élevé ${score}/5`, css: "high" }
+    ? { label: `${score}/5`, css: "high" }
     : score >= 3
-      ? { label: `Risque modéré ${score}/5`, css: "medium" }
-      : { label: `Risque faible ${score}/5`, css: "low" };
+      ? { label: `${score}/5`, css: "medium" }
+      : { label: `${score}/5`, css: "low" };
+
+/** Arrière-plan très léger + liseré teintés selon le niveau de risque. */
+const riskTint = (score: number): { background: string; borderLeft: string } =>
+  score >= 4
+    ? { background: "#fef4f4", borderLeft: "3px solid #f0a7a7" }
+    : score >= 3
+      ? { background: "#fffaf0", borderLeft: "3px solid #f3c88a" }
+      : { background: "#fefdf3", borderLeft: "3px solid #eadf9a" };
+
+/** Teinte « appliquée » (verte) : la recommandation a été insérée au document. */
+const appliedTint = { background: "#f0fdf4", borderLeft: "3px solid #86efac" };
 
 interface Props {
   clauses: ClauseRisk[];
   missingIds: string[];
+  appliedIds: string[];
   onOpen: (clause: ClauseRisk) => void;
-  onLocate: (clause: ClauseRisk) => void;
 }
 
 /**
  * Liste des clauses à risque détectées (équivalent ClausesSidebar de la
- * plateforme). Clic sur une carte → fiche détail ; « Voir » → sélectionne la
- * clause surlignée dans le document Word.
+ * plateforme). Clic sur une carte → sélectionne la clause surlignée dans le
+ * document Word ET ouvre sa fiche détail.
  */
-const ClauseList: React.FC<Props> = ({ clauses, missingIds, onOpen, onLocate }) => {
+const ClauseList: React.FC<Props> = ({ clauses, missingIds, appliedIds, onOpen }) => {
   if (clauses.length === 0) return null;
 
   const sorted = [...clauses].sort((a, b) => b.riskScore - a.riskScore);
@@ -30,6 +41,7 @@ const ClauseList: React.FC<Props> = ({ clauses, missingIds, onOpen, onLocate }) 
       {sorted.map((clause) => {
         const badge = riskBadge(clause.riskScore);
         const missing = missingIds.includes(clause.id);
+        const applied = appliedIds.includes(clause.id);
         return (
           <div
             className="lj-card lj-clickable"
@@ -37,27 +49,21 @@ const ClauseList: React.FC<Props> = ({ clauses, missingIds, onOpen, onLocate }) 
             onClick={() => onOpen(clause)}
             role="button"
             tabIndex={0}
+            style={applied ? appliedTint : riskTint(clause.riskScore)}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
               <h3 style={{ margin: 0 }}>{clause.type}</h3>
-              <span className={`lj-badge ${badge.css}`}>{badge.label}</span>
+              {applied ? (
+                <span className="lj-count-badge low" style={{ whiteSpace: "nowrap" }}>✓ Appliquée</span>
+              ) : (
+                <span className={`lj-badge ${badge.css}`}>{badge.label}</span>
+              )}
             </div>
-            <p className="lj-muted" style={{ margin: "6px 0" }}>
-              {clause.content.length > 100 ? `${clause.content.slice(0, 100)}…` : clause.content}
-            </p>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <button
-                className="lj-btn secondary small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onLocate(clause);
-                }}
-                disabled={missing}
-              >
-                📍 Voir dans le document
-              </button>
-              {missing && <span className="lj-muted">Non localisée</span>}
-            </div>
+            {missing && (
+              <span className="lj-muted" style={{ display: "block", marginTop: 6 }}>
+                Non localisée dans le document
+              </span>
+            )}
           </div>
         );
       })}

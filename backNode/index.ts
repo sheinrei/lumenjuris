@@ -21,12 +21,17 @@ import routerContract from "./src/route/apiContract.js";
 import routerClause from "./src/route/apiClause.js";
 import routerAdmin from "./src/route/apiAdmin.js";
 import routerNegotiation from "./src/route/apiNegotiation.js";
+import routerLegalWatch from "./src/route/apiLegalWatch.js";
+
+import routerFeatureEvent from "./src/route/apiFeatureEvent.js";
 import cors from "cors";
 import { seedBootstrapUsers } from "./src/services/bootstrapUsers.js";
 import { seedPlans } from "./src/services/planSeeder.js";
 import { Mailer } from "./src/infrastructure/mailer/classMailer.js";
 import { globalLimiter } from "./src/securite/limiter.js";
 // import { internalApiKeyMiddleware } from "./middleware/internalApiKeyMiddleware";
+
+
 /**
  * Préparation du serveur nodejs/express pour ce backend
  * Ici sera traité toute les opérations avec la base de données
@@ -69,6 +74,7 @@ app.use("/contract-history", routerContractHistory);
 app.use("/chat-history", routerChatHistory);
 app.use("/billing", routerBilling);
 app.use("/veille", routerVeille);
+app.use("/legal-watch", routerLegalWatch);
 app.use("/user-uploads", routerUserUploads);
 app.use("/feedback", routerFeedback);
 app.use("/template", routerTemplate);
@@ -76,6 +82,7 @@ app.use("/signature-envelope", routerSignature);
 app.use("/contract", routerContract);
 app.use("/clause", routerClause);
 app.use("/admin", routerAdmin);
+app.use("/feature-event", routerFeatureEvent);
 app.use("/negotiation", routerNegotiation);
 
 app.get("/health", (req: Request, res: Response) => {
@@ -100,6 +107,7 @@ async function sandbox() {
 
 app.listen(port, async () => {
   console.log(`Serveur backend nodejs running on port ${port}`);
+  
   try {
     await seedBootstrapUsers();
     new Mailer("l.beaute@laposte.net").initTransporter();

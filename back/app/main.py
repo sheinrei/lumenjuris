@@ -46,6 +46,8 @@ else:
         _openai_client,
     )
 
+from back.legal_watch.router import router as legal_watch_router
+
 from .logging_setup import setup_logging
 import logging
 
@@ -54,6 +56,9 @@ setup_logging("INFO")
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+# Veille juridique (ingestion Judilibre + enrichissement LLM — stateless)
+app.include_router(legal_watch_router)
 
 
 app.add_middleware(
