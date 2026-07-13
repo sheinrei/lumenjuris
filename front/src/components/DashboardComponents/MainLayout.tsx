@@ -16,7 +16,8 @@ import {
   PanelLeft,
   X,
   Sparkles,
-  ShieldHalf
+  ShieldHalf,
+  User
 } from "lucide-react";
 
 import HeaderNavigationBar from "../MainHeader/HeaderNavigationBar";
@@ -64,6 +65,7 @@ const navItems: NavItem[] = [
   { icon: ShieldCheck, label: "Analyse des risques", path: "/conformite" },
   { icon: MessageSquare, label: "Chat juridique", path: "/chatjuridique" },
   { icon: Newspaper, label: "Veille", path: "/veille", notificationKey: "legalWatchUnread" },
+  { icon: User, label: "Votre cluster", path:"/cluster" }
 
 ];
 

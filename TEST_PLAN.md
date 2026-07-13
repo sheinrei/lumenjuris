@@ -27,7 +27,7 @@
 11. [Veille juridique](#11--veille-juridique)
 12. [Profil & Entreprise](#12--profil--entreprise)
 13. [Facturation & Abonnements](#13--facturation--abonnements)
-14. [Crédits](#14--crédits)
+14. [Crédits](#14--crédits-!Suspendu!)
 15. [Monitoring admin — Vue d'ensemble](#15--monitoring-admin--vue-densemble)
 16. [Monitoring admin — LLM Usage](#16--monitoring-admin--llm-usage)
 17. [Monitoring admin — Feedbacks](#17--monitoring-admin--feedbacks)
@@ -42,48 +42,95 @@
 
 ## 1 — Authentification
 
-Pages : `page/Inscription.tsx`, `components/auth/LoginForm.tsx`, `components/auth/SignupForm.tsx`, `page/VerifyAccount.tsx`, `page/ResetPassword.tsx`, `components/ui/TwoFactorCodeModal.tsx`.
-Endpoints : `POST /api/signup`, `POST /api/user/auth/login`, `POST /api/user/auth/logout`, `POST /api/user/two-factor/verify`, `POST /api/auth/forgotpassword`, `POST /api/user/resetpassword`, `GET /api/google`, `GET /api/insee/:siren`.
+Pages : 
+`page/Inscription.tsx`,
+`components/auth/LoginForm.tsx`,
+`components/auth/SignupForm.tsx`,
+`page/VerifyAccount.tsx`,
+`page/ResetPassword.tsx`,
+`components/ui/TwoFactorCodeModal.tsx`
+Endpoints : 
+`POST /api/signup`,
+`POST /api/user/auth/login`,
+`POST /api/user/auth/logout`,
+`POST /api/user/two-factor/verify`,
+`POST /api/auth/forgotpassword`,
+`POST /api/user/resetpassword`,
+`GET /api/google`,
+`GET /api/insee/:siren`.
 
 - [ ] 🔴 **Inscription — création de compte** — Formulaire `SignupForm`, soumission vers `POST /api/signup`.
   - Chemin heureux : nom + email + mot de passe valides + CGU cochées → compte créé, email de vérification envoyé, message de succès affiché.
   - Cas limite : champ manquant (nom/email/mdp) → `submitError` ; CGU non cochée → `submitCguError` ; email déjà existant → message serveur ; mot de passe faible (regex `azertyuioP1.` attendue) → refus backend 400.
 
+
+
+
+
 - [ ] 🟠 **Inscription — enrichissement SIREN (INSEE)** — Lookup best-effort `GET /api/insee/:siren` avant `signup`.
   - Chemin heureux : SIREN valide → `enterpriseData` récupéré et joint au payload d'inscription.
   - Cas limite : SIREN invalide/introuvable → inscription continue **sans** données entreprise (best-effort, aucune erreur bloquante) ; INSEE indisponible (502) → idem.
+
+
+
+
 
 - [ ] 🔴 **Connexion email/mot de passe** — `LoginForm` → `POST /api/user/auth/login`.
   - Chemin heureux : identifiants valides, compte vérifié, sans 2FA → cookie JWT posé, redirection `/dashboard` (ou `/souscription` si `plan` en `location.state`).
   - Cas limite : mauvais mot de passe → `serverError` + message ; compte non vérifié (`isVerified=false`) → alerte « cliquez sur le lien reçu » ; champs vides → `submitError`.
 
+
+
+
+
 - [ ] 🔴 **Connexion — 2FA requis** — `twoFactorRequired` → ouverture `TwoFactorCodeModal`, vérification via `POST /api/user/two-factor/verify`.
   - Chemin heureux : code correct → `fetchUser()` + navigation `/dashboard`.
   - Cas limite : code erroné → throw « Code invalide » affiché dans la modale ; annulation de la modale → `POST /api/user/auth/logout` (invalide la session partielle).
+
+
+
 
 - [ ] 🔴 **Connexion Google OAuth** — Bouton Google → redirection `window.location = PROXY_URL/api/google` → `GET /auth/google` (backNode) → callback → cookie JWT.
   - Chemin heureux : compte Google autorisé → cookie posé, redirection `/analyzer`.
   - Cas limite : `state` CSRF invalide au callback → rejet ; refus de consentement Google → retour sans session.
 
+
+
+
 - [ ] 🔴 **Vérification email** — Lien reçu par email `GET /user/verify/:token` (backNode direct, hors proxy).
   - Chemin heureux : token valide → `isVerified=true`, cookie auth posé, plan freemium activé, redirection `/dashboard?verified=true`.
   - Cas limite : token expiré/déjà utilisé → redirection `/verify-account?reason=...` ; token inexistant → `reason=server`.
+
+
 
 - [ ] 🟠 **Renvoi de l'email de vérification** — Page `VerifyAccount`, bouton « Envoyer un nouvel e-mail ».
   - Chemin heureux : email saisi → appel réseau, message de confirmation.
   - Cas limite : ⚠️ **BUG** — l'appel `fetchProxy("user/resend-verify")` n'a pas de préfixe `/api` et **aucune route proxy/backNode ne correspond** → l'endpoint est mort (voir section Routes sans interface). Vérifier que l'utilisateur reçoit bien un message, mais qu'aucun email n'est réellement renvoyé.
 
+
+
+
 - [ ] 🔴 **Mot de passe oublié** — Mode `forgotPassword` du `LoginForm` → `POST /api/auth/forgotpassword`.
   - Chemin heureux : email existant → email de réinitialisation envoyé, alerte de succès (best-effort, ne révèle pas l'existence du compte).
   - Cas limite : email vide → `submitForgotError` ; email inexistant → **même** réponse de succès (anti-énumération) ; rate-limit `forgotPasswordLimiter` (3/15 min en prod) → 429.
+
+
+
 
 - [ ] 🔴 **Réinitialisation du mot de passe** — Page `ResetPassword` → `POST /api/user/resetpassword` (`/user/updatepassword` backNode).
   - Chemin heureux : token valide + nouveau mot de passe conforme → mot de passe mis à jour, redirection connexion.
   - Cas limite : token expiré/invalide → erreur ; mot de passe non conforme à la politique → 400 ; confirmation différente du mot de passe → validation front.
 
+
+
+
+
 - [ ] 🔴 **Déconnexion** — `userStore.logoutUser()` → `POST /api/user/auth/logout`.
   - Chemin heureux : cookie `authLumenJuris` vidé (maxAge 0), store réinitialisé, redirection.
   - Cas limite : appel sans session active → réponse 401/200 idempotente, pas de crash front.
+
+
+
 
 - [ ] 🟡 **Rate limiting connexion/inscription** — `loginLimiter` (7/15 min), `registerLimiter` (3/h) en prod.
   - Chemin heureux : sous le seuil → normal.
@@ -91,9 +138,19 @@ Endpoints : `POST /api/signup`, `POST /api/user/auth/login`, `POST /api/user/aut
 
 ---
 
+
+
+
+
+
 ## 2 — Navigation & layout
 
-Composants : `components/MainHeader/MainHeader.tsx`, `HeaderNavigationBar.tsx`, `DashboardComponents/MainLayout.tsx`, `components/auth/RequireAuth.tsx`, `router.tsx`.
+Composants : 
+`components/MainHeader/MainHeader.tsx`,
+`HeaderNavigationBar.tsx`,
+`DashboardComponents/MainLayout.tsx`,
+`components/auth/RequireAuth.tsx`,
+`router.tsx`.
 
 - [ ] 🔴 **Garde de route `RequireAuth`** — Wrapper des routes protégées.
   - Chemin heureux : `authStatus=authenticated` → rend la page ; `idle`/`loading` → écran « Chargement… » (anti-flash).
@@ -519,6 +576,10 @@ Endpoints : `POST /api/billing/customer`, `POST /api/billing/payment-intent`, `G
 
 ## 14 — Crédits
 
+### Note 
+L'utilisation des crédits n'est pas forcement implémenté partout, ignorer cette liste qui sera a effectué après la
+mise en place des credits sur l'ensemble de l'application
+
 Composants : `common/CreditBar.tsx`, `SubscriptionComponents/CreditsPanel.tsx`, `common/AlertBanner.tsx`.
 Endpoints : `GET /api/billing/credits`, `PUT /api/billing/add-credits`, `PUT /api/billing/remove-credits`. Modèle : `UserCredit` (`creditIncluded` + `creditAdded`).
 
@@ -672,7 +733,7 @@ Endpoint : `GET /api/admin/revenue`.
 Composant : `MonitoringComponents/ActivitySection.tsx` (onglet « Activité »).
 Endpoint : `GET /api/admin/feature-usage?days=`.
 
-- [ ] 🟠 **Graphique d'usage des features (barres empilées)** — `GET /api/admin/feature-usage?days=N` (Recharts, `FeatureUsage`).
+- [ ] 🟠 **Graphique d'usage des features ** — `GET /api/admin/feature-usage?days=N` (Recharts, `FeatureUsage`).
   - Chemin heureux : timeline empilée par feature (analyze_contract, chat, generate_contract, import_template, market_analysis, recommend_clause, etc.).
   - Cas limite : période sans usage → graphe vide ; non-admin → 403.
 
@@ -740,7 +801,7 @@ Fichiers : `backNode/src/middleware/authMiddleware.ts`, `proxy/src/middleware/au
 
 ---
 
-## 22 — Modules additionnels découverts
+## 22 — Modules additionnels 
 
 Fonctionnalités présentes dans le code mais hors de la liste initiale des 21 modules.
 

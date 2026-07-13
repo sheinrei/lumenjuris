@@ -31,6 +31,7 @@ import { useUserStore } from "./store/userStore";
 import { usePreferencesStore } from "./store/preferencesStore";
 import { SignerPage } from "./page/SignerPage";
 
+import { ClusterUserPage } from "./page/ClusterEnterprise";
 
 import { usePageLoaded } from "./hooks/usePageLoaded";
 import { Loader } from "./components/common/Loader";
@@ -67,8 +68,8 @@ export function App() {
     document.body.classList.toggle("dyslexic-font", isDyslexicMode);
   }, [isDyslexicMode]);
 
-  useEffect(()=>{
-    if(pageReady) setTimeout(()=>setShowLoaderPage(false), 400)
+  useEffect(() => {
+    if (pageReady) setTimeout(() => setShowLoaderPage(false), 400)
   }, [pageReady])
 
 
@@ -118,15 +119,18 @@ export function App() {
           <Route path="/conformite" element={<Conformite />} />
           <Route path="/mon-compte" element={<ParamCompte />} />
           <Route path="/analyzer" element={<ContractAnalysis />} />
+
+          {/* Page de gestion d'un cluster pour les multi user */}
+          <Route path="/cluster" element={<ClusterUserPage />} />
+
+
+        <Route path="/monitoring" element={<Monitoring /> } />
         </Route>
 
 
+
         <Route path="/sandbox" element={<RequireAuth> <Sandbox /> </RequireAuth>} />
-
         <Route path="/inscription" element={<Inscription />} />
-
-        <Route path="/monitoring" element={<RequireAuth>  <Monitoring /> </RequireAuth>} />
-
         <Route path="/verify-account" element={<VerifyAccount />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/souscription" element={<Subscription />} />
@@ -137,6 +141,8 @@ export function App() {
         {/* Page publique de négociation pour un invité externe — sans auth */}
         <Route path="/negociation-invite/:token" element={<NegotiationGuest />} />
       </Routes>
+
+
     </>
   );
 }
