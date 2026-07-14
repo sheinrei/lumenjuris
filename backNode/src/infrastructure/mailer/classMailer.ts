@@ -4,6 +4,8 @@ import { templateResetPassword } from "./template/resetPassword.js";
 import { templateTwoFactor } from "./template/twoFactor.js";
 import { templateInvoiceEmail } from "./template/invoiceEmail.js";
 import { templateWelcomeFreemium } from "./template/welcomeFreemium.js";
+import { templateSignatureInvite } from "./template/signatureInvite.js";
+import { templateSignatureCompletion } from "./template/signatureCompletion.js";
 import { generateInvoicePDF, type InvoiceData } from "../pdf/invoicePDF.js";
 
 
@@ -57,11 +59,13 @@ export class Mailer {
     html: string,
     subject: string,
     attachments?: Array<{ filename: string; content: Buffer; contentType: string }>,
+    cc?: string,
   ) {
     const textBrutFallback = html.replace(/<[^>]*>/g, "");
     return {
       from: '"Lumen Juris" <no-reply@lumenjuris.com>',
       to: this.email,
+      ...(cc ? { cc } : {}),
       subject,
       text: textBrutFallback,
       html,
@@ -303,6 +307,94 @@ export class Mailer {
       return {
         success: true,
         message: `La facture ${invoiceData.invoiceNumber} a été envoyée à ${this.email}.`,
+      };
+    } catch (err) {
+      return this.errorCatching(err);
+    }
+  }
+
+  /**
+   * Invitation à signer un document (envoyée au cocontractant). `cc` permet de
+   * mettre l'émetteur en copie.
+   */
+  async sendSignatureInvite(opts: {
+    counterpartyName: string;
+    documentName: string;
+    signingLink: string;
+    cc?: string;
+  }) {
+    try {
+      const html = this.createHtmlFullContent(
+        templateSignatureInvite(opts.counterpartyName, opts.documentName, opts.signingLink),
+      );
+      const mailOptions = this.createOption(
+        html,
+        `Document à signer — ${opts.documentName}`,
+        undefined,
+        opts.cc,
+      );
+      const sending = await transporter.sendMail(mailOptions);
+
+      if (!sending.messageId) {
+        throw new Error(
+          `Echec lors de l'envoi de l'invitation à signer, messageId indisponible.\n ${sending}`,
+        );
+      }
+      return {
+        success: true,
+        message: `Une invitation à signer a été envoyée à ${this.email}.`,
+      };
+    } catch (err) {
+      return this.errorCatching(err);
+    }
+  }
+
+  /**
+   * Confirmation envoyée à une partie une fois le document signé par les deux
+   * parties. Le PDF signé peut être joint (`pdf`).
+   */
+  async sendSignatureCompletion(opts: {
+    recipientName: string;
+    documentName: string;
+    selfLabel: string;
+    counterpartyName: string;
+    signedDate?: Date;
+    pdf?: { filename: string; content: Buffer };
+  }) {
+    try {
+      const dateStr = (opts.signedDate ?? new Date()).toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+      const html = this.createHtmlFullContent(
+        templateSignatureCompletion(
+          opts.recipientName,
+          opts.documentName,
+          opts.selfLabel,
+          opts.counterpartyName,
+          dateStr,
+          !!opts.pdf,
+        ),
+      );
+      const attachments = opts.pdf
+        ? [{ filename: opts.pdf.filename, content: opts.pdf.content, contentType: "application/pdf" }]
+        : undefined;
+      const mailOptions = this.createOption(
+        html,
+        `Document signé — ${opts.documentName}`,
+        attachments,
+      );
+      const sending = await transporter.sendMail(mailOptions);
+
+      if (!sending.messageId) {
+        throw new Error(
+          `Echec lors de l'envoi de la confirmation de signature, messageId indisponible.\n ${sending}`,
+        );
+      }
+      return {
+        success: true,
+        message: `La confirmation de signature a été envoyée à ${this.email}.`,
       };
     } catch (err) {
       return this.errorCatching(err);
