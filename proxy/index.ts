@@ -698,6 +698,16 @@ function handleSignatureDelete(req: Request, res: Response): void {
   relayToNode(req, res, `/signature-envelope/${id}`);
 }
 
+function handleSignatureDownload(req: Request, res: Response): void {
+  const id = encodeURIComponent(req.params.externalId as string);
+  // Réponse binaire (PDF) → passthrough raw, pas d'enveloppe JSON.
+  relayToNodeRaw(req, res, `/signature-envelope/download/${id}`);
+}
+
+function handleSignatureResend(req: Request, res: Response): void {
+  relayToNode(req, res, `/signature-envelope/resend`);
+}
+
 // ─── Génération d'un contrat à partir d'un modèle ──────────────────────────────
 
 const GENERATE_PROMPT_BASE = `Tu es un juriste expert en droit français. À partir du modèle de contrat ci-dessous (dont les variables ont déjà été remplacées par les valeurs fournies par le juriste), produis le contrat final en respectant SCRUPULEUSEMENT ces règles :
@@ -1109,6 +1119,8 @@ app.post("/api/signature-envelope", auth, (req, res) => {
   void trackFeature("esignature", res.locals.userId as number | undefined);
   handleSignatureCreate(req, res);
 });
+app.post("/api/signature-envelope/resend", auth, handleSignatureResend);
+app.get("/api/signature-envelope/download/:externalId", auth, handleSignatureDownload);
 app.delete("/api/signature-envelope/:externalId", auth, handleSignatureDelete);
 
 // Signature électronique (routes PUBLIQUES — pas d'auth, token dans l'URL)

@@ -346,4 +346,76 @@ router.post("/public/:token", async (req: Request, res: Response) => {
     }
 })
 
+
+/**
+ * GET /download/:externalId
+ * Renvoie le contrat « aplati » (PDF original + signatures incrustées) afin que
+ * l'utilisateur puisse le télécharger. Le PDF est généré à la volée : les
+ * signatures ne sont jamais stockées fusionnées sur disque.
+ */
+router.get("/download/:externalId", authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.idUser)
+        const externalId = req.params["externalId"] as string
+
+        const result = await svc.generateSignedPdf(userId, externalId)
+        if (!result) {
+            return res.status(404).json({ success: false, message: "Enveloppe introuvable ou document manquant." })
+        }
+
+        // Nom de fichier propre : on retire l'extension et les caractères gênants.
+        const baseName = result.documentName.replace(/\.pdf$/i, "").replace(/[^\w.\- ]+/g, "_").trim() || "document"
+        res.setHeader("Content-Type", "application/pdf")
+        res.setHeader("Content-Disposition", `attachment; filename="${baseName}_signe.pdf"`)
+        return res.send(result.buffer)
+    } catch (err: unknown) {
+        console.error("[Signature-download] - Une erreur est survenue lors de la route backend err:", err)
+        return res.status(500).json({ success: false, message: "Erreur serveur." })
+    }
+})
+
+/**
+ * POST /resend
+ * Renvoie l'email d'invitation à signer au cocontractant pour une enveloppe
+ * existante. Bloqué si le document est déjà signé par les deux parties.
+ */
+router.post("/resend", authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.idUser)
+        const { externalId } = req.body as { externalId?: string }
+        if (!externalId) {
+            return res.status(400).json({ success: false, message: "externalId requis." })
+        }
+
+        const envelope = await svc.get(userId, externalId)
+        if (!envelope) {
+            return res.status(404).json({ success: false, message: "Enveloppe introuvable." })
+        }
+
+        const { meta } = envelope
+        // On bloque le renvoi si le document est déjà signé par les deux parties.
+        if (meta.status === "SIGNED") {
+            return res.status(409).json({ success: false, message: "Ce document est déjà signé par les deux parties." })
+        }
+
+        // Réutilise le lien + l'email d'invitation de la création. L'email de
+        // l'émetteur (CC) est repris depuis l'enveloppe (selfEmail) plutôt que
+        // du token courant, pour rester fiable dans le temps.
+        const frontUrl = process.env["HOST_FRONT"] ?? "http://localhost:5173"
+        const signingLink = `${frontUrl}/signer/${meta.signingToken}`
+
+        sendSignatureInvite({
+            senderEmail: meta.selfEmail || process.env["MAILER_USER"] || "",
+            counterpartyName: meta.counterpartyName,
+            counterpartyEmail: meta.counterpartyEmail,
+            documentName: meta.documentName,
+            signingLink,
+        })
+
+        return res.json({ success: true })
+    } catch (err: unknown) {
+        console.error("[Signature] - Une erreur backend est survenue lors du resend d'une enveloppe, error : ", err)
+        return res.status(500).json({ success: false, message: "Erreur serveur." })
+    }
+})
 export default router

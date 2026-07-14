@@ -511,8 +511,8 @@ model SignatureEnvelope {
   @@index([status])
 }
 
-// --- ASSETS UTILISATEUR (filigranes) ---
 
+// --- ASSETS UTILISATEUR (filigranes) ---
 /// Images uploadées par l'utilisateur (ex : filigrane sur contrats exportés), stockées en JSON.
 model UserUpload {
   idUserUpload    Int    @id @default(autoincrement())

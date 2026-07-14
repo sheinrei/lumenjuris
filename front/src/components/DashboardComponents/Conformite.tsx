@@ -72,7 +72,7 @@ export function Conformite() {
     loadContractHistoryIndex().then(setHistory).catch(() => { });
   }, []);
 
-  const handleOpen = (id: string) => {
+  const handleOpenAnalyzer = (id: string) => {
     console.log("Id du contract à ouvrir :", id)
     navigate(`/analyzer`, { state: { historyId: id } });
   };
@@ -224,7 +224,7 @@ export function Conformite() {
                   <tr
                     key={item.id}
                     className="hover:bg-surface-subtle/60 transition-all group cursor-pointer"
-                    onClick={() => handleOpen(item.id)}
+                    onClick={() => handleOpenAnalyzer(item.id)}
                   >
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
@@ -271,16 +271,6 @@ export function Conformite() {
                         className="relative inline-flex items-center gap-2"
                         onClick={(e) => e.stopPropagation()}
                       >
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleOpen(item.id)}
-                          }
-                          className="text-brand font-semibold text-xs hover:underline underline-offset-4 opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          Ouvrir
-                        </button>
                         <button
                           onClick={() => handleAddToContratheque(item)}
                           disabled={addState[item.id] === "saving"}
@@ -319,7 +309,7 @@ export function Conformite() {
                             </button>
 
                             <button
-                              onClick={() => handleOpen(item.id)}
+                              onClick={() => handleOpenAnalyzer(item.id)}
                               className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-brand hover:bg-brand/10 transition-colors"
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
