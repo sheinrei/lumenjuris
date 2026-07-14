@@ -1086,6 +1086,8 @@ app.post("/api/billing/payment-intent", auth, handleBillingPaymentIntent);
 app.get("/api/billing/plans", auth, handleBillingPlans);
 app.post("/api/billing/subscription", auth, handleBillingSubscription);
 app.get("/api/billing/subscription", auth, handleBillingSubscription);
+app.get("/api/billing/invoices", auth, (req, res) => relayToNode(req, res, "/billing/invoices"));
+app.get("/api/billing/invoices/:idFacture/pdf", auth, (req, res) => relayToNodeRaw(req, res, `/billing/invoices/${encodeURIComponent(req.params.idFacture as string)}/pdf`));
 app.post("/api/billing/payment-failed", auth, handleBillingPaymentFailed);
 app.put("/api/billing/add-credits", auth, handleBillingAddCredits);
 app.put("/api/billing/remove-credits", auth, handleBillingRemoveCredits);
