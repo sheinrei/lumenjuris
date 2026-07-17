@@ -123,13 +123,13 @@ Réponds UNIQUEMENT avec le JSON complet et valide.`;
   try {
     const txt = await callOpenAI([{ role: "user", content: prompt }], {
       model: "gpt-4o",
-      temperature: 0.1,
-      max_tokens: 1500,
+      temperature: 0.15,
+      max_tokens: 3500,
       response_format: { type: "json_object" },
     });
 
     const result = JSON.parse(txt);
-
+    console.log(result)
     return {
       clausesManquantes: result.clausesManquantes || [],
     };
