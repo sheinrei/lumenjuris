@@ -66,7 +66,7 @@ router.patch("/users/:idUser/role", authMiddleware, requireAdmin, async (req: Re
     }
 })
 
-/** GET /admin/revenue — vue d'ensemble des revenus (abonnements + factures). */
+/** GET /admin/revenue — tableau de bord financier (abonnements, factures, KPIs, MRR). */
 router.get("/revenue", authMiddleware, requireAdmin, async (_req: Request, res: Response) => {
     try {
         const subscriptions = await prisma.subscription.findMany({
@@ -78,20 +78,46 @@ router.get("/revenue", authMiddleware, requireAdmin, async (_req: Request, res: 
             orderBy: { startAt: "desc" },
         })
 
-        const totalRevenue = await prisma.facture.aggregate({ _sum: { price: true } })
+        // Seuls les paiements réussis comptent dans les revenus.
+        const PAID = { status: "PAID" } as const
 
-        const activeCount = await prisma.subscription.count({ where: { status: "ACTIVE" } })
+        const now = new Date()
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const dayOfWeek = startOfToday.getDay()
+        const startOfWeek = new Date(startOfToday)
+        startOfWeek.setDate(startOfToday.getDate() + (dayOfWeek === 0 ? -6 : 1 - dayOfWeek))
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
 
-        // Revenus groupés par nom de plan
+        const [totalRevenue, revenueToday, revenueWeek, revenueMonth, activeCount] = await Promise.all([
+            prisma.facture.aggregate({ _sum: { price: true }, where: PAID }),
+            prisma.facture.aggregate({ _sum: { price: true }, where: { ...PAID, createdAt: { gte: startOfToday } } }),
+            prisma.facture.aggregate({ _sum: { price: true }, where: { ...PAID, createdAt: { gte: startOfWeek } } }),
+            prisma.facture.aggregate({ _sum: { price: true }, where: { ...PAID, createdAt: { gte: startOfMonth } } }),
+            prisma.subscription.count({ where: { status: "ACTIVE" } }),
+        ])
+
+        // MRR : somme des plans actifs normalisée au mois (annuel → price / 12).
+        const activeSubs = subscriptions.filter((s) => s.status === "ACTIVE")
+        const monthlyOf = (subs: typeof activeSubs) =>
+            subs.reduce((sum, s) => sum + (s.plan.interval === "year" ? s.plan.price / 12 : s.plan.price), 0)
+        const mrr = Math.round(monthlyOf(activeSubs))
+        // Prévision : abonnements actifs encore valides au début du mois prochain
+        // (scénario "aucun renouvellement, aucune nouvelle souscription").
+        const mrrForecast = Math.round(monthlyOf(activeSubs.filter((s) => s.expiresAt > startOfNextMonth)))
+
+        // Revenus groupés par nom de plan (paiements réussis uniquement)
         const revenueByPlan: Record<string, { count: number; revenue: number }> = {}
         for (const sub of subscriptions) {
             const planName = sub.plan.name
             if (!revenueByPlan[planName]) revenueByPlan[planName] = { count: 0, revenue: 0 }
             if (sub.status === "ACTIVE") revenueByPlan[planName].count++
-            revenueByPlan[planName].revenue += sub.facture.reduce((s, f) => s + f.price, 0)
+            revenueByPlan[planName].revenue += sub.facture
+                .filter((f) => f.status !== "FAILED")
+                .reduce((s, f) => s + f.price, 0)
         }
 
-        // Dernières factures (30 dernières)
+        // Dernières factures (30 dernières, échecs inclus — le front affiche le statut)
         const recentFactures = await prisma.facture.findMany({
             take: 30,
             orderBy: { createdAt: "desc" },
@@ -113,6 +139,14 @@ router.get("/revenue", authMiddleware, requireAdmin, async (_req: Request, res: 
                 activeCount,
                 revenueByPlan,
                 recentFactures,
+                kpis: {
+                    revenueToday: Number(revenueToday._sum.price ?? 0),
+                    revenueWeek: Number(revenueWeek._sum.price ?? 0),
+                    revenueMonth: Number(revenueMonth._sum.price ?? 0),
+                    mrr,
+                    mrrForecast,
+                    activeCount,
+                },
             },
         })
     } catch (err) {
@@ -177,13 +211,12 @@ router.get("/feature-usage", authMiddleware, requireAdmin, async (req: Request, 
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([date, counts]) => ({ date, ...counts }))
 
-        // 3. Top 10 utilisateurs
+        // 3. Tous les utilisateurs actifs sur la période (triés par volume)
         const userGroups = await prisma.featureUsage.groupBy({
             by: ["userId"],
             where: { createdAt: { gte: since }, userId: { not: null } },
             _count: { id: true },
             orderBy: { _count: { id: "desc" } },
-            take: 10,
         })
         const userIds = userGroups.map((g) => g.userId!).filter(Boolean)
         const [users, userFeatures] = await Promise.all([
@@ -221,6 +254,69 @@ router.get("/feature-usage", authMiddleware, requireAdmin, async (req: Request, 
     }
 })
 
+/** GET /admin/feature-usage/users/:idUser — détail complet de l'activité d'un utilisateur. */
+router.get("/feature-usage/users/:idUser", authMiddleware, requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const targetId = Number(req.params["idUser"])
+        if (Number.isNaN(targetId)) {
+            return res.status(400).json({ success: false, message: "ID invalide." })
+        }
+        const days = Math.min(Math.max(Number(req.query["days"]) || 30, 1), 1825)
+        const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+
+        const user = await prisma.user.findUnique({
+            where: { idUser: targetId },
+            select: { idUser: true, email: true, nom: true, prenom: true, role: true, isBanned: true },
+        })
+        if (!user) return res.status(404).json({ success: false, message: "Utilisateur introuvable." })
+
+        const events = await prisma.featureUsage.findMany({
+            where: { userId: targetId, createdAt: { gte: since } },
+            select: { feature: true, createdAt: true },
+            orderBy: { createdAt: "asc" },
+        })
+
+        // Résumé par feature + agrégation timeline par jour
+        const byFeature: Record<string, number> = {}
+        const byDay: Record<string, Record<string, number>> = {}
+        for (const e of events) {
+            byFeature[e.feature] = (byFeature[e.feature] ?? 0) + 1
+            const day = e.createdAt.toISOString().slice(0, 10)
+            if (!byDay[day]) byDay[day] = {}
+            byDay[day][e.feature] = (byDay[day][e.feature] ?? 0) + 1
+        }
+        const summary = Object.entries(byFeature)
+            .map(([feature, count]) => ({ feature, count }))
+            .sort((a, b) => b.count - a.count)
+        const timeline = Object.entries(byDay)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([date, counts]) => ({ date, ...counts }))
+
+        // 50 derniers événements (les plus récents en premier)
+        const recentEvents = events
+            .slice(-50)
+            .reverse()
+            .map((e) => ({ feature: e.feature, createdAt: e.createdAt }))
+
+        return res.json({
+            success: true,
+            data: {
+                user,
+                total: events.length,
+                firstActivity: events[0]?.createdAt ?? null,
+                lastActivity: events[events.length - 1]?.createdAt ?? null,
+                summary,
+                timeline,
+                recentEvents,
+                days,
+            },
+        })
+    } catch (err) {
+        console.error("[admin] feature-usage user detail error:", err)
+        return res.status(500).json({ success: false, message: "Erreur serveur." })
+    }
+})
+
 /** GET /admin/users/:idUser/details — profil complet d'un utilisateur. */
 router.get("/users/:idUser/details", authMiddleware, requireAdmin, async (req: Request, res: Response) => {
     try {
@@ -245,7 +341,7 @@ router.get("/users/:idUser/details", authMiddleware, requireAdmin, async (req: R
                         startAt: true,
                         expiresAt: true,
                         plan: { select: { name: true, price: true, interval: true, creditIncluded: true } },
-                        facture: { select: { price: true } },
+                        facture: { select: { price: true }, where: { status: "PAID" } },
                     },
                 },
                 enterprise: {

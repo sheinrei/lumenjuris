@@ -56,5 +56,7 @@ export async function performCompleteMarketAnalysis(
     }),
   });
   if (!res.ok) throw new Error(`market-analysis error ${res.status}`);
-  return (await res.json()) as MarketAnalysisResult;
+  const data = await res.json();
+  console.log("retour de l'analyse des clauses manquantes", data)
+  return data as MarketAnalysisResult;
 }

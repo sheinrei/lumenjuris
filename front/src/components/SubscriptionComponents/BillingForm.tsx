@@ -113,6 +113,24 @@ async function saveSubscription(
 }
 
 /**
+ * Signale au backend une tentative de paiement échouée (suivi admin).
+ * Best-effort : fire-and-forget, n'impacte jamais le parcours utilisateur.
+ */
+function reportPaymentFailure(
+  amount: number,
+  stripePaymentIntentId: string,
+): void {
+  void fetchProxy("/api/billing/payment-failed", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ amount, stripePaymentIntentId }),
+  }).catch((err) =>
+    console.error("Erreur lors du signalement du paiement échoué:", err),
+  );
+}
+
+/**
  * Crédite le compte de l'utilisateur après un paiement réussi.
  * Best-effort : l'erreur est loguée sans interrompre le flux.
  */
@@ -222,6 +240,7 @@ export function BillingForm({
 
     if (confirmError) {
       setError(confirmError.message ?? "Le paiement a échoué. Réessayez.");
+      reportPaymentFailure(paymentAmount, clientSecret.split("_secret_")[0]);
       setIsLoading(false);
       onError?.();
       return;

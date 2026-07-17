@@ -6,7 +6,6 @@ import {
   DocumentViewer,
   DocumentViewerRef,
 } from "../components/ContractAnalysis/DocumentViewer";
-import { AddToContrathequeButton } from "../components/ContractAnalysis/AddToContrathequeButton";
 
 // ===> ACTION 3 : CORRIGER L'IMPORT ICI
 import { EnhancedClauseDetail } from "../components/ContractAnalysis/EnhancedClauseDetail/EnhancedClauseDetail";
@@ -530,6 +529,10 @@ export default function ContractAnalysis() {
     }
   };
 
+
+
+
+  //Bouton d'ajout d'une nouvelle clause depuis la modale "Clauses suggérées"
   const handleAppendClause = (clause: MissingClause) => {
     let titreClause = clause.titreSuggestion;
     let texteClause = clause.corpsSuggestion;
@@ -1172,6 +1175,17 @@ export default function ContractAnalysis() {
 
   const clauseData = contract?.clauses.find((c) => c.id === selectedClause);
 
+
+
+
+
+
+
+
+
+  /**
+   * Retour du JSX
+   */
   return (
     <>
       <div className="-m-5 lg:-m-7 px-4 py-8 overflow-x-hidden">
@@ -1257,6 +1271,9 @@ export default function ContractAnalysis() {
                       isRelaunchingAnalysis={displayedIsProcessing}
                       onSuggestedClauses={handleMarketAnalysisClick}
                       isLoadingSuggested={isMarketAnalysisLoading}
+
+                      contract={contract}
+                      context={currentAnalysisContext ?? undefined}
                     />
                   </div>
                   <DocumentViewer

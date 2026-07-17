@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { BarChart2, MessageSquare, Users, TrendingUp, Activity, LayoutDashboard } from "lucide-react";
-import MainHeader from "../components/MainHeader/MainHeader";
 import { useUserStore } from "../store/userStore";
 import { Navigate } from "react-router-dom";
 import { LlmUsageSection } from "../components/MonitoringComponents/LlmUsageSection";
@@ -42,7 +41,6 @@ export const Monitoring = () => {
 
   return (
     <>
-      <MainHeader />
 
       <div className="min-h-[calc(100vh-64px)] bg-gray-50/50">
         <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">

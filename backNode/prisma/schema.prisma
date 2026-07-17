@@ -376,10 +376,12 @@ model Plan {
 }
 
 /// Facture générée pour un abonnement, associée à une transaction Stripe.
+/// `status` : "PAID" (paiement réussi) ou "FAILED" (tentative échouée, montant non encaissé).
 model Facture {
   idFacture       Int      @id @default(autoincrement())
   price           Int
   stripeInvoiceId String
+  status          String   @default("PAID")
   createdAt       DateTime @default(now())
 
   //relation
@@ -509,8 +511,8 @@ model SignatureEnvelope {
   @@index([status])
 }
 
-// --- ASSETS UTILISATEUR (filigranes) ---
 
+// --- ASSETS UTILISATEUR (filigranes) ---
 /// Images uploadées par l'utilisateur (ex : filigrane sur contrats exportés), stockées en JSON.
 model UserUpload {
   idUserUpload    Int    @id @default(autoincrement())

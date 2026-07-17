@@ -3,171 +3,13 @@ import type { Request, Response, Router } from "express"
 import fs from "fs/promises"
 import path from "path"
 import crypto from "crypto"
-import nodemailer from "nodemailer"
 import { authMiddleware } from "../middleware/authMiddleware.js"
+import { Mailer } from "../infrastructure/mailer/classMailer.js"
 import { SignatureEnvelopeService } from "../services/classSignatureEnvelope.js"
 import type { EnvelopeFieldsPayload, EnvelopeStatusValue } from "../services/classSignatureEnvelope.js"
 
 const router: Router = express.Router()
 const svc = new SignatureEnvelopeService()
-
-/**
- * Transporteur Gmail réutilisable. Utilise les credentials MAILER_USER /
- * MAILER_PASS (App Password Gmail) définis dans le .env.
- */
-const mailer = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-        user: process.env["MAILER_USER"],
-        pass: process.env["MAILER_PASS"],
-    },
-})
-
-/**
- * Envoie l'email d'invitation à signer au cocontractant.
- * L'émetteur (senderEmail) reçoit une copie (CC) du même email.
- * Fire-and-forget : les erreurs sont loguées mais ne bloquent pas la réponse HTTP.
- */
-function sendSignatureInvite(opts: {
-    senderEmail: string
-    counterpartyName: string
-    counterpartyEmail: string
-    documentName: string
-    signingLink: string
-}) {
-    const subject = `Document à signer — ${opts.documentName}`
-    const html = `
-    <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:32px 24px;border:1px solid #e5e7eb;border-radius:12px">
-      <div style="margin-bottom:24px">
-        <span style="font-size:22px;font-weight:700;color:#354F99">LumenJuris</span>
-        <span style="font-size:13px;color:#6b7280;margin-left:8px">· Signature électronique</span>
-      </div>
-      <p style="font-size:15px;color:#111827">Bonjour <strong>${opts.counterpartyName}</strong>,</p>
-      <p style="font-size:14px;color:#374151;line-height:1.6">
-        Vous avez reçu le document <strong>«&nbsp;${opts.documentName}&nbsp;»</strong> pour signature
-        via la plateforme LumenJuris.
-      </p>
-      <div style="text-align:center;margin:28px 0">
-        <a href="${opts.signingLink}"
-           style="display:inline-block;background:#354F99;color:#fff;font-size:15px;font-weight:700;
-                  padding:14px 32px;border-radius:10px;text-decoration:none;letter-spacing:0.01em">
-          ✍️ Signer le document
-        </a>
-      </div>
-      <p style="font-size:12px;color:#9ca3af;text-align:center;margin-top:8px;word-break:break-all">
-        Lien : <a href="${opts.signingLink}" style="color:#354F99">${opts.signingLink}</a>
-      </p>
-      <p style="font-size:13px;color:#6b7280;margin-top:24px;border-top:1px solid #f3f4f6;padding-top:16px">
-        Si vous n'attendiez pas ce message, vous pouvez l'ignorer.
-      </p>
-    </div>`
-
-    mailer.sendMail({
-        from: `"LumenJuris" <${process.env["MAILER_USER"]}>`,
-        to: opts.counterpartyEmail,
-        cc: opts.senderEmail,          // l'émetteur reçoit une copie
-        subject,
-        html,
-    }).then(() => {
-        console.log(`[signature] email envoyé à ${opts.counterpartyEmail} (CC: ${opts.senderEmail})`)
-    }).catch((err: unknown) => {
-        console.error("[signature] échec envoi email:", err)
-    })
-}
-
-/**
- * Envoie un email de confirmation aux DEUX parties une fois le document
- * entièrement signé. Le PDF original est joint en pièce jointe.
- * Fire-and-forget : les erreurs sont loguées mais ne bloquent pas la réponse HTTP.
- */
-async function sendSignatureCompletion(opts: {
-    documentName: string
-    selfName: string
-    selfEmail: string
-    counterpartyName: string
-    counterpartyEmail: string
-    documentFilePath: string | null
-}) {
-    // Charge le PDF pour la pièce jointe (optionnel — on envoie sans si absent)
-    let pdfBuffer: Buffer | undefined
-    if (opts.documentFilePath) {
-        try {
-            pdfBuffer = await fs.readFile(opts.documentFilePath)
-        } catch {
-            console.warn("[signature] PDF introuvable pour la pièce jointe:", opts.documentFilePath)
-        }
-    }
-
-    const attachment = pdfBuffer
-        ? [{ filename: `${opts.documentName}.pdf`, content: pdfBuffer, contentType: "application/pdf" }]
-        : []
-
-    const dateStr = new Date().toLocaleDateString("fr-FR", {
-        day: "numeric", month: "long", year: "numeric",
-    })
-
-    const subject = `Document signé — ${opts.documentName}`
-
-    const buildHtml = (recipientName: string) => `
-    <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:32px 24px;
-                border:1px solid #e5e7eb;border-radius:12px">
-      <div style="margin-bottom:24px">
-        <span style="font-size:22px;font-weight:700;color:#354F99">LumenJuris</span>
-        <span style="font-size:13px;color:#6b7280;margin-left:8px">· Signature électronique</span>
-      </div>
-      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;
-                  padding:16px 20px;margin-bottom:24px">
-        <p style="margin:0;font-size:15px;font-weight:700;color:#166534">
-          Document signé par les deux parties
-        </p>
-      </div>
-      <p style="font-size:15px;color:#111827">Bonjour <strong>${recipientName}</strong>,</p>
-      <p style="font-size:14px;color:#374151;line-height:1.6">
-        Le document <strong>«&nbsp;${opts.documentName}&nbsp;»</strong> a été signé
-        par les deux parties le <strong>${dateStr}</strong>.
-      </p>
-      <p style="font-size:14px;color:#374151;line-height:1.6;margin-top:8px">
-        Signataires :
-        <br>• <strong>${opts.selfName || opts.selfEmail}</strong> (émetteur)
-        <br>• <strong>${opts.counterpartyName}</strong> (cocontractant)
-      </p>
-      ${pdfBuffer
-        ? `<p style="font-size:13px;color:#6b7280;margin-top:16px">
-             Le document signé est joint en pièce jointe à cet email (PDF).
-           </p>`
-        : ""}
-      <p style="font-size:13px;color:#9ca3af;margin-top:24px;border-top:1px solid #f3f4f6;
-                padding-top:16px">
-        Cet email est envoyé automatiquement par la plateforme LumenJuris. Conservez-le
-        comme preuve de signature.
-      </p>
-    </div>`
-
-    const sends = [
-        mailer.sendMail({
-            from: `"LumenJuris" <${process.env["MAILER_USER"]}>`,
-            to: opts.selfEmail,
-            subject,
-            html: buildHtml(opts.selfName || opts.selfEmail),
-            attachments: attachment,
-        }),
-        mailer.sendMail({
-            from: `"LumenJuris" <${process.env["MAILER_USER"]}>`,
-            to: opts.counterpartyEmail,
-            subject,
-            html: buildHtml(opts.counterpartyName),
-            attachments: attachment,
-        }),
-    ]
-
-    Promise.all(sends)
-        .then(() => {
-            console.log(`[signature] emails de complétion envoyés → ${opts.selfEmail}, ${opts.counterpartyEmail}`)
-        })
-        .catch((err: unknown) => {
-            console.error("[signature] échec envoi emails de complétion:", err)
-        })
-}
 
 const ENVELOPES_DIR = path.join(process.cwd(), "signatureenvelopes")
 
@@ -249,14 +91,16 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
         const frontUrl = process.env["HOST_FRONT"] ?? "http://localhost:5173"
         const signingLink = `${frontUrl}/signer/${dto.signingToken}`
 
-        // Envoi email fire-and-forget (ne bloque pas la réponse)
-        sendSignatureInvite({
-            senderEmail: userEmail,
-            counterpartyName: body.counterpartyName.trim(),
-            counterpartyEmail: body.counterpartyEmail.trim(),
-            documentName: body.documentName,
-            signingLink,
-        })
+        // Envoi email fire-and-forget (ne bloque pas la réponse). L'émetteur
+        // reçoit une copie via le CC.
+        new Mailer(body.counterpartyEmail.trim())
+            .sendSignatureInvite({
+                counterpartyName: body.counterpartyName.trim(),
+                documentName: body.documentName,
+                signingLink,
+                cc: userEmail,
+            })
+            .catch((err: unknown) => console.error("[signature] échec envoi invitation:", err))
 
         return res.status(201).json({ success: true, data: dto })
     } catch (err) {
@@ -325,16 +169,34 @@ router.post("/public/:token", async (req: Request, res: Response) => {
         const dto = await svc.signByToken(token, fields)
         if (!dto) return res.status(404).json({ success: false, message: "Lien invalide ou expiré." })
 
-        // Récupère le chemin du PDF pour la pièce jointe (fire-and-forget)
-        svc.getByToken(token).then((fullData) => {
-            sendSignatureCompletion({
+        // Confirmation aux deux parties (fire-and-forget) : on charge le PDF
+        // pour la pièce jointe puis on notifie chaque partie via le Mailer.
+        svc.getByToken(token).then(async (fullData) => {
+            let pdf: { filename: string; content: Buffer } | undefined
+            if (fullData?.documentFilePath) {
+                try {
+                    pdf = { filename: `${dto.documentName}.pdf`, content: await fs.readFile(fullData.documentFilePath) }
+                } catch {
+                    console.warn("[signature] PDF introuvable pour la pièce jointe:", fullData.documentFilePath)
+                }
+            }
+
+            const selfLabel = dto.selfName || dto.selfEmail
+            const signedDate = dto.completedAt ? new Date(dto.completedAt) : new Date()
+            const common = {
                 documentName: dto.documentName,
-                selfName: dto.selfName,
-                selfEmail: dto.selfEmail,
+                selfLabel,
                 counterpartyName: dto.counterpartyName,
-                counterpartyEmail: dto.counterpartyEmail,
-                documentFilePath: fullData?.documentFilePath ?? null,
-            })
+                signedDate,
+                pdf,
+            }
+
+            new Mailer(dto.selfEmail)
+                .sendSignatureCompletion({ recipientName: selfLabel, ...common })
+                .catch((err: unknown) => console.error("[signature] échec confirmation (émetteur):", err))
+            new Mailer(dto.counterpartyEmail)
+                .sendSignatureCompletion({ recipientName: dto.counterpartyName, ...common })
+                .catch((err: unknown) => console.error("[signature] échec confirmation (cocontractant):", err))
         }).catch((err: unknown) => {
             console.error("[signature] impossible de charger les données pour l'email de complétion:", err)
         })
@@ -346,4 +208,77 @@ router.post("/public/:token", async (req: Request, res: Response) => {
     }
 })
 
+
+/**
+ * GET /download/:externalId
+ * Renvoie le contrat « aplati » (PDF original + signatures incrustées) afin que
+ * l'utilisateur puisse le télécharger. Le PDF est généré à la volée : les
+ * signatures ne sont jamais stockées fusionnées sur disque.
+ */
+router.get("/download/:externalId", authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.idUser)
+        const externalId = req.params["externalId"] as string
+
+        const result = await svc.generateSignedPdf(userId, externalId)
+        if (!result) {
+            return res.status(404).json({ success: false, message: "Enveloppe introuvable ou document manquant." })
+        }
+
+        // Nom de fichier propre : on retire l'extension et les caractères gênants.
+        const baseName = result.documentName.replace(/\.pdf$/i, "").replace(/[^\w.\- ]+/g, "_").trim() || "document"
+        res.setHeader("Content-Type", "application/pdf")
+        res.setHeader("Content-Disposition", `attachment; filename="${baseName}_signe.pdf"`)
+        return res.send(result.buffer)
+    } catch (err: unknown) {
+        console.error("[Signature-download] - Une erreur est survenue lors de la route backend err:", err)
+        return res.status(500).json({ success: false, message: "Erreur serveur." })
+    }
+})
+
+/**
+ * POST /resend
+ * Renvoie l'email d'invitation à signer au cocontractant pour une enveloppe
+ * existante. Bloqué si le document est déjà signé par les deux parties.
+ */
+router.post("/resend", authMiddleware, async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.idUser)
+        const { externalId } = req.body as { externalId?: string }
+        if (!externalId) {
+            return res.status(400).json({ success: false, message: "externalId requis." })
+        }
+
+        const envelope = await svc.get(userId, externalId)
+        if (!envelope) {
+            return res.status(404).json({ success: false, message: "Enveloppe introuvable." })
+        }
+
+        const { meta } = envelope
+        // On bloque le renvoi si le document est déjà signé par les deux parties.
+        if (meta.status === "SIGNED") {
+            return res.status(409).json({ success: false, message: "Ce document est déjà signé par les deux parties." })
+        }
+
+        // Réutilise le lien + l'email d'invitation de la création. L'email de
+        // l'émetteur (CC) est repris depuis l'enveloppe (selfEmail) plutôt que
+        // du token courant, pour rester fiable dans le temps.
+        const frontUrl = process.env["HOST_FRONT"] ?? "http://localhost:5173"
+        const signingLink = `${frontUrl}/signer/${meta.signingToken}`
+
+        new Mailer(meta.counterpartyEmail)
+            .sendSignatureInvite({
+                counterpartyName: meta.counterpartyName,
+                documentName: meta.documentName,
+                signingLink,
+                cc: meta.selfEmail || undefined,
+            })
+            .catch((err: unknown) => console.error("[signature] échec renvoi invitation:", err))
+
+        return res.json({ success: true })
+    } catch (err: unknown) {
+        console.error("[Signature] - Une erreur backend est survenue lors du resend d'une enveloppe, error : ", err)
+        return res.status(500).json({ success: false, message: "Erreur serveur." })
+    }
+})
 export default router

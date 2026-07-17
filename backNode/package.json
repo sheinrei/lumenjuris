@@ -44,6 +44,7 @@
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^8.0.4",
     "openai": "^6.39.0",
+    "pdf-lib": "^1.17.1",
     "pdfkit": "^0.18.0",
     "prisma": "^7.6.0",
     "rss-parser": "^3.13.0",
