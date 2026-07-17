@@ -24,6 +24,7 @@ import { Sandbox } from "./page/Sandbox";
 import { ParamCompte } from "./page/ParamCompte";
 import { Monitoring } from "./page/Monitoring";
 import { Subscription } from "./page/Subscription";
+import { ConfirmDeleteAccountPage } from "./page/DeleteAccount";
 
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import { RequireAuth } from "./components/auth/RequireAuth";
@@ -34,14 +35,12 @@ import { SignerPage } from "./page/SignerPage";
 import { ClusterUserPage } from "./page/ClusterEnterprise";
 import { usePageLoaded } from "./hooks/usePageLoaded";
 import { Loader } from "./components/common/Loader";
-
+import { PublicLayout } from "./components/DashboardComponents/PublicLayout";
 
 export function App() {
-
   //Hook pour détecter le chargement complet de la page
-  const pageReady = usePageLoaded()
-  const [showLoaderPage, setShowLoaderPage] = useState(true)
-
+  const pageReady = usePageLoaded();
+  const [showLoaderPage, setShowLoaderPage] = useState(true);
 
   const authStatus = useUserStore((state) => state.authStatus);
   const fetchUser = useUserStore((state) => state.fetchUser);
@@ -78,24 +77,27 @@ export function App() {
 
   //Point d'entrée de l'application dynamique selon l'auth de l'user depuis le authStatus
   const HomeRedirect = () => {
-    return authStatus === "authenticated"
-      ? <Navigate to="/dashboard" replace />
-      : <Navigate to="/inscription" replace />
-
-  }
+    return authStatus === "authenticated" ? (
+      <Navigate to="/dashboard" replace />
+    ) : (
+      <Navigate to="/inscription" replace />
+    );
+  };
 
   return (
     <>
       <ScrollToTop />
 
-
       <Routes>
-        <Route element={<RequireAuth><MainLayout /></RequireAuth>} >
-
-
+        <Route
+          element={
+            <RequireAuth>
+              <MainLayout />
+            </RequireAuth>
+          }
+        >
           {/* Entrée principale de l'application sur le dashboard avec direction selon state de l'auth User*/}
           <Route path="/" element={<HomeRedirect />} />
-
 
           {/* Sous-ensemble (charge panneau latéral et header) */}
           <Route path="/dashboard" element={<Dashboard />} />
@@ -112,7 +114,10 @@ export function App() {
           <Route path="/contratheque/:externalId" element={<Contratheque />} />
           <Route path="/clauses" element={<ClausesLibrary />} />
           <Route path="/utilisateurs" element={<UserManagement />} />
-          <Route path="/negociation/:negotiationId" element={<NegotiationWorkspace />} />
+          <Route
+            path="/negociation/:negotiationId"
+            element={<NegotiationWorkspace />}
+          />
           <Route path="/chatjuridique" element={<ChatJuridique />} />
           <Route path="/calculateur" element={<Calculateur />} />
           <Route path="/veille" element={<Veille />} />
@@ -127,23 +132,47 @@ export function App() {
         <Route path="/monitoring" element={<Monitoring /> } />
         </Route>
 
+        <Route
+          path="/sandbox"
+          element={
+            <RequireAuth>
+              {" "}
+              <Sandbox />{" "}
+            </RequireAuth>
+          }
+        />
 
-
-        <Route path="/sandbox" element={<RequireAuth> <Sandbox /> </RequireAuth>} />
         <Route path="/inscription" element={<Inscription />} />
+
+        <Route
+          path="/monitoring"
+          element={
+            <RequireAuth>
+              {" "}
+              <Monitoring />{" "}
+            </RequireAuth>
+          }
+        />
+
         <Route path="/verify-account" element={<VerifyAccount />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/souscription" element={<Subscription />} />
+        
+        <Route element={<PublicLayout />}>
+          <Route path="/user/deleteaccount/:token" element={<ConfirmDeleteAccountPage />} />
+        </Route>
 
         {/* Page publique de signature pour le cocontractant — sans auth */}
         <Route path="/signer/:token" element={<SignerPage />} />
 
         {/* Page publique de négociation pour un invité externe — sans auth */}
-        <Route path="/negociation-invite/:token" element={<NegotiationGuest />} />
+        <Route
+          path="/negociation-invite/:token"
+          element={<NegotiationGuest />}
+        />
       </Routes>
 
 
     </>
   );
 }
-

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { SETTINGS_TABS } from "../config/paramSettings";
 import { useEnterpriseSettings } from "../hooks/useEnterpriseSettings";
 import { AccountSettingsPanel } from "../components/ParamComponents/AccountSettingsPanel";
@@ -76,6 +76,10 @@ export function ParamCompte() {
   const [enterpriseInitialSettings, setEnterpriseInitialSettings] =
     useState<EnterpriseSettings>(createEmptyEnterpriseSettings());
   const enterprise = useEnterpriseSettings(enterpriseInitialSettings);
+  const [exportDataSuccess, setExportDataSuccess] = useState(false);
+  const [exportDataError, setExportDataError] = useState(false);
+  const [deleteMailSuccess, setDeleteMailSuccess] = useState(false);
+  const [deleteMailError, setDeleteMailError] = useState(false);
 
   useEffect(() => {
     if (location.state) {
@@ -357,19 +361,56 @@ export function ParamCompte() {
       void fetchProxy("/api/user/export-data", {
         method: "POST",
         credentials: "include",
-      }).catch((error) => {
-        console.error(error);
-      });
+        // headers: { "Content-Type": "application/json" },
+        // body: token ? JSON.stringify({ token }) : undefined,
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error("Erreur lors de la récupération des données");
+          }
+          const result = await response.json();
+          if (!result.success) {
+            throw new Error(result.message || "L'export a échoué");
+          }
+
+          setActiveConfirmationModal(null);
+          setExportDataSuccess(true);
+        })
+        .catch((error) => {
+          console.error("Erreur d'export des données :", error);
+          setExportDataError(true);
+        });
     },
 
-    onDeleteAccountConfirm: () => {
+    onSendMailDeleteAccountConfirm: () => {
       void fetchProxy("/api/user/account", {
-        method: "DELETE",
+        method: "POST",
         credentials: "include",
-      }).catch((error) => {
-        console.error(error);
-      });
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error(
+              "Erreur lors de la demande de suppression de compte",
+            );
+          }
+
+          const result = await response.json();
+
+          if (!result.success) {
+            throw new Error(
+              result.message || "La demande de suppression de compte a échoué",
+            );
+          }
+          setActiveConfirmationModal(null);
+          setDeleteMailSuccess(true);
+        })
+        .catch((error) => {
+          console.error("Erreur demande de suppression de compte : ", error);
+          setDeleteMailError(true);
+        });
     },
+
+    onDeleteAccountConfirm: () => {},
   });
 
   const onEnterpriseUpdateConfirm = () => {
@@ -405,8 +446,18 @@ export function ParamCompte() {
       onPasswordBlur={handlePasswordBlur}
       onTwoFactorCheckedChange={handleTwoFactorCheckedChange}
       onPasswordAdded={() => void fetchUser()}
+      exportDataSuccess={exportDataSuccess}
+      onExportDataSuccessClose={() => setExportDataSuccess(false)}
+      exportDataError={exportDataError}
+      onExportDataErrorClose={() => setExportDataError(false)}
+      deleteMailSuccess={deleteMailSuccess}
+      onDeleteMailSuccessClose={() => setDeleteMailSuccess(false)}
+      deleteMailError={deleteMailError}
+      onDeleteMailErrorClose={() => setDeleteMailError(false)}
       onExportDataClick={() => setActiveConfirmationModal("export_data")}
-      onDeleteAccountClick={() => setActiveConfirmationModal("delete_account")}
+      onDeleteAccountClick={() =>
+        setActiveConfirmationModal("delete_account_mail")
+      }
     />
   );
 

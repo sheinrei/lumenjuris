@@ -3,9 +3,13 @@ import { SubscriptionStatus } from "@prisma/client";
 import { Mailer } from "../infrastructure/mailer/classMailer.js";
 import { generateInvoicePDF } from "../infrastructure/pdf/invoicePDF.js";
 
-type ReturnData<T = any> = {
+export type ReturnData<T = any> = {
   success: boolean;
   message?: string;
+  data?: T;
+};
+
+export type ReturnDataSubscription<T = any> = {
   data?: T;
 };
 

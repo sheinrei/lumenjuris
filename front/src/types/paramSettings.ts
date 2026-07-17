@@ -16,6 +16,7 @@ export type AccountConfirmationModal =
   | "password_change"
   | "profile_update"
   | "export_data"
+  | "delete_account_mail"
   | "delete_account";
 
 export type AccountProfile = {

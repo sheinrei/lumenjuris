@@ -69,6 +69,7 @@ app.add_middleware(
 ) 
 
 
+
 HF_TOKEN = os.environ.get("HF_TOKEN") #Hugging Face
 
 
@@ -150,7 +151,16 @@ def extract_token_usage(response: Any, model: str) -> Dict[str, Any]:
     }
 
 
-
+@app.get("/health")
+def healtMonitor():
+    try:
+        return {
+            "status" : "OK"
+        }
+    except:
+        return {
+            "status" : "echec"
+        }
 
 @app.post("/extract-document-text")
 async def extract_pdf_text(file: UploadFile = File(...), scan: bool = Form(False)):
