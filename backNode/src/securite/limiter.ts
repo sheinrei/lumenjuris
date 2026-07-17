@@ -8,8 +8,8 @@ const commonOption = {
 
 export const globalLimiter = rateLimit({
     ...commonOption,
-    windowMs: 15 * 60 * 1000,
-    limit: process.env.NODE_ENV === "dev" ? 10000 : 100,
+    windowMs: 60 * 60 * 1000,
+    limit: process.env.NODE_ENV === "dev" ? 10000 : 600,
     message: "Trop de tentative de communication, veuillez réessayez plus tard "
 })
 

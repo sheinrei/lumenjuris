@@ -32,7 +32,6 @@ import { usePreferencesStore } from "./store/preferencesStore";
 import { SignerPage } from "./page/SignerPage";
 
 import { ClusterUserPage } from "./page/ClusterEnterprise";
-
 import { usePageLoaded } from "./hooks/usePageLoaded";
 import { Loader } from "./components/common/Loader";
 
@@ -68,9 +67,10 @@ export function App() {
     document.body.classList.toggle("dyslexic-font", isDyslexicMode);
   }, [isDyslexicMode]);
 
+
   useEffect(() => {
     if (pageReady) setTimeout(() => setShowLoaderPage(false), 400)
-  }, [pageReady])
+  }, [pageReady]);
 
 
   if (showLoaderPage) return <Loader label="Chargement de l'application en cours ..." />

@@ -723,6 +723,8 @@ export default function ContractAnalysis() {
   };
 
 
+
+
   // Déclenche automatiquement l'analyse si un fichier OU un texte est passé via navigation state
   // (ex. depuis la génération de contrats : « Réviser (risques) »).
   useEffect(() => {
