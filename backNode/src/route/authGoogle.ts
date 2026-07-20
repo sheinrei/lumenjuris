@@ -11,13 +11,13 @@ import { Subscription } from "../services/classSubscription.js";
 
 const routerAuthGoogle: Router = express.Router();
 
+const oauthStates = new Map<string, number>()
 
 //Route auth vers Google
 routerAuthGoogle.get("/auth/google", (req: Request, res: Response) => {
   const state = crypto.randomUUID();
-  res.cookie("google_oauth_state", state, {
-    httpOnly: true,
-  });
+  
+  oauthStates.set(state, Date.now() +5 * 60 * 1000);
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const redirectUri = "http://localhost:3020/auth/google/callback";
   const scope = "openid email profile";
@@ -37,25 +37,15 @@ routerAuthGoogle.get("/auth/google", (req: Request, res: Response) => {
 routerAuthGoogle.get(
   "/auth/google/callback",
   async (req: Request, res: Response) => {
+    
     const { code, state } = req.query;
-    console.log({
-      code,
-      state,
-    });
 
-    if (!process.env.JWT_SECRET) {
-      throw new Error(".env JWT_SECRET is not defined");
-    }
+    const storedAt = oauthStates.get(state as string);
 
-    //Verifier si le state est valide
-    const storedState = req.cookies.google_oauth_state;
-
-    if (!storedState || state !== storedState) {
+    if (!storedAt || Date.now() > storedAt) {
       return res.status(400).send("Invalid State");
     }
-
-    //state match on peut supprimer le cookie
-    res.clearCookie("google_auth_state");
+    oauthStates.delete(state as string);
 
     //Echanger le code contre un token
     const tokenResponse = await axios.post(

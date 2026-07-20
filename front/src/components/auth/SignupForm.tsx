@@ -31,6 +31,8 @@ interface SignupFormProps {
   setSiren: React.Dispatch<React.SetStateAction<string>>;
   acceptCgu: boolean;
   setAcceptCgu: React.Dispatch<React.SetStateAction<boolean>>;
+  confirmPassword: string;
+  setConfirmPassword: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const PROXY_URL: string =
@@ -76,8 +78,9 @@ const SignupForm = ({
   setSiren,
   acceptCgu,
   setAcceptCgu,
+  confirmPassword,
+  setConfirmPassword,
 }: SignupFormProps) => {
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -112,6 +115,15 @@ const SignupForm = ({
     }
     if (acceptCgu === false) {
       setSubmitCguError(true);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+        setConfirmPasswordError("Les mots de passe doivent être identiques");
+        return;
+    }
+
+    if (passwordError) {
       return;
     }
 
@@ -181,7 +193,7 @@ const SignupForm = ({
 
   // Inscription via Google
   const handleSubmitGoogle = () => {
-    window.location.href = `${PROXY_URL}/api/google`;
+    window.location.href = `${PROXY_URL}/auth/google`;
   };
 
   const handleChangeLastname = (event: React.ChangeEvent<HTMLInputElement>) => {

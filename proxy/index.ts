@@ -444,7 +444,9 @@ function handleNodeUserResetPassword(req: Request, res: Response): void {
   relayToNode(req, res, "/user/updatepassword");
 }
 
-function handleNodeGoogle(_req: Request, res: Response): void {
+function handleNodeGoogle(req: Request, res: Response): void {
+  console.log("[proxy/google] redirect vers :", `${BACKNODE_URL}/auth/google`);
+  console.log("[proxy/google] cookies entrants :", req.headers.cookie);
   res.redirect(`${BACKNODE_URL}/auth/google`);
 }
 
@@ -1222,7 +1224,7 @@ app.post("/api/addin/login", async (req: Request, res: Response) => {
 
 app.post("/api/auth/forgotpassword", handleNodeUserForgotPassword);
 app.post("/api/user/resetpassword", handleNodeUserResetPassword);
-app.get("/api/google", handleNodeGoogle);
+app.get("/auth/google", handleNodeGoogle);
 app.post("/api/billing/customer", auth, handleBillingCustomer);
 app.post("/api/billing/payment-intent", auth, handleBillingPaymentIntent);
 app.get("/api/veille", handleNodeVeille);

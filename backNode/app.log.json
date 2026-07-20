@@ -1,2 +1,35 @@
 { "timestamp": "2026-06-30T18:20:34.388Z", "level": "info", "message": "Verification du transporter SMTP" }
 {"timestamp":"2026-07-16T12:11:48.533Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T07:51:35.414Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T08:50:41.147Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T08:51:22.575Z","level":"error","message":"Erreur lors de la verification du transporteur","data":{"code":"ETIMEDOUT","command":"CONN"}}
+{"timestamp":"2026-07-20T08:53:44.453Z","level":"error","message":"Erreur lors de la verification du transporteur","data":{"code":"ETIMEDOUT","command":"CONN"}}
+{"timestamp":"2026-07-20T08:54:02.559Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:01:10.680Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:02:17.254Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:03:19.751Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:04:09.028Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:08:10.094Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:08:14.736Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:08:19.018Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:08:23.508Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:13:16.855Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:15:33.797Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:15:59.356Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:17:26.337Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:17:31.417Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:18:55.019Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:23:03.359Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:29:35.896Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:29:40.399Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:32:05.934Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:34:13.103Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:34:34.617Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:36:49.450Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:36:53.963Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:37:40.975Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:39:12.469Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:39:30.225Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:39:57.756Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:45:20.403Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-20T09:45:47.418Z","level":"info","message":"Verification du transporter SMTP"}
