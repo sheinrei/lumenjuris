@@ -81,6 +81,8 @@ const LoginForm = ({
   const verificationErrorMessage =
     "Pour valider votre compte veuillez cliquer sur le lien qui vous a été envoyé par email.";
 
+  const [showRateLimitModal, setShowRateLimitModal] = useState(false);
+
   const navigate = useNavigate();
   const { fetchUser } = useUserStore();
   const location = useLocation();
@@ -195,13 +197,25 @@ const LoginForm = ({
       setSubmitLoading(true);
       setEmailSent(true);
       try {
-        await fetchProxy("/api/auth/forgotpassword", {
+        const response = await fetchProxy("/api/auth/forgotpassword", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
           credentials: "include",
         });
-      } catch (error) {}
+        if (response.status === 429) {
+          setEmailSent(false);
+          setShowRateLimitModal(true);
+          setSubmitLoading(false);
+          return;
+        }
+        if (!response.ok) {
+          setEmailSent(false);
+          setSubmitLoading(false);
+        }
+      } catch (error) {
+        console.error(error);
+      }
     }
   };
 
@@ -233,6 +247,18 @@ const LoginForm = ({
           onClose={() => {
             setForgotPassword(true);
             setSubmitForgotError(false);
+          }}
+        />
+      )}
+
+      {showRateLimitModal && (
+        <AlertBanner
+          title="Trop de requête !"
+          variant="error"
+          detail="Vous avez demandé à réinitialiser votre mot de passe de trop nombreuses fois, veuillez attendre 15 minutes."
+          duration={12000}
+          onClose={() => {
+            setShowRateLimitModal(false);
           }}
         />
       )}
@@ -277,7 +303,7 @@ const LoginForm = ({
         />
       )}
 
-      {emailSent && (
+      { emailSent &&  (
         <section className="flex flex-col gap-2">
           <AlertBanner
             title="Email envoyé !"

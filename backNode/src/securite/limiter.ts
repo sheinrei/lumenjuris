@@ -33,8 +33,13 @@ export const registerLimiter = rateLimit({
 export const forgotPasswordLimiter = rateLimit({
     ...commonOption,
     windowMs: 1000 * 60 * 15,
-    limit: process.env.NODE_ENV === "dev" ? 10000 : 3,
-    message: "Trop de tentatives d'oublie de mot de passe, veuillez réessayez plus tard"
+    limit: process.env.NODE_ENV === "dev" ? 1000 : 3,
+    handler: (_req, res) => {
+        res.status(429).json({
+            error: "TOO_MANY_REQUESTS",
+            message: "Trop de tentatives d'oubli de mot de passe, veuillez réessayer dans 15 minutes"
+        })
+    }
 })
 
 export const feedBackLimiter = rateLimit({
