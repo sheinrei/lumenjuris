@@ -1,15 +1,37 @@
-import nodemailer from "nodemailer";
+import nodemailer, { type SendMailOptions } from "nodemailer";
+
 import { templateVerifyAccount } from "./template/verifyAccount.js";
 import { templateResetPassword } from "./template/resetPassword.js";
 import { templateTwoFactor } from "./template/twoFactor.js";
 import { templateInvoiceEmail } from "./template/invoiceEmail.js";
 import { templateWelcomeFreemium } from "./template/welcomeFreemium.js";
-import { generateInvoicePDF, type InvoiceData } from "../pdf/invoicePDF.js";
+import { templateSignatureInvite } from "./template/signatureInvite.js";
+import { templateSignatureCompletion } from "./template/signatureCompletion.js";
 import { templateExportData } from "./template/userData.js";
 import { templateDeleteAccount } from "./template/deleteAccount.js";
 
-
+import { generateInvoicePDF, type InvoiceData } from "../pdf/invoicePDF.js";
 import { logger } from "../../logger/logger.js";
+
+
+export type MailAttachment = {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+};
+
+export type MailExtraOptions = {
+  /** Adresse(s) en copie. */
+  cc?: string;
+  /** Pièces jointes. */
+  attachments?: MailAttachment[];
+};
+
+export type MailResult = {
+  success: boolean;
+  message?: string;
+  error?: unknown;
+};
 
 
 const transporter = nodemailer.createTransport({
@@ -21,9 +43,9 @@ const transporter = nodemailer.createTransport({
   maxConnections: 5,
   maxMessages: Infinity,
 
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
+  connectionTimeout: 10_000,
+  greetingTimeout: 10_000,
+  socketTimeout: 10_000,
 
   auth: {
     user: process.env.MAILER_USER_O2S,
@@ -31,8 +53,10 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+
+
 export class Mailer {
-  private email: string;
+  private readonly email: string;
 
   constructor(email: string) {
     if (!process.env.MAILER_USER_O2S || !process.env.MAILER_PASS_O2S) {
@@ -42,41 +66,79 @@ export class Mailer {
     this.email = email;
   }
 
-  private errorCatching(err: unknown) {
-    console.error(
-      `Une erreur est survenu lors d'un envoie d'un email' error : ${err}`,
-    );
-    logger.error("Une erreur est survenu lors d'un envoie d'un email", err);
+
+  static async initTransporter(): Promise<void> {
+    try {
+      await transporter.verify();
+      console.log("Transporteur envoi email SMTP prêt.");
+      logger.info("Vérification du transporter SMTP");
+    } catch (err) {
+      console.error("Erreur lors de la vérification du transporteur");
+      logger.error("Erreur lors de la vérification du transporteur", err);
+      throw err;
+    }
+  }
+
+  /** Conservé pour compatibilité avec les appels existants. */
+  async initTransporter(): Promise<void> {
+    return Mailer.initTransporter();
+  }
+
+  private errorCatching(err: unknown): MailResult {
+    console.error(`Une erreur est survenue lors de l'envoi d'un email : ${err}`);
+    logger.error("Une erreur est survenue lors de l'envoi d'un email", err);
+
     return {
       success: false,
-      message:
-        "Erreur avec le serveur est survenue lors de l'envoie d'un email.",
+      message: "Une erreur serveur est survenue lors de l'envoi d'un email.",
       error: err,
     };
   }
 
+
   private createOption(
     html: string,
     subject: string,
-    attachments?: Array<{
-      filename: string;
-      content: Buffer;
-      contentType: string;
-    }>,
-  ) {
+    extra: MailExtraOptions = {},
+  ): SendMailOptions {
     const textBrutFallback = html.replace(/<[^>]*>/g, "");
+
     return {
       from: '"Lumen Juris" <no-reply@lumenjuris.com>',
       to: this.email,
+      ...(extra.cc ? { cc: extra.cc } : {}),
       subject,
       text: textBrutFallback,
       html,
-      ...(attachments?.length ? { attachments } : {}),
+      ...(extra.attachments?.length ? { attachments: extra.attachments } : {}),
     };
   }
 
-  private createHtmlHeader() {
-    return `    
+  /**
+   * Envoi centralisé : gestion du messageId manquant et des erreurs.
+   */
+  private async send(
+    mailOptions: SendMailOptions,
+    successMessage?: string,
+  ): Promise<MailResult> {
+    try {
+      const sending = await transporter.sendMail(mailOptions);
+
+      if (!sending.messageId) {
+        throw new Error(
+          `Échec lors de l'envoi de l'email "${mailOptions.subject}" : messageId indisponible.`,
+        );
+      }
+
+      return { success: true, message: successMessage };
+    } catch (err) {
+      return this.errorCatching(err);
+    }
+  }
+
+
+  private createHtmlHeader(): string {
+    return `
       <tr>
         <td style="background-color:#0B1F3A; padding:28px 40px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -97,50 +159,51 @@ export class Mailer {
     `;
   }
 
-  private createHtmlFooter() {
+  private createHtmlFooter(): string {
     const year = new Date().getFullYear();
+
     return `
       <tr>
-          <td style="padding: 32px 40px 24px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
-                      font-size:14px; line-height:1.6; color:#374151;">
-              Cordialement,<br>
-              <strong style="color:#111827;">L'équipe Lumen Juris</strong>
-          </td>
+        <td style="padding:32px 40px 24px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+                   font-size:14px; line-height:1.6; color:#374151;">
+          Cordialement,<br>
+          <strong style="color:#111827;">L'équipe Lumen Juris</strong>
+        </td>
       </tr>
 
       <tr>
-          <td style="background-color:#f7f9fc; padding: 24px 40px; border-top: 2px solid #e8edf5">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                  <tr>
-                      <td style="text-align:center; padding-bottom:12px;">
-                          <a href="https://lumenjuris.com"
-                             style="color:#0D6EFD; text-decoration:none; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
-                                    font-size:13px; font-weight:600;">
-                              lumenjuris.com
-                          </a>
-                          <span style="color:#c7ced9; font-size:13px; padding:0 10px;">&middot;</span>
-                          <a href="mailto:contact@lumenjuris.com"
-                             style="color:#6b7280; text-decoration:none; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
-                                    font-size:13px;">
-                              contact@lumenjuris.com
-                          </a>
-                      </td>
-                  </tr>
-                  <tr>
-                      <td style="text-align:center;">
-                          <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
-                                       font-size:11px; color:#9ca3af;">
-                              &copy; ${year} Lumen Juris — Tous droits réservés.
-                          </span>
-                      </td>
-                  </tr>
-              </table>
-          </td>
+        <td style="background-color:#f7f9fc; padding:24px 40px; border-top:2px solid #e8edf5;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="text-align:center; padding-bottom:12px;">
+                <a href="https://lumenjuris.com"
+                   style="color:#0D6EFD; text-decoration:none; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+                          font-size:13px; font-weight:600;">
+                  lumenjuris.com
+                </a>
+                <span style="color:#c7ced9; font-size:13px; padding:0 10px;">&middot;</span>
+                <a href="mailto:contact@lumenjuris.com"
+                   style="color:#6b7280; text-decoration:none; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+                          font-size:13px;">
+                  contact@lumenjuris.com
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="text-align:center;">
+                <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+                             font-size:11px; color:#9ca3af;">
+                  &copy; ${year} Lumen Juris — Tous droits réservés.
+                </span>
+              </td>
+            </tr>
+          </table>
+        </td>
       </tr>
-      `;
+    `;
   }
 
-  private createHtmlFullContent(htmlContent: string) {
+  private createHtmlFullContent(htmlContent: string): string {
     return `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -167,209 +230,203 @@ export class Mailer {
 </html>`;
   }
 
-  /**
-   * Initialise le transporter dés l'ouverture du serveur.
-   */
-  async initTransporter() {
-    try {
-      await transporter.verify();
-      console.log("Transporteur envoie email SMTP prêt.");
-      logger.info("Verification du transporter SMTP");
-    } catch (err) {
-      console.error("Erreur lors de la verification du transporteur");
-      logger.error("Erreur lors de la verification du transporteur", err);
-      throw err;
-    }
+
+  async sendVerifyAccount(
+    verificationLink: string,
+    username: string,
+  ): Promise<MailResult> {
+    const html = this.createHtmlFullContent(
+      templateVerifyAccount(verificationLink, username),
+    );
+
+    return this.send(
+      this.createOption(html, "Activez votre compte Lumen Juris"),
+      `Un email a été envoyé à votre adresse ${this.email}, veuillez consulter votre boîte de réception pour valider votre inscription.`,
+    );
   }
 
-  async sendVerifyAccount(verificationLink: string, username: string) {
-    try {
-      const html = this.createHtmlFullContent(
-        templateVerifyAccount(verificationLink, username),
-      );
-      const mailOptions = this.createOption(
-        html,
-        "Activez votre compte Lumen Juris",
-      );
-      const sending = await transporter.sendMail(mailOptions);
+  async sendResetPassword(
+    resetLink: string,
+    username?: string,
+  ): Promise<MailResult> {
+    const html = this.createHtmlFullContent(
+      templateResetPassword(resetLink, username),
+    );
 
-      if (!sending.messageId) {
-        throw new Error(
-          `Echec lors de l'envoie d'un email, id indisponible de retour indisponible.\n ${sending}`,
-        );
-      }
-      return {
-        success: !!sending.messageId,
-        message: sending.messageId
-          ? `Un email a été envoyé à votre adresse ${this.email}, veuillez consulter votre boîte de réception pour valider votre inscription.`
-          : "Une erreur est survenue avec le serveur nous n'avons pas pu envoyer votre email.",
-      };
-    } catch (err) {
-      return this.errorCatching(err);
-    }
-  }
-
-  async sendResetPassword(resetLink: string, username?: string) {
-    try {
-      const html = this.createHtmlFullContent(
-        templateResetPassword(resetLink, username),
-      );
-      const mailOptions = this.createOption(
+    return this.send(
+      this.createOption(
         html,
         "Réinitialisation de votre mot de passe Lumen Juris",
-      );
-      const sending = await transporter.sendMail(mailOptions);
-
-      if (!sending.messageId) {
-        throw new Error(
-          `Echec lors de l'envoie d'un email, id indisponible de retour indisponible.\n ${sending}`,
-        );
-      }
-      return {
-        success: !!sending.messageId,
-        message: sending.messageId
-          ? `Un email a été envoyé à votre adresse ${this.email}, veuillez consulter votre boîte de réception pour réinitialiser votre mot de passe.`
-          : "Une erreur est survenue avec le serveur nous n'avons pas pu envoyer votre email.",
-      };
-    } catch (err) {
-      return this.errorCatching(err);
-    }
+      ),
+      `Un email a été envoyé à votre adresse ${this.email}, veuillez consulter votre boîte de réception pour réinitialiser votre mot de passe.`,
+    );
   }
 
-  async sendDeleteAccount(resetLink: string, username?: string) {
-    try {
-      const html = this.createHtmlFullContent(
-        templateDeleteAccount(resetLink, username),
-      );
-      const mailOptions = this.createOption(
-        html,
-        "Suppression de votre compte",
-      );
-      const sending = await transporter.sendMail(mailOptions);
+  async sendDeleteAccount(
+    confirmationLink: string,
+    username?: string,
+  ): Promise<MailResult> {
+    const html = this.createHtmlFullContent(
+      templateDeleteAccount(confirmationLink, username),
+    );
 
-      if (!sending.messageId) {
-        throw new Error(
-          `Echec lors de l'envoie d'un email, id indisponible de retour indisponible.\n ${sending}`,
-        );
-      }
-      return {
-        success: !!sending.messageId,
-        message: sending.messageId
-          ? `Un email a été envoyé à votre adresse ${this.email}, veuillez consulter votre boîte de réception pour réinitialiser votre mot de passe.`
-          : "Une erreur est survenue avec le serveur nous n'avons pas pu envoyer votre email.",
-      };
-    } catch (err) {
-      return this.errorCatching(err);
-    }
+    return this.send(
+      this.createOption(html, "Suppression de votre compte"),
+      `Un email a été envoyé à votre adresse ${this.email}, veuillez consulter votre boîte de réception pour confirmer la suppression de votre compte.`,
+    );
   }
 
-  async sendTwoFactor(code: string, username?: string) {
-    try {
-      const html = this.createHtmlFullContent(
-        templateTwoFactor(code, username),
-      );
-      const mailOptions = this.createOption(
-        html,
-        "Votre code de vérification Lumen Juris",
-      );
-      const sending = await transporter.sendMail(mailOptions);
+  async sendTwoFactor(code: string, username?: string): Promise<MailResult> {
+    const html = this.createHtmlFullContent(templateTwoFactor(code, username));
 
-      if (!sending.messageId) {
-        throw new Error(
-          `Echec lors de l'envoie du code 2FA, messageId indisponible.\n ${sending}`,
-        );
-      }
-      return {
-        success: true,
-        message: `Un code de vérification a été envoyé à ${this.email}. Il est valide 15 minutes.`,
-      };
-    } catch (err) {
-      return this.errorCatching(err);
-    }
+    return this.send(
+      this.createOption(html, "Votre code de vérification Lumen Juris"),
+      `Un code de vérification a été envoyé à ${this.email}. Il est valide 15 minutes.`,
+    );
   }
 
-  async sendWelcomeFreemium(username?: string) {
-    try {
-      const html = this.createHtmlFullContent(
-        templateWelcomeFreemium(username),
-      );
-      const mailOptions = this.createOption(
+  async sendWelcomeFreemium(username?: string): Promise<MailResult> {
+    const html = this.createHtmlFullContent(templateWelcomeFreemium(username));
+
+    return this.send(
+      this.createOption(
         html,
         "Bienvenue sur Lumen Juris — votre formule Freemium est activée",
-      );
-      const sending = await transporter.sendMail(mailOptions);
-
-      if (!sending.messageId) {
-        throw new Error(
-          `Echec lors de l'envoi du mail de bienvenue, messageId indisponible.\n ${sending}`,
-        );
-      }
-      return { success: true };
-    } catch (err) {
-      return this.errorCatching(err);
-    }
+      ),
+    );
   }
 
-  async sendUserData(fullExport: any, username?: string) {
+  async sendUserData(fullExport: unknown, username?: string): Promise<MailResult> {
     try {
       const html = this.createHtmlFullContent(templateExportData(username));
+      const jsonString = JSON.stringify(fullExport, null, 2);
+
       const mailOptions = this.createOption(
         html,
         "Lumen Juris - Vos données utilisateurs",
+        {
+          attachments: [
+            {
+              filename: "export-data.json",
+              content: Buffer.from(jsonString, "utf-8"),
+              contentType: "application/json",
+            },
+          ],
+        },
       );
 
-      const jsonString = JSON.stringify(fullExport, null, 2);
-
-      mailOptions.attachments = [
-        {
-          filename: "export-data.json",
-          content: Buffer.from(jsonString, "utf-8"),
-          contentType: "application/json",
-        },
-      ];
-
-      const sending = await transporter.sendMail(mailOptions);
-
-      if (!sending.messageId) {
-        throw new Error(
-          `Echec lors de l'envoi du mail de récupération de données utilisateurs, messageId indisponible.\n ${sending}`,
-        );
-      }
+      return this.send(
+        mailOptions,
+        `Vos données ont été envoyées à ${this.email}.`,
+      );
     } catch (err) {
       return this.errorCatching(err);
     }
   }
 
-  async sendInvoice(invoiceData: InvoiceData, username?: string) {
+  async sendInvoice(
+    invoiceData: InvoiceData,
+    username?: string,
+  ): Promise<MailResult> {
     try {
       const pdfBuffer = await generateInvoicePDF(invoiceData);
       const html = this.createHtmlFullContent(
         templateInvoiceEmail(invoiceData, username),
       );
+
       const mailOptions = this.createOption(
         html,
         `Votre facture Lumen Juris — ${invoiceData.invoiceNumber}`,
-        [
-          {
-            filename: `facture-${invoiceData.invoiceNumber}.pdf`,
-            content: pdfBuffer,
-            contentType: "application/pdf",
-          },
-        ],
+        {
+          attachments: [
+            {
+              filename: `facture-${invoiceData.invoiceNumber}.pdf`,
+              content: pdfBuffer,
+              contentType: "application/pdf",
+            },
+          ],
+        },
       );
-      const sending = await transporter.sendMail(mailOptions);
 
-      if (!sending.messageId) {
-        throw new Error(
-          `Echec lors de l'envoi de la facture, messageId indisponible.\n ${sending}`,
-        );
-      }
-      return {
-        success: true,
-        message: `La facture ${invoiceData.invoiceNumber} a été envoyée à ${this.email}.`,
-      };
+      return this.send(
+        mailOptions,
+        `La facture ${invoiceData.invoiceNumber} a été envoyée à ${this.email}.`,
+      );
     } catch (err) {
       return this.errorCatching(err);
     }
+  }
+
+  /**
+   * Invitation à signer un document (envoyée au cocontractant).
+   * `cc` permet de mettre l'émetteur en copie.
+   */
+  async sendSignatureInvite(opts: {
+    counterpartyName: string;
+    documentName: string;
+    signingLink: string;
+    cc?: string;
+  }): Promise<MailResult> {
+    const html = this.createHtmlFullContent(
+      templateSignatureInvite(
+        opts.counterpartyName,
+        opts.documentName,
+        opts.signingLink,
+      ),
+    );
+
+    return this.send(
+      this.createOption(html, `Document à signer — ${opts.documentName}`, {
+        cc: opts.cc,
+      }),
+      `Une invitation à signer a été envoyée à ${this.email}.`,
+    );
+  }
+
+  /**
+   * Confirmation envoyée à une partie une fois le document signé par les deux
+   * parties. Le PDF signé peut être joint (`pdf`).
+   */
+  async sendSignatureCompletion(opts: {
+    recipientName: string;
+    documentName: string;
+    selfLabel: string;
+    counterpartyName: string;
+    signedDate?: Date;
+    pdf?: { filename: string; content: Buffer };
+  }): Promise<MailResult> {
+    const dateStr = (opts.signedDate ?? new Date()).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+
+    const html = this.createHtmlFullContent(
+      templateSignatureCompletion(
+        opts.recipientName,
+        opts.documentName,
+        opts.selfLabel,
+        opts.counterpartyName,
+        dateStr,
+        !!opts.pdf,
+      ),
+    );
+
+    const attachments: MailAttachment[] | undefined = opts.pdf
+      ? [
+          {
+            filename: opts.pdf.filename,
+            content: opts.pdf.content,
+            contentType: "application/pdf",
+          },
+        ]
+      : undefined;
+
+    return this.send(
+      this.createOption(html, `Document signé — ${opts.documentName}`, {
+        attachments,
+      }),
+      `La confirmation de signature a été envoyée à ${this.email}.`,
+    );
   }
 }

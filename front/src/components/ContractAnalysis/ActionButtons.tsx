@@ -8,6 +8,9 @@ import {
 } from "lucide-react";
 import { useDocumentTextStore } from "../../store/documentTextStore";
 import { useAppliedRecommendationsStore } from "../../store/appliedRecommendationsStore";
+import { AddToContrathequeButton } from "./AddToContrathequeButton";
+import { ContractAnalysis } from "../../types";
+import { AnalysisContext } from "../../types/contextualAnalysis";
 
 interface ActionButtonsProps {
   onShareReport: () => void;
@@ -21,6 +24,10 @@ interface ActionButtonsProps {
   isLoadingSuggested?: boolean;
   /** Actions supplémentaires (ex. « Ajouter à la contrathèque »). */
   extraActions?: React.ReactNode;
+
+
+  contract:ContractAnalysis;
+  context:AnalysisContext | undefined
 }
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
@@ -34,6 +41,10 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   onSuggestedClauses,
   isLoadingSuggested = false,
   extraActions,
+
+  contract,
+  context
+
 }) => {
   const patches = useDocumentTextStore((state) => state.patches);
   const activePatchCount = patches.filter((p) => p.active).length;
@@ -51,6 +62,13 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
     <div className=" px-6 py-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-wrap">
+
+        <AddToContrathequeButton 
+          contract={contract}
+          context={context}
+        />
+
+
           <button onClick={onShareReport} className={btnGhost}>
             <Share2 className="w-4 h-4" />
             Partager

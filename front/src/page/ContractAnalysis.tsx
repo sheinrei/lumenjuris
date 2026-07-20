@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
@@ -1335,3 +1336,1360 @@ export default function ContractAnalysis() {
     </>
   );
 }
+=======
+﻿import { useState, useEffect, useMemo, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import { UploadZone } from "../components/ContractAnalysis/UploadZone";
+import {
+  DocumentViewer,
+  DocumentViewerRef,
+} from "../components/ContractAnalysis/DocumentViewer";
+
+// ===> ACTION 3 : CORRIGER L'IMPORT ICI
+import { EnhancedClauseDetail } from "../components/ContractAnalysis/EnhancedClauseDetail/EnhancedClauseDetail";
+import { clearEnhancedClauseCaches } from "../components/ContractAnalysis/EnhancedClauseDetail/enhancedClauseCaches";
+import { ActionButtons } from "../components/ContractAnalysis/ActionButtons";
+import { ContextualAnalysisForm } from "../components/ContractAnalysis/ContextualAnalysisForm";
+import React, { Suspense } from "react";
+const MarketComparison = React.lazy(() =>
+  import("../components/ContractAnalysis/MarketComparison").then((m) => ({
+    default: m.MarketComparison,
+  })),
+);
+import {
+  processContractAnalysisResults,
+  useContractAnalysis,
+  type ProcessingPhase,
+} from "../hooks/useContractAnalysis";
+import { useRiskStats } from "../hooks/useRiskStats";
+import { useShareUrl } from "../hooks/useShareUrl";
+import { useAppliedRecommendationsStore } from "../store/appliedRecommendationsStore";
+import type { AppliedRecommendation } from "../store/appliedRecommendationsStore";
+import { useDocumentTextStore } from "../store/documentTextStore";
+import type { TextPatch } from "../store/documentTextStore";
+import type {
+  ContractAnalysis as ContractAnalysisType,
+  ClauseRisk,
+} from "../types";
+import type {
+  AnalysisContext,
+  EnterpriseAnalysisContext,
+} from "../types/contextualAnalysis";
+import type {
+  ApiResponse,
+  ConventionCollectiveOption,
+  EnterpriseSettings,
+} from "../types/paramSettings";
+import type { AnalysisProgress } from "../types/analysisProgress";
+import {
+  loadAnalysisFromCache,
+  saveAnalysisToCache,
+  clearAnalysisCache,
+} from "../utils/aiAnalyser/cachedAnalysis";
+import {
+  compareByUploadTimeDesc,
+  createContractHistoryId,
+  createContractHistoryPreviewItem,
+  createContractHistorySnapshot,
+  deleteContractHistoryEntry,
+  loadContractHistoryIndex,
+  loadContractHistorySnapshot,
+  saveContractHistorySnapshot,
+  touchContractHistoryEntry,
+  type ContractHistoryItem,
+} from "../utils/contractHistory";
+import type {
+  MarketAnalysisResult,
+  MissingClause,
+} from "../utils/marketAnalysis";
+
+import { fetchProxy } from "../utils/fetchProxy";
+
+import { LoadingZoneAnalyzer } from "../components/common/LoadingZoneAnalyzer";
+
+import { ClausesSidebar } from "../components/ContractAnalysis/ClausesSidebar";
+import { isFeatureEnabled } from "../config/features";
+
+type EnterpriseGetData = EnterpriseSettings & {
+  selectedIdcc?: ConventionCollectiveOption | null;
+};
+
+type TemporaryHistoryEntry = {
+  id: string;
+  contract: ContractAnalysisType;
+  htmlContent: string | null;
+  currentAnalysisContext: AnalysisContext | null;
+  patches: TextPatch[];
+  appliedRecommendations: AppliedRecommendation[];
+  marketAnalysis: MarketAnalysisResult | null;
+  reviewedClauseIds: string[];
+  isProcessing: boolean;
+  processingPhase: ProcessingPhase;
+  analysisProgress: AnalysisProgress | null;
+};
+
+const consumedNavigationUploadKeys = new Set<string>();
+const LEAVE_ANALYSIS_WARNING =
+  "Une analyse est en cours ou n'a pas été finalisée. Si vous quittez cette page, elle sera abandonnée.";
+const RECENT_NAVIGATION_CONFIRM_MS = 500;
+
+function getFileUploadKey(file: File): string {
+  return `${file.name}:${file.size}:${file.lastModified}`;
+}
+
+function createTemporaryHistorySnapshot(entry: TemporaryHistoryEntry) {
+  return createContractHistorySnapshot({
+    id: entry.id,
+    contract: entry.contract,
+    htmlContent: entry.htmlContent,
+    currentAnalysisContext: entry.currentAnalysisContext,
+    patches: entry.patches,
+    appliedRecommendations: entry.appliedRecommendations,
+    marketAnalysis: entry.marketAnalysis,
+    reviewedClauseIds: entry.reviewedClauseIds,
+  });
+}
+
+function cleanEnterpriseContextValue(value?: string | null): string | null {
+  const cleanedValue = value?.trim();
+  return cleanedValue ? cleanedValue : null;
+}
+
+function getSelectedConventionCollective(
+  enterprise?: EnterpriseGetData | null,
+): ConventionCollectiveOption | null {
+  if (!enterprise) return null;
+
+  if (enterprise.selectedIdcc) {
+    return enterprise.selectedIdcc;
+  }
+
+  return (
+    enterprise.idccSelections.find(
+      (selection) => selection.key === enterprise.selectedIdccKey,
+    ) ?? null
+  );
+}
+
+function mapEnterpriseToAnalysisContext(
+  enterprise?: EnterpriseGetData | null,
+): EnterpriseAnalysisContext | undefined {
+  const selectedConvention = getSelectedConventionCollective(enterprise);
+  const enterpriseContext: EnterpriseAnalysisContext = {
+    collectiveAgreement: cleanEnterpriseContextValue(selectedConvention?.name),
+    companyLegalForm: cleanEnterpriseContextValue(enterprise?.statusJuridique),
+  };
+
+  return Object.values(enterpriseContext).some(Boolean)
+    ? enterpriseContext
+    : undefined;
+}
+
+
+
+
+
+
+
+
+
+// ─── Page principale ──────────────────────────────────────────────────────────
+export default function ContractAnalysis() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Ã‰tats locaux
+  const [selectedClause, setSelectedClause] = useState<string | null>(null);
+  const [showAnalysisForm, setShowAnalysisForm] = useState(false);
+  const [reviewedClauses, setReviewedClauses] = useState<Set<string>>(
+    new Set(),
+  );
+  const [showMarketAnalysis, setShowMarketAnalysis] = useState(false);
+  const [analyseCredit, setAnalyseCredit] = useState<number | null>(null);
+  const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
+  const currentHistoryIdRef = useRef<string | null>(null);
+  const [historyItems, setHistoryItems] = useState<ContractHistoryItem[]>([]);
+  const sidebarCollapsed = false;
+
+  useEffect(() => {
+    loadContractHistoryIndex()
+      .then(setHistoryItems)
+      .catch(() => {});
+  }, []);
+  const [temporaryHistoryEntries, setTemporaryHistoryEntries] = useState<
+    Record<string, TemporaryHistoryEntry>
+  >({});
+  const temporaryHistoryEntriesRef = useRef<
+    Record<string, TemporaryHistoryEntry>
+  >({});
+  const [enterpriseContext, setEnterpriseContext] = useState<
+    EnterpriseAnalysisContext | undefined
+  >(undefined);
+  const documentPreparationRef = useRef<string | null>(null);
+  const confirmedNavigationAtRef = useRef(0);
+
+  const setActiveHistoryId = (historyId: string | null) => {
+    currentHistoryIdRef.current = historyId;
+    setCurrentHistoryId(historyId);
+  };
+
+  useEffect(() => {
+    temporaryHistoryEntriesRef.current = temporaryHistoryEntries;
+  }, [temporaryHistoryEntries]);
+
+  useEffect(() => {
+    const abortController = new AbortController();
+
+    const loadEnterpriseContext = async () => {
+      try {
+        const response = await fetchProxy("/api/enterprise", {
+          credentials: "include",
+          signal: abortController.signal,
+        });
+        const payload = (await response
+          .json()
+          .catch(() => null)) as ApiResponse<EnterpriseGetData> | null;
+
+        if (!response.ok || !payload?.success) {
+          setEnterpriseContext(undefined);
+          return;
+        }
+
+        setEnterpriseContext(mapEnterpriseToAnalysisContext(payload.data));
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+
+        console.error(
+          "Impossible de charger le contexte entreprise pour l'analyse.",
+          error,
+        );
+        setEnterpriseContext(undefined);
+      }
+    };
+
+    void loadEnterpriseContext();
+
+    return () => {
+      abortController.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    fetchProxy("/api/billing/subscription", {
+      method: "GET",
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data?.credits) {
+          const { creditIncluded = 0, creditAdded = 0 } = data.data.credits;
+          setAnalyseCredit(creditIncluded + creditAdded);
+        } else {
+          setAnalyseCredit(null);
+        }
+      })
+      .catch(() => setAnalyseCredit(null));
+  }, []);
+
+  // Store pour les recommandations appliquées
+  const { clearAllAppliedRecommendations } = useAppliedRecommendationsStore();
+  const appliedRecommendations = useAppliedRecommendationsStore(
+    (s) => s.appliedRecommendations,
+  );
+  const setAppliedRecommendations = useAppliedRecommendationsStore(
+    (s) => s.setAppliedRecommendations,
+  );
+
+  // Ref pour contrôler le DocumentViewer
+  const documentViewerRef = useRef<DocumentViewerRef>(null);
+  const [recommendationIndex, setRecommandationIndex] = useState<number>(0);
+  const handleIncrementIndexRecommendation = () =>
+    setRecommandationIndex((prev) => prev + 1);
+  const setOriginalText = useDocumentTextStore((s) => s.setOriginalText);
+  const originalText = useDocumentTextStore((s) => s.originalText);
+  const htmlContent = useDocumentTextStore((s) => s.htmlContent);
+  const patches = useDocumentTextStore((s) => s.patches);
+  const restoreDocumentState = useDocumentTextStore(
+    (s) => s.restoreDocumentState,
+  );
+  const setHtmlContent = useDocumentTextStore((s) => s.setHtmlContent);
+  const resetAllPatches = useDocumentTextStore((s) => s.resetAll);
+
+  // Hook principal pour l'analyse des contrats
+  const {
+    contract,
+    isProcessing,
+    processingPhase,
+    analysisProgress,
+    currentAnalysisContext,
+    marketAnalysis,
+    isMarketAnalysisLoading,
+    handleFileUpload,
+    handleTextSubmit,
+    handleMarketAnalysis,
+    restoreAnalysis,
+    resetAnalysis,
+  } = useContractAnalysis();
+
+  const { sortedClauses } = useRiskStats(contract);
+
+  const activeTemporaryEntry = currentHistoryId
+    ? temporaryHistoryEntries[currentHistoryId]
+    : undefined;
+  const displayedIsProcessing =
+    activeTemporaryEntry?.isProcessing ?? isProcessing;
+  const displayedProcessingPhase =
+    activeTemporaryEntry?.processingPhase ?? processingPhase;
+  const displayedAnalysisProgress =
+    activeTemporaryEntry?.analysisProgress ?? analysisProgress;
+
+  const visibleHistoryItems = useMemo(() => {
+    const temporaryItems = Object.values(temporaryHistoryEntries).map((entry) =>
+      createContractHistoryPreviewItem(
+        createTemporaryHistorySnapshot(entry),
+        historyItems.find((item) => item.id === entry.id),
+      ),
+    );
+    const temporaryIds = new Set(temporaryItems.map((item) => item.id));
+
+    return [
+      ...temporaryItems,
+      ...historyItems.filter((item) => !temporaryIds.has(item.id)),
+    ].sort(compareByUploadTimeDesc);
+  }, [historyItems, temporaryHistoryEntries]);
+
+  const updateTemporaryHistoryEntry = (
+    historyId: string,
+    updater: (entry: TemporaryHistoryEntry) => TemporaryHistoryEntry,
+  ) => {
+    const currentRefEntry = temporaryHistoryEntriesRef.current[historyId];
+    if (currentRefEntry) {
+      temporaryHistoryEntriesRef.current = {
+        ...temporaryHistoryEntriesRef.current,
+        [historyId]: updater(currentRefEntry),
+      };
+    }
+
+    setTemporaryHistoryEntries((previousEntries) => {
+      const currentEntry = previousEntries[historyId];
+      if (!currentEntry) return previousEntries;
+
+      return {
+        ...previousEntries,
+        [historyId]: updater(currentEntry),
+      };
+    });
+  };
+
+  const removeTemporaryHistoryEntry = (historyId: string) => {
+    if (temporaryHistoryEntriesRef.current[historyId]) {
+      const nextRefEntries = { ...temporaryHistoryEntriesRef.current };
+      delete nextRefEntries[historyId];
+      temporaryHistoryEntriesRef.current = nextRefEntries;
+    }
+
+    setTemporaryHistoryEntries((previousEntries) => {
+      if (!previousEntries[historyId]) return previousEntries;
+
+      const nextEntries = { ...previousEntries };
+      delete nextEntries[historyId];
+      return nextEntries;
+    });
+  };
+
+  const rememberTemporaryContract = (
+    historyId: string,
+    preparedContract: ContractAnalysisType,
+  ) => {
+    const documentState = useDocumentTextStore.getState();
+    const recommendationState = useAppliedRecommendationsStore.getState();
+    const entry: TemporaryHistoryEntry = {
+      id: historyId,
+      contract: preparedContract,
+      htmlContent: documentState.htmlContent,
+      currentAnalysisContext: null,
+      patches: documentState.patches,
+      appliedRecommendations: recommendationState.appliedRecommendations,
+      marketAnalysis: null,
+      reviewedClauseIds: [],
+      isProcessing: false,
+      processingPhase: "extraction",
+      analysisProgress: null,
+    };
+
+    temporaryHistoryEntriesRef.current = {
+      ...temporaryHistoryEntriesRef.current,
+      [historyId]: entry,
+    };
+
+    setTemporaryHistoryEntries((previousEntries) => ({
+      ...previousEntries,
+      [historyId]: entry,
+    }));
+  };
+
+  const startTemporaryAnalysis = async (
+    historyId: string,
+    analysisType: "standard" | "contextual",
+    context?: AnalysisContext,
+  ) => {
+    const entry = temporaryHistoryEntriesRef.current[historyId];
+    if (!entry || entry.isProcessing) return;
+
+    const baseContract = entry.contract;
+    const analysisContext = analysisType === "contextual" ? context : undefined;
+
+    updateTemporaryHistoryEntry(historyId, (currentEntry) => ({
+      ...currentEntry,
+      currentAnalysisContext: analysisContext ?? null,
+      isProcessing: true,
+      processingPhase: "analysis",
+      analysisProgress: null,
+    }));
+
+    if (currentHistoryIdRef.current === historyId) {
+      setShowAnalysisForm(false);
+    }
+
+    try {
+      const cached = loadAnalysisFromCache(
+        baseContract.content,
+        analysisContext,
+      );
+      let analysisResults: ClauseRisk[];
+
+      if (cached && cached.length > 0) {
+        analysisResults = cached;
+      } else {
+        updateTemporaryHistoryEntry(historyId, (currentEntry) => ({
+          ...currentEntry,
+          analysisProgress: {
+            mode: "direct",
+            state: "running",
+            currentAttempt: 1,
+            totalAttempts: 3,
+            totalChunks: 1,
+            completedChunks: 0,
+            successfulChunks: 0,
+            failedChunks: 0,
+            message: "Analyse du document en cours.",
+          } satisfies AnalysisProgress,
+          processingPhase: "analysis",
+        }));
+
+        const response = await fetchProxy("/api/analyze-contract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            content: baseContract.content,
+            context: analysisContext,
+          }),
+        });
+
+        if (!response.ok)
+          throw new Error(`Analyse échouée (${response.status})`);
+        const data = (await response.json()) as {
+          success: boolean;
+          clauses: ClauseRisk[];
+        };
+        analysisResults = data.clauses ?? [];
+
+        saveAnalysisToCache(
+          baseContract.content,
+          analysisResults,
+          analysisContext,
+        );
+      }
+
+      const latestEntry = temporaryHistoryEntriesRef.current[historyId];
+      if (!latestEntry) return;
+
+      const updatedContract = processContractAnalysisResults(
+        baseContract,
+        analysisResults,
+        analysisType,
+        analysisContext,
+      );
+      const completedEntry: TemporaryHistoryEntry = {
+        ...latestEntry,
+        contract: updatedContract,
+        currentAnalysisContext: analysisContext ?? null,
+        isProcessing: false,
+        processingPhase: "enhanced",
+        analysisProgress: null,
+      };
+
+      const savedItem = await saveContractHistorySnapshot(
+        createTemporaryHistorySnapshot({
+          ...completedEntry,
+          htmlContent: null,
+        }),
+      );
+      if (savedItem) {
+        setHistoryItems(await loadContractHistoryIndex());
+        removeTemporaryHistoryEntry(historyId);
+      } else {
+        updateTemporaryHistoryEntry(historyId, () => completedEntry);
+      }
+
+      if (currentHistoryIdRef.current === historyId) {
+        restoreAnalysis({
+          contract: updatedContract,
+          currentAnalysisContext: completedEntry.currentAnalysisContext,
+          marketAnalysis: completedEntry.marketAnalysis,
+        });
+        setShowAnalysisForm(false);
+
+        fetchProxy("/api/billing/remove-credits", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ removeCredit: 100 }),
+        }).catch(console.error);
+      }
+    } catch (error) {
+      console.error("Erreur analyse:", error);
+      if (!temporaryHistoryEntriesRef.current[historyId]) return;
+
+      updateTemporaryHistoryEntry(historyId, (currentEntry) => ({
+        ...currentEntry,
+        isProcessing: false,
+        processingPhase: "extraction",
+        analysisProgress: null,
+      }));
+
+      if (currentHistoryIdRef.current === historyId) {
+        setShowAnalysisForm(true);
+      }
+    }
+  };
+
+
+
+
+  //Bouton d'ajout d'une nouvelle clause depuis la modale "Clauses suggérées"
+  const handleAppendClause = (clause: MissingClause) => {
+    let titreClause = clause.titreSuggestion;
+    let texteClause = clause.corpsSuggestion;
+    const storeState = useDocumentTextStore.getState();
+    const originalText = storeState.originalText ?? "";
+
+    let baseContent = "";
+
+    if (storeState.htmlContent?.trim()) {
+      baseContent = storeState.htmlContent;
+    } else {
+      baseContent = originalText
+        .split(/\n{2,}/)
+        .map(
+          (bloc) =>
+            `<p style="margin-bottom: 14px;">${bloc.replace(/\n/g, "<br>")}</p>`,
+        )
+        .join("");
+    }
+
+    // On cherche le tout dernier article écrit par l'utilisateur dans son document
+    const articleRegex = /(?:Article\s+\d+|(\d+)\.)(?:\s*[-–—]\s*)?/gi;
+    const matches = [...originalText.matchAll(articleRegex)];
+
+    let isNumericFormat = true;
+    let prefixTemplate = "";
+    let suffixTemplate = ".";
+
+    if (matches.length > 0) {
+      const lastMatch = matches[matches.length - 1];
+      const matchText = lastMatch[0];
+
+      isNumericFormat = !/article/i.test(matchText);
+
+      if (isNumericFormat) {
+        prefixTemplate = "";
+        suffixTemplate = matchText.includes(".") ? "." : "";
+      } else {
+        prefixTemplate = "Article ";
+
+        if (/[-–—]/.test(matchText)) {
+          suffixTemplate = " - ";
+        } else {
+          suffixTemplate = " ";
+        }
+      }
+    } else {
+      isNumericFormat =
+        clause.detectedFormat === "NumericOnly" ||
+        (clause.lastNumberValue !== undefined && clause.lastNumberValue > 0);
+      prefixTemplate = isNumericFormat ? "" : "Article ";
+      suffixTemplate = isNumericFormat ? "." : " ";
+    }
+
+    // Calcul du numéro lors du clic d'ajout d'une clause sugérée
+    const baseNum = clause.lastNumberValue ?? 0;
+    const clausesAjoutees = (
+      baseContent.match(/class="contract-article"/g) || []
+    ).length;
+    const nextNum = baseNum + clausesAjoutees + 1;
+    const header = `${prefixTemplate}${nextNum}${suffixTemplate}`;
+
+    // Supprime le titre généré par l'IA
+    const iaTitleMatch = texteClause
+      .trim()
+      .match(/^(?:<strong>)?(?:article\s+(\d+)|(\d+)\s*\.?)/i);
+
+    if (iaTitleMatch) {
+      const numIA = parseInt(iaTitleMatch[1] || iaTitleMatch[2], 10);
+      const cleanRegex = new RegExp(
+        `^\\s*(?:<strong>)?(?:article\\s+${numIA}|${numIA}\\s*\\.?)\\s*(?:-|–|—)?\\s*(?:<\\/strong>)?\\s*`,
+        "i",
+      );
+      texteClause = texteClause.replace(cleanRegex, "");
+    }
+
+    const titreClair = titreClause ? titreClause.trim() : "";
+    const corpsClair = texteClause ? texteClause.trim() : "";
+
+    let contentToInsert = "";
+    if (titreClair) {
+      contentToInsert = `${header} ${titreClair}<br />${corpsClair}`;
+    } else {
+      contentToInsert = `${header} ${corpsClair}`;
+    }
+
+    const newClauseHtml = `<p class="contract-article" style="margin-top: 14px; margin-bottom: 14px;">${contentToInsert}</p>`;
+
+    // Clean le texte pour pouvoir effectuer une recherche du anchorText
+    let insertIdx = -1;
+    const normalizeText = (str: string) =>
+      str
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "");
+
+    const anchorsToTry = [
+      clause.anchorText,
+      "fait a",
+      "en 2 exemplaires",
+      "en deux exemplaires",
+      "signe a",
+      "lu et approuve",
+    ].filter(Boolean) as string[];
+
+    for (const anchor of anchorsToTry) {
+      const targetClean = normalizeText(anchor);
+      if (!targetClean) continue;
+
+      let currentPlain = "";
+      const indexMap: number[] = [];
+      let inTag = false;
+
+      // Vérifie si il s'agit d'une balise
+      for (let i = 0; i < baseContent.length; i++) {
+        if (baseContent[i] === "<") {
+          inTag = true;
+          continue;
+        }
+        if (baseContent[i] === ">") {
+          inTag = false;
+          continue;
+        }
+        if (inTag) continue;
+
+        // Permet de savoir où se trouve le texte injecté même avec des balises
+        const charNormalized = normalizeText(baseContent[i]);
+        if (charNormalized) {
+          currentPlain += charNormalized;
+          indexMap.push(i);
+        }
+      }
+
+      const matchPos = currentPlain.indexOf(targetClean);
+      if (matchPos !== -1) {
+        insertIdx = indexMap[matchPos];
+        break;
+      }
+    }
+
+    let finalContent = "";
+    if (insertIdx !== -1) {
+      const chunkBefore = baseContent.slice(0, insertIdx);
+      const lastBr = chunkBefore.lastIndexOf("<br");
+      const lastP = chunkBefore.lastIndexOf("<p");
+      const bestBreak = Math.max(lastBr, lastP);
+
+      if (bestBreak !== -1 && insertIdx - bestBreak < 300) {
+        insertIdx = bestBreak;
+      }
+
+      finalContent =
+        baseContent.slice(0, insertIdx) +
+        newClauseHtml +
+        baseContent.slice(insertIdx);
+    } else {
+      finalContent = baseContent + newClauseHtml;
+    }
+
+    useDocumentTextStore.getState().addClauseToTrack(clause.nom);
+    setHtmlContent(finalContent);
+  };
+
+  const { handleShareReport, loadSharedData } = useShareUrl(
+    contract,
+    reviewedClauses,
+    (_, loadedReviewedClauses) => {
+      setReviewedClauses(new Set(loadedReviewedClauses));
+    },
+  );
+
+  useEffect(() => {
+    loadSharedData();
+  }, [loadSharedData]);
+
+  useEffect(() => {
+    if (contract?.content && originalText !== contract.content) {
+      setOriginalText(contract.content);
+    }
+  }, [contract?.content, originalText, setOriginalText]);
+
+  useEffect(() => {
+    const activeHistoryId = currentHistoryIdRef.current;
+    if (!contract || !activeHistoryId || !contract.processed) return;
+
+    const snapshot = createContractHistorySnapshot({
+      id: activeHistoryId,
+      contract,
+      htmlContent,
+      currentAnalysisContext,
+      patches,
+      appliedRecommendations,
+      marketAnalysis,
+      reviewedClauseIds: Array.from(reviewedClauses),
+    });
+
+    void saveContractHistorySnapshot(snapshot).then(async (savedItem) => {
+      if (savedItem) setHistoryItems(await loadContractHistoryIndex());
+    });
+  }, [
+    appliedRecommendations,
+    contract,
+    currentAnalysisContext,
+    currentHistoryId,
+    htmlContent,
+    marketAnalysis,
+    patches,
+    reviewedClauses,
+  ]);
+
+  const hasTemporaryUnfinishedAnalysis = Object.values(
+    temporaryHistoryEntries,
+  ).some((entry) => !entry.contract.processed || entry.isProcessing);
+  const shouldWarnBeforeLeaving = Boolean(
+    hasTemporaryUnfinishedAnalysis ||
+    isProcessing ||
+    (contract && (!contract.processed || showAnalysisForm)),
+  );
+
+  const confirmLeavingUnfinishedAnalysis = () => {
+    if (!shouldWarnBeforeLeaving) return true;
+
+    const hasRecentlyConfirmed =
+      Date.now() - confirmedNavigationAtRef.current <
+      RECENT_NAVIGATION_CONFIRM_MS;
+    if (hasRecentlyConfirmed) return true;
+
+    const confirmed = window.confirm(LEAVE_ANALYSIS_WARNING);
+    if (confirmed) {
+      confirmedNavigationAtRef.current = Date.now();
+    }
+
+    return confirmed;
+  };
+
+  useEffect(() => {
+    if (!shouldWarnBeforeLeaving) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      const hasRecentlyConfirmed =
+        Date.now() - confirmedNavigationAtRef.current <
+        RECENT_NAVIGATION_CONFIRM_MS;
+      if (hasRecentlyConfirmed) return;
+
+      event.preventDefault();
+      event.returnValue = LEAVE_ANALYSIS_WARNING;
+      return LEAVE_ANALYSIS_WARNING;
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [shouldWarnBeforeLeaving]);
+
+  useEffect(() => {
+    if (!shouldWarnBeforeLeaving) return;
+
+    const handleDocumentLinkClick = (event: MouseEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const anchor = target.closest("a[href]");
+      if (!(anchor instanceof HTMLAnchorElement)) return;
+
+      const targetAttribute = anchor.getAttribute("target");
+      if (targetAttribute && targetAttribute !== "_self") return;
+
+      const nextUrl = new URL(anchor.href, window.location.href);
+      if (nextUrl.href === window.location.href) return;
+
+      if (window.confirm(LEAVE_ANALYSIS_WARNING)) {
+        confirmedNavigationAtRef.current = Date.now();
+        return;
+      }
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+
+    document.addEventListener("click", handleDocumentLinkClick, true);
+    return () => {
+      document.removeEventListener("click", handleDocumentLinkClick, true);
+    };
+  }, [shouldWarnBeforeLeaving]);
+
+  const handleClauseClick = (clauseId: string) => {
+    setSelectedClause(clauseId);
+    if (documentViewerRef.current) {
+      documentViewerRef.current.scrollToClause(clauseId);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setSelectedClause(null);
+  };
+
+  const resetPageState = () => {
+    documentPreparationRef.current = null;
+    temporaryHistoryEntriesRef.current = {};
+    setTemporaryHistoryEntries({});
+    setActiveHistoryId(null);
+    clearAllAppliedRecommendations();
+    resetAllPatches();
+    clearEnhancedClauseCaches();
+    resetAnalysis();
+    setSelectedClause(null);
+    setShowAnalysisForm(false);
+    setReviewedClauses(new Set());
+    setShowMarketAnalysis(false);
+  };
+
+  const handleNewAnalysis = () => {
+    if (!confirmLeavingUnfinishedAnalysis()) return;
+    resetPageState();
+  };
+
+  const onFileUpload = async (file: File) => {
+    const preparationKey = `file:${getFileUploadKey(file)}`;
+
+    if (documentPreparationRef.current) {
+      console.warn("Upload ignoré: une préparation est déjà en cours.");
+      return;
+    }
+
+    documentPreparationRef.current = preparationKey;
+    const historyId = createContractHistoryId();
+
+    try {
+      setActiveHistoryId(null);
+      resetAllPatches();
+      clearEnhancedClauseCaches();
+      const preparedContract = await handleFileUpload(file);
+      if (documentPreparationRef.current !== preparationKey) return;
+      if (!preparedContract) return;
+      rememberTemporaryContract(historyId, preparedContract);
+      setActiveHistoryId(historyId);
+      setShowAnalysisForm(true);
+      setSelectedClause(null);
+      setShowMarketAnalysis(false);
+    } catch (error) {
+      setActiveHistoryId(null);
+      console.error("Erreur upload:", error);
+    } finally {
+      if (documentPreparationRef.current === preparationKey) {
+        documentPreparationRef.current = null;
+      }
+    }
+  };
+
+    // Déclenche automatiquement l'analyse si un fichier OU un texte est passé via navigation state
+  // (ex. depuis la génération de contrats : « Réviser (risques) »).
+  useEffect(() => {
+    const state = location.state as {
+      file?: File;
+      text?: string;
+      fileName?: string;
+      historyId?: string;
+    } | null;
+    if (state?.historyId) {
+      // Ouverture d'une analyse depuis la liste d'historique (page Conformité).
+      const historyId = state.historyId;
+      navigate(".", { replace: true, state: null });
+      void handleOpenHistoryItem(historyId);
+    } else if (state?.file) {
+      const navigationUploadKey = `${location.key}:${getFileUploadKey(state.file)}`;
+      if (consumedNavigationUploadKeys.has(navigationUploadKey)) return;
+      consumedNavigationUploadKeys.add(navigationUploadKey);
+      navigate(".", { replace: true, state: null });
+      onFileUpload(state.file);
+    } else if (state?.text && state.text.trim()) {
+      const fileName = state.fileName || "Contrat généré";
+      const navigationTextKey = `${location.key}:text:${fileName}:${state.text.length}`;
+      if (consumedNavigationUploadKeys.has(navigationTextKey)) return;
+      consumedNavigationUploadKeys.add(navigationTextKey);
+      navigate(".", { replace: true, state: null });
+      void onTextSubmit(state.text, fileName);
+    } else if (state?.historyId) {
+      const navigationHistoryKey = `${location.key}:history:${state.historyId}`;
+      if (consumedNavigationUploadKeys.has(navigationHistoryKey)) return;
+      consumedNavigationUploadKeys.add(navigationHistoryKey);
+      navigate(".", { replace: true, state: null });
+      void handleOpenHistoryItem(state.historyId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onTextSubmit = async (text: string, fileName: string) => {
+    const preparationKey = `text:${fileName}:${text.length}`;
+
+    if (documentPreparationRef.current) {
+      console.warn("Soumission ignorée: une préparation est déjà en cours.");
+      return;
+    }
+
+    documentPreparationRef.current = preparationKey;
+    const historyId = createContractHistoryId();
+
+    try {
+      setActiveHistoryId(null);
+      resetAllPatches();
+      clearEnhancedClauseCaches();
+      const preparedContract = await handleTextSubmit(text, fileName);
+      if (documentPreparationRef.current !== preparationKey) return;
+      if (!preparedContract) return;
+      rememberTemporaryContract(historyId, preparedContract);
+      setActiveHistoryId(historyId);
+      setShowAnalysisForm(true);
+      setSelectedClause(null);
+      setShowMarketAnalysis(false);
+    } catch (error) {
+      setActiveHistoryId(null);
+      console.error("Erreur soumission texte:", error);
+    } finally {
+      if (documentPreparationRef.current === preparationKey) {
+        documentPreparationRef.current = null;
+      }
+    }
+  };
+
+  const onStandardAnalysis = () => {
+    const analysisHistoryId = currentHistoryIdRef.current;
+    if (!analysisHistoryId || !contract) return;
+
+    if (!temporaryHistoryEntriesRef.current[analysisHistoryId]) {
+      rememberTemporaryContract(analysisHistoryId, contract);
+    }
+
+    resetAllPatches();
+    clearEnhancedClauseCaches();
+    void startTemporaryAnalysis(analysisHistoryId, "standard");
+  };
+
+  const handleForceRelaunchAnalysis = () => {
+    const analysisHistoryId = currentHistoryIdRef.current;
+    if (!analysisHistoryId || !contract) return;
+
+    if (!temporaryHistoryEntriesRef.current[analysisHistoryId]) {
+      rememberTemporaryContract(analysisHistoryId, contract);
+    }
+
+    clearAnalysisCache(contract.content, currentAnalysisContext ?? undefined);
+    clearAllAppliedRecommendations();
+    resetAllPatches();
+    clearEnhancedClauseCaches();
+
+    updateTemporaryHistoryEntry(analysisHistoryId, (e) => ({
+      ...e,
+      isProcessing: false,
+    }));
+
+    void startTemporaryAnalysis(analysisHistoryId, "standard");
+  };
+
+  const onContextualAnalysis = (context: AnalysisContext) => {
+    const analysisHistoryId = currentHistoryIdRef.current;
+    if (!analysisHistoryId || !contract) return;
+
+    if (!temporaryHistoryEntriesRef.current[analysisHistoryId]) {
+      rememberTemporaryContract(analysisHistoryId, contract);
+    }
+
+    resetAllPatches();
+    clearEnhancedClauseCaches();
+    const contextWithEnterprise: AnalysisContext = {
+      ...context,
+      enterpriseContext,
+    };
+
+    console.log(
+      "🚀 Début onContextualAnalysis avec contexte:",
+      contextWithEnterprise,
+    );
+    void startTemporaryAnalysis(
+      analysisHistoryId,
+      "contextual",
+      contextWithEnterprise,
+    );
+  };
+
+  const handleMarketAnalysisClick = async () => {
+    try {
+      if (marketAnalysis) {
+        setShowMarketAnalysis(true);
+        return;
+      }
+      await handleMarketAnalysis();
+      setShowMarketAnalysis(true);
+    } catch (error) {
+      console.error("Erreur analyse de marché:", error);
+    }
+  };
+
+  const handleOpenHistoryItem = async (historyId: string) => {
+    if (historyId === currentHistoryId) return;
+
+    if (documentPreparationRef.current) {
+      if (!confirmLeavingUnfinishedAnalysis()) return;
+      documentPreparationRef.current = null;
+    } else if (currentHistoryId) {
+      const currentEntry = temporaryHistoryEntriesRef.current[currentHistoryId];
+      if (
+        currentEntry &&
+        !currentEntry.isProcessing &&
+        !currentEntry.contract.processed
+      ) {
+        if (!confirmLeavingUnfinishedAnalysis()) return;
+        documentPreparationRef.current = null;
+        removeTemporaryHistoryEntry(currentHistoryId);
+      }
+    }
+
+    documentPreparationRef.current = null;
+
+    const temporaryEntry = temporaryHistoryEntriesRef.current[historyId];
+    if (temporaryEntry) {
+      documentPreparationRef.current = null;
+      setActiveHistoryId(null);
+      clearEnhancedClauseCaches();
+      setSelectedClause(null);
+      setShowMarketAnalysis(false);
+      setReviewedClauses(new Set(temporaryEntry.reviewedClauseIds));
+      setShowAnalysisForm(
+        !temporaryEntry.contract.processed && !temporaryEntry.isProcessing,
+      );
+      setRecommandationIndex(
+        temporaryEntry.appliedRecommendations.reduce(
+          (max, recommendation) =>
+            Math.max(max, recommendation.recommendationIndex),
+          0,
+        ),
+      );
+
+      restoreDocumentState({
+        originalText: temporaryEntry.contract.content,
+        htmlContent: temporaryEntry.htmlContent,
+        patches: temporaryEntry.patches,
+      });
+      setAppliedRecommendations(temporaryEntry.appliedRecommendations);
+      restoreAnalysis({
+        contract: temporaryEntry.contract,
+        currentAnalysisContext: temporaryEntry.currentAnalysisContext,
+        marketAnalysis: temporaryEntry.marketAnalysis,
+      });
+      setActiveHistoryId(historyId);
+      return;
+    }
+
+    const snapshot = await loadContractHistorySnapshot(historyId);
+    if (!snapshot) {
+      setHistoryItems(await loadContractHistoryIndex());
+      return;
+    }
+
+    documentPreparationRef.current = null;
+    setActiveHistoryId(null);
+    clearEnhancedClauseCaches();
+    void touchContractHistoryEntry(historyId);
+    setSelectedClause(null);
+    setShowMarketAnalysis(false);
+    setReviewedClauses(new Set(snapshot.reviewedClauseIds));
+    setShowAnalysisForm(!snapshot.contract.processed);
+    setRecommandationIndex(
+      snapshot.appliedRecommendations.reduce(
+        (max, recommendation) =>
+          Math.max(max, recommendation.recommendationIndex),
+        0,
+      ),
+    );
+
+    restoreDocumentState({
+      originalText: snapshot.contract.content,
+      htmlContent: snapshot.htmlContent,
+      patches: snapshot.patches,
+    });
+    setAppliedRecommendations(snapshot.appliedRecommendations);
+    restoreAnalysis({
+      contract: snapshot.contract,
+      currentAnalysisContext: snapshot.currentAnalysisContext,
+      marketAnalysis: snapshot.marketAnalysis,
+    });
+    setActiveHistoryId(historyId);
+  };
+
+  const handleDeleteHistoryItem = async (historyId: string) => {
+    const isTemporaryItem = Boolean(
+      temporaryHistoryEntriesRef.current[historyId],
+    );
+    const isDraftItem =
+      isTemporaryItem ||
+      (historyId === currentHistoryId && contract?.processed === false);
+    const confirmMessage = isDraftItem
+      ? "Abandonner cette analyse en cours ?"
+      : "Supprimer ce document de l'historique ?";
+
+    if (!window.confirm(confirmMessage)) return;
+
+    if (isTemporaryItem) {
+      removeTemporaryHistoryEntry(historyId);
+
+      if (historyId !== currentHistoryId) return;
+
+      setActiveHistoryId(null);
+      resetAllPatches();
+      clearEnhancedClauseCaches();
+      resetAnalysis();
+      setSelectedClause(null);
+      setReviewedClauses(new Set());
+      setShowAnalysisForm(false);
+      setShowMarketAnalysis(false);
+      return;
+    }
+
+    await deleteContractHistoryEntry(historyId);
+    setHistoryItems(await loadContractHistoryIndex());
+
+    if (historyId !== currentHistoryId) return;
+
+    setActiveHistoryId(null);
+    resetAllPatches();
+    clearEnhancedClauseCaches();
+    resetAnalysis();
+    setSelectedClause(null);
+    setReviewedClauses(new Set());
+    setShowAnalysisForm(false);
+    setShowMarketAnalysis(false);
+  };
+
+  const clauseData = contract?.clauses.find((c) => c.id === selectedClause);
+
+
+
+
+
+
+
+
+
+  /**
+   * Retour du JSX
+   */
+  return (
+    <>
+      <div className="-m-5 lg:-m-7 px-4 py-8 overflow-x-hidden">
+        <div className="min-w-0 w-full">
+          {!contract && (
+            <div className="max-w-5xl mx-auto space-y-8">
+              <div className="mx-auto max-w-2xl text-center">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                  Analyse de contrat
+                </h1>
+                <p className="mt-2 text-sm text-gray-500">
+                  Importez un document ou collez son contenu pour identifier les
+                  clauses à risque en droit français.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <UploadZone
+                  onFileSelect={onFileUpload}
+                  onTextSubmit={onTextSubmit}
+                  isProcessing={displayedIsProcessing}
+                  processingPhase={displayedProcessingPhase}
+                  analyseCredit={9999 /* bypass dev — crédits réels: analyseCredit */}
+                />
+              </div>
+            </div>
+          )}
+
+          {showAnalysisForm && contract && !displayedIsProcessing && (
+            <div className="max-w-4xl mx-auto mb-8">
+              <ContextualAnalysisForm
+                onSubmit={onContextualAnalysis}
+                onSkip={onStandardAnalysis}
+                extractedText={contract.content}
+                isVisible={showAnalysisForm}
+              />
+            </div>
+          )}
+
+          {/* Zone de chargement dynamique */}
+          {displayedIsProcessing && contract && (
+            <div className="max-w-4xl mx-auto mb-8">
+              <LoadingZoneAnalyzer
+                phase={displayedProcessingPhase}
+                analysisProgress={displayedAnalysisProgress}
+              />
+            </div>
+          )}
+
+          {contract?.processed && !displayedIsProcessing && (
+            <div
+              className={
+                sidebarCollapsed
+                  ? "w-full px-3 flex gap-x-6"
+                  : "max-w-7xl mx-auto flex gap-x-6"
+              }
+            >
+              <div id="clauses-section" className="mb-6">
+                <div className="bg-white">
+                  {contract.clauses.length === 0 && (
+                    <div className="p-4 bg-blue-50 border-b border-blue-200">
+                      <div className="flex items-center gap-2 text-blue-800">
+                        <span className="text-lg">🚀</span>
+                        <span className="font-medium">
+                          Texte extrait - En attente d'analyse
+                        </span>
+                      </div>
+                      <p className="text-sm text-blue-600 mt-1">
+                        Le surlignage des clauses apparaîtra après l'analyse
+                        contextuelle ou standard
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex justify-center">
+                    <ActionButtons
+                      onShareReport={handleShareReport}
+                      isProcessed={Boolean(contract?.processed)}
+                      originalContent={contract?.content}
+                      htmlContent={htmlContent}
+                      fileName={contract?.fileName || "document"}
+                      onRelaunchAnalysis={handleForceRelaunchAnalysis}
+                      isRelaunchingAnalysis={displayedIsProcessing}
+                      onSuggestedClauses={handleMarketAnalysisClick}
+                      isLoadingSuggested={isMarketAnalysisLoading}
+
+                      contract={contract}
+                      context={currentAnalysisContext ?? undefined}
+                    />
+                  </div>
+                  <DocumentViewer
+                    content={contract.content}
+                    clauses={sortedClauses}
+                    onClauseClick={handleClauseClick}
+                    fileName={contract.fileName || "Document"}
+                    contractSummary={currentAnalysisContext ?? undefined}
+                    recommendationIndex={recommendationIndex}
+                    setRecommendationIndex={handleIncrementIndexRecommendation}
+                    activeClauseId={selectedClause}
+                    isFullscreen={sidebarCollapsed}
+                    ref={documentViewerRef}
+                  />
+                </div>
+              </div>
+              {isFeatureEnabled("ENABLE_CLAUSES_SIDEBAR") && (
+                <div className="hidden md:block w-80 border-gray-200 flex-shrink-0">
+                  <ClausesSidebar
+                    clauses={sortedClauses}
+                    onClauseClick={(clause) => handleClauseClick(clause.id)}
+                    isVisible={true}
+                    recommandationApplied={patches}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {selectedClause && clauseData && (
+        <EnhancedClauseDetail
+          clause={clauseData}
+          context={currentAnalysisContext || undefined}
+          onClose={handleCloseModal}
+          recommendationIndex={recommendationIndex}
+          setRecommendationIndex={handleIncrementIndexRecommendation}
+          isSensitive={contract?.isSensitive ?? true}
+        />
+      )}
+
+      {showMarketAnalysis && marketAnalysis && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-900">
+                Clauses Suggérées
+              </h2>
+              <button
+                onClick={() => setShowMarketAnalysis(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                X
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+              <Suspense
+                fallback={
+                  <div className="p-6 text-center text-sm text-gray-500">
+                    Chargement des clauses suggérées...
+                  </div>
+                }
+              >
+                <MarketComparison
+                  analysisResult={marketAnalysis}
+                  isLoading={isMarketAnalysisLoading}
+                  onAppendClause={handleAppendClause}
+                />
+              </Suspense>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Toaster position="top-right" />
+    </>
+  );
+}
+>>>>>>> 5d8e66d74e55d41d5e9037dfe100e00790e127fb

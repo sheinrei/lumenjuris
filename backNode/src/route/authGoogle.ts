@@ -1,7 +1,6 @@
 import express from "express";
 import type { Request, Response, Router } from "express";
 import axios from "axios";
-import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { createCookieAuth } from "../securite/cookieAuth.js";
 import { User } from "../services/classUser.js";

@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { prisma } from "../../prisma/singletonPrisma.js";
 
+
+
 export async function authMiddleware(
   req: Request,
   res: Response,
@@ -21,7 +23,7 @@ export async function authMiddleware(
     if (user?.isBanned) {
       return res.status(403).json({
         success: false,
-        message: "Votre compte a été suspendu. Contactez l'administrateur.",
+        message: "Votre compte a été suspendu. Contactez l'administrateur .",
         banned: true,
       });
     }

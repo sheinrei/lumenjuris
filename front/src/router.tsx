@@ -32,6 +32,7 @@ import { useUserStore } from "./store/userStore";
 import { usePreferencesStore } from "./store/preferencesStore";
 import { SignerPage } from "./page/SignerPage";
 
+import { ClusterUserPage } from "./page/ClusterEnterprise";
 import { usePageLoaded } from "./hooks/usePageLoaded";
 import { Loader } from "./components/common/Loader";
 import { PublicLayout } from "./components/DashboardComponents/PublicLayout";
@@ -65,12 +66,14 @@ export function App() {
     document.body.classList.toggle("dyslexic-font", isDyslexicMode);
   }, [isDyslexicMode]);
 
+
   useEffect(() => {
-    if (pageReady) setTimeout(() => setShowLoaderPage(false), 400);
+    if (pageReady) setTimeout(() => setShowLoaderPage(false), 400)
   }, [pageReady]);
 
-  if (showLoaderPage)
-    return <Loader label="Chargement de l'application en cours ..." />;
+
+  if (showLoaderPage) return <Loader label="Chargement de l'application en cours ..." />
+
 
   //Point d'entrée de l'application dynamique selon l'auth de l'user depuis le authStatus
   const HomeRedirect = () => {
@@ -121,6 +124,12 @@ export function App() {
           <Route path="/conformite" element={<Conformite />} />
           <Route path="/mon-compte" element={<ParamCompte />} />
           <Route path="/analyzer" element={<ContractAnalysis />} />
+
+          {/* Page de gestion d'un cluster pour les multi user */}
+          <Route path="/cluster" element={<ClusterUserPage />} />
+
+
+        <Route path="/monitoring" element={<Monitoring /> } />
         </Route>
 
         <Route
@@ -162,6 +171,8 @@ export function App() {
           element={<NegotiationGuest />}
         />
       </Routes>
+
+
     </>
   );
 }

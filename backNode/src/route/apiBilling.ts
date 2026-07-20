@@ -153,6 +153,102 @@ routerBilling.get(
   },
 );
 
+// Liste des factures payées de l'utilisateur (JSON).
+routerBilling.get(
+  "/invoices",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    const idUser = Number(req.idUser);
+
+    const result = await new Subscription().listInvoices(idUser);
+
+    return res.status(result.success ? 200 : 500).json(result);
+  },
+);
+
+// Téléchargement du PDF d'une facture (régénéré à la volée).
+routerBilling.get(
+  "/invoices/:idFacture/pdf",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const idUser = Number(req.idUser);
+      const idFacture = Number(req.params.idFacture);
+      if (!Number.isInteger(idFacture) || idFacture <= 0) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Identifiant de facture invalide." });
+      }
+
+      const result = await new Subscription().getInvoicePdf(idUser, idFacture);
+      if (!result) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Facture introuvable." });
+      }
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${result.invoiceNumber}.pdf"`,
+      );
+      return res.send(result.buffer);
+    } catch (err) {
+      console.error("GET /billing/invoices/:idFacture/pdf error:", err);
+      return res.status(500).json({ success: false, message: "Erreur serveur." });
+    }
+  },
+);
+
+// Enregistre une tentative de paiement échouée (appelé par le front quand
+// stripe.confirmCardPayment renvoie une erreur). Rattachée à l'abonnement
+// existant de l'utilisateur ; sans abonnement, l'échec n'est pas traçable
+// en base (Facture exige un subscriptionId) et est simplement ignoré.
+routerBilling.post(
+  "/payment-failed",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const idUser = Number(req.idUser);
+      const { amount, stripePaymentIntentId } = req.body as {
+        amount?: unknown;
+        stripePaymentIntentId?: unknown;
+      };
+
+      if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Montant invalide." });
+      }
+
+      const sub = await prisma.subscription.findUnique({
+        where: { userId: idUser },
+        select: { idSubscription: true },
+      });
+      if (!sub) {
+        return res.status(200).json({ success: true, recorded: false });
+      }
+
+      await prisma.facture.create({
+        data: {
+          price: Math.round(amount),
+          stripeInvoiceId:
+            typeof stripePaymentIntentId === "string"
+              ? stripePaymentIntentId.slice(0, 191)
+              : "",
+          status: "FAILED",
+          subscriptionId: sub.idSubscription,
+        },
+      });
+
+      return res.status(201).json({ success: true, recorded: true });
+    } catch (err) {
+      console.error("POST /billing/payment-failed error:", err);
+      return res.status(500).json({ success: false, message: "Erreur serveur." });
+    }
+  },
+);
+
 routerBilling.put(
   "/add-credits",
   authMiddleware,

@@ -295,6 +295,7 @@ routerUser.get("/get", authMiddleware, async (req: Request, res: Response) => {
       });
     }
 
+
     const dataReturn = {
       profile: {
         id: idUser,
