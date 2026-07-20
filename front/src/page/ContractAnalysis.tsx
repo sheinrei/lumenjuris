@@ -90,7 +90,6 @@ type TemporaryHistoryEntry = {
   processingPhase: ProcessingPhase;
   analysisProgress: AnalysisProgress | null;
 };
-
 const consumedNavigationUploadKeys = new Set<string>();
 const LEAVE_ANALYSIS_WARNING =
   "Une analyse est en cours ou n'a pas été finalisée. Si vous quittez cette page, elle sera abandonnée.";
