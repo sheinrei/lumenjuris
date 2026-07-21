@@ -68,3 +68,4 @@
 {"timestamp":"2026-07-21T07:58:27.183Z","level":"info","message":"Verification du transporter SMTP"}
 {"timestamp":"2026-07-21T07:58:55.405Z","level":"info","message":"Verification du transporter SMTP"}
 {"timestamp":"2026-07-21T08:00:03.761Z","level":"info","message":"Verification du transporter SMTP"}
+{"timestamp":"2026-07-21T08:57:52.768Z","level":"error","message":"Une erreur est survenu lors d'un envoie d'un email","data":{"code":"ETIMEDOUT","command":"CONN"}}

@@ -1,22 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "./Button";
+import { AlertBanner } from "../common/AlertBanner";
 
 export function TwoFactorCodeModal({
   open,
   email,
   onCancel,
   onVerify,
+  onResendMail,
 }: {
   open: boolean;
   email: string;
   onVerify: (code: string) => Promise<void>;
   onCancel: () => void;
+  onResendMail?: () => void;
 }) {
   const [digits, setDigits] = useState<string[]>(Array(6).fill(""));
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [sendMailSuccess, setMailSuccess] = useState(false);
+  const [sendMailError, setMailError] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -26,6 +31,8 @@ export function TwoFactorCodeModal({
     setDigits(Array(6).fill(""));
     setError(null);
     setIsLoading(false);
+    setMailError(false);
+    setMailSuccess(false);
 
     const previousOverflow = document.body.style.overflow;
     const handleEscape = (event: KeyboardEvent) => {
@@ -55,6 +62,24 @@ export function TwoFactorCodeModal({
 
     if (digit && index < 5) {
       inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleResendMail = async () => {
+    if (!onResendMail) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await onResendMail();
+      
+      setMailSuccess(true);
+    } catch (err) {
+      setMailError(true);
+      setError(err instanceof Error ? err.message : "Impossible de renvoyer le code. Veuillez réessayer.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -151,6 +176,26 @@ export function TwoFactorCodeModal({
             >
               Vérification en deux étapes
             </h3>
+            {sendMailSuccess && (
+              <AlertBanner
+                title="E-mail envoyé !"
+                variant="success"
+                detail="Un nouveau code de vérification vous a été envoyé par mail."
+                duration={8000}
+                onClose={() => setMailSuccess(false)}
+              />
+            )}
+
+            {sendMailError && (
+              <AlertBanner
+                title="Erreur de l'envoi du mail !"
+                variant="error"
+                detail="Un nouveau code de vérification n'a pas pu être envoyé par mail. Veuillez réessayer."
+                duration={8000}
+                onClose={() => setMailError(false)}
+              />
+            )}
+
             <p className="mt-2 text-sm leading-6 text-gray-600">
               Un code à 6 chiffres a été envoyé à{" "}
               <span className="font-medium text-gray-800">{email}</span>.
@@ -193,6 +238,15 @@ export function TwoFactorCodeModal({
           ) : null}
 
           <div className="flex justify-end gap-3 pt-1">
+            <Button
+              type="button"
+              onClick={ handleResendMail }
+              disabled={isLoading}
+              className="bg-lumenjuris text-white hover:bg-lumenjuris/90"
+            >
+              {isLoading ? "Envoi en cours..." : "Renvoyer un mail"}
+            </Button>
+
             <Button
               type="button"
               variant="outline"
