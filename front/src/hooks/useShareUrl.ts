@@ -10,6 +10,11 @@ interface UseShareUrlReturn {
   shareUrl: string;
   handleShareReport: () => void;
   loadSharedData: () => void;
+  notification: {
+    message: string;
+    type: "success" | "error"
+  } | null;
+  clearNotification: () => void;
 }
 
 export const useShareUrl = (
@@ -18,6 +23,7 @@ export const useShareUrl = (
   onDataLoaded: (contract: ContractAnalysis, reviewedClauses: string[]) => void
 ): UseShareUrlReturn => {
   const [shareUrl, setShareUrl] = useState<string>('');
+  const [notification, setNotification] = useState<{message: string; type: "success" | "error"} |null>(null);
 
   // Génération de l'URL de partage
   useEffect(() => {
@@ -58,7 +64,7 @@ export const useShareUrl = (
       navigator.clipboard
         .writeText(shareUrl)
         .then(() => {
-          alert('Lien de partage copié dans le presse-papiers !');
+          setNotification({message:"Lien de partage copié dans le presse-papiers !", type: "success"});
         })
         .catch(() => {
           // Fallback pour les navigateurs anciens
@@ -68,7 +74,7 @@ export const useShareUrl = (
           textArea.select();
           document.execCommand('copy');
           document.body.removeChild(textArea);
-          alert('Lien de partage copié !');
+          setNotification({message: "Lien de partage copié !", type: "success"});
         });
     }
   };
@@ -77,5 +83,7 @@ export const useShareUrl = (
     shareUrl,
     handleShareReport,
     loadSharedData,
+    notification,
+    clearNotification: () => setNotification(null),
   };
 };

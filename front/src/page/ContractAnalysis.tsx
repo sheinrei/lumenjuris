@@ -73,6 +73,8 @@ import { LoadingZoneAnalyzer } from "../components/common/LoadingZoneAnalyzer";
 import { ClausesSidebar } from "../components/ContractAnalysis/ClausesSidebar";
 import { isFeatureEnabled } from "../config/features";
 
+import { AlertBanner } from "../components/common/AlertBanner";
+
 type EnterpriseGetData = EnterpriseSettings & {
   selectedIdcc?: ConventionCollectiveOption | null;
 };
@@ -693,7 +695,7 @@ export default function ContractAnalysis() {
     setHtmlContent(finalContent);
   };
 
-  const { handleShareReport, loadSharedData } = useShareUrl(
+  const { handleShareReport, loadSharedData, notification, clearNotification } = useShareUrl(
     contract,
     reviewedClauses,
     (_, loadedReviewedClauses) => {
@@ -1244,7 +1246,14 @@ export default function ContractAnalysis() {
                       </p>
                     </div>
                   )}
-
+                  {notification && (
+                      <AlertBanner
+                        title={notification.message}
+                        variant={notification.type}
+                        duration={8000}
+                        onClose={clearNotification}
+                      />
+                    )}
                   <div className="flex justify-center">
                     <ActionButtons
                       onShareReport={handleShareReport}

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Plus, FileText, Send, Clock, CheckCircle2, Loader2, Trash2, AlertCircle, Filter } from "lucide-react";
 import { fetchProxy } from "../../../utils/fetchProxy";
+import { ConfirmationModal } from "../../ui/ConfirmationModal";
 
 /** Statuts d'enveloppe (miroir de l'enum Prisma). */
 type EnvelopeStatus = "DRAFT" | "SENT" | "PARTIALLY_SIGNED" | "SIGNED" | "DECLINED" | "EXPIRED";
@@ -56,6 +57,8 @@ export function SignatureDashboard({ onNewContract, refreshKey }: Props) {
   const [filter, setFilter] = useState<EnvelopeStatus | "ALL">("ALL");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [validateModalOpen, setValidateModalOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -78,16 +81,26 @@ export function SignatureDashboard({ onNewContract, refreshKey }: Props) {
 
   useEffect(() => { void fetchAll(); }, [fetchAll, refreshKey]);
 
+  
   async function handleDelete(externalId: string) {
-    if (!confirm("Supprimer définitivement cette enveloppe ?")) return;
+    setPendingDeleteId(externalId);
+    setValidateModalOpen(true);
+  }
+
+  async function validateConfirmed() {
+     if (!pendingDeleteId) return;
     try {
-      await fetchProxy(`/api/signature-envelope/${externalId}`, {
+      await fetchProxy(`/api/signature-envelope/${pendingDeleteId}`, {
         method: "DELETE",
         credentials: "include",
       });
       await fetchAll();
     } catch { /* silent */ }
-  }
+      finally {
+      setValidateModalOpen(false);
+      setPendingDeleteId(null);
+    }
+  } 
 
   return (
     <div className="space-y-5">
@@ -137,6 +150,14 @@ export function SignatureDashboard({ onNewContract, refreshKey }: Props) {
 
       {/* Liste */}
       <EnvelopeList list={list} loading={loading} onDelete={handleDelete} />
+        <ConfirmationModal
+          open={validateModalOpen}
+          title="Supprimer l'enveloppe"
+          description={`Souhaitez-vous supprimer l'enveloppe ?`}
+          confirmLabel="Valider"
+          onConfirm={validateConfirmed}
+          onCancel={() => { setValidateModalOpen(false); setPendingDeleteId(null); }}
+        />
     </div>
   );
 }
