@@ -74,7 +74,7 @@ const LoginForm = ({
   const [serverErrorMessage, setServerErrorMessage] = useState(
     "Une erreur est survenue, veuillez réessayer...",
   );
-  const [isBanned, setIsBanned] = useState<true|null>(null)
+  const [isBanned, setIsBanned] = useState(false);
   const [twoFactorModalOpen, setTwoFactorModalOpen] = useState(false);
   const [twoFactorEmail, setTwoFactorEmail] = useState("");
   const [verificationError, setVerificationError] = useState(false);
@@ -115,11 +115,14 @@ const LoginForm = ({
       const dataResponse = await loginResponse.json();
       console.log("▶️▶️ RETOUR SERVEUR CONNEXION :", dataResponse);
 
-      if(loginResponse.status == 403){
-        return console.log("banneeddd (403)")
-      }
 
       if (!loginResponse.ok || !dataResponse.success) {
+        if(loginResponse.status == 403){
+          setIsBanned(true);
+          setServerError(false);
+          setSubmitLoading(false);
+          return;
+        }
         setServerError(true);
         setServerErrorMessage(
           dataResponse.message ||
@@ -270,7 +273,7 @@ const LoginForm = ({
         detail="Votre compte a été bloqué par les services de modération, si vous ne comprenez pas les raisons vous pouvez nous contacter par email à l'adresse contact@lumenjuris.com"
         duration={15000}
         onClose={()=>
-          setIsBanned(null)
+          setIsBanned(false)
         }
         />
       )

@@ -19,7 +19,7 @@ routerAuthGoogle.get("/auth/google", (req: Request, res: Response) => {
   
   oauthStates.set(state, Date.now() +5 * 60 * 1000);
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = "http://localhost:3020/auth/google/callback";
+  const redirectUri = `${process.env.HOST}/auth/google/callback`;
   const scope = "openid email profile";
 
   const url =
@@ -54,7 +54,7 @@ routerAuthGoogle.get(
         code: code as string,
         client_id: process.env.GOOGLE_CLIENT_ID!,
         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-        redirect_uri: "http://localhost:3020/auth/google/callback",
+        redirect_uri: `${process.env.HOST}/auth/google/callback`,
         grant_type: "authorization_code",
       }),
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } },

@@ -140,6 +140,37 @@ routerUser.post(
   },
 );
 
+routerUser.post("/resend-verify", async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({error: "E-mail requis"});
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user || user.isVerified) {
+      return res.status(200).json({success: true});
+    }
+
+    const token = await new Token().createToken(user.idUser, "verifyAccount");
+
+    const verifyUrl = `${process.env.HOST}/user/verify/${token.token}`;
+
+    const prenom = user.prenom;
+    const nom = user.nom;
+    await new Mailer(user.email).sendVerifyAccount(verifyUrl, `${prenom} ${nom}`);
+
+    return res.status(200).json({success: true, message: "L'e-mail de vérification a bien été envoyé. "})
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({error: "Le mail de vérification n'a pas pu être envoyé."})
+  }
+})
+
 routerUser.get(
   "/verify/:token",
   async (req: Request<{ token: string }>, res: Response) => {
@@ -230,6 +261,17 @@ routerUser.post(
     try {
       const { password, email } = req.body;
       const logUser = await new User().authenticate(password, email);
+
+      const userStatus = await prisma.user.findUnique({
+        where: {idUser: logUser.data?.idUser},
+        select: {isBanned: true},
+      })
+
+      if (userStatus?.isBanned) {
+        return res.status(403).json({
+          success: false, message: "Cet utilisateur est banni et ne peut donc pas se connecter."
+        })
+      }
 
       if (!logUser.success || !logUser.data) {
         return res.status(401).json({

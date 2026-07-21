@@ -374,6 +374,10 @@ function handleNodeLogin(req: Request, res: Response): void {
   relayToNode(req, res, "/user/auth/login");
 }
 
+function handleNodeVerifyAccount(req: Request, res: Response): void {
+  relayToNode(req, res, "/user/resend-verify");
+}
+
 function handleNodeLogout(req: Request, res: Response): void {
   relayToNode(req, res, "/user/auth/logout");
 }
@@ -1156,7 +1160,7 @@ const auth = proxyAuthMiddleware;
 // Routes publiques (pas d'auth requise)
 app.post("/api/signup", handleSignUpUser);
 app.post("/api/user/auth/login", handleNodeLogin);
-
+app.post("/user/resend-verify", handleNodeVerifyAccount);
 /**
  * Login du complément Word : mêmes identifiants que la plateforme, mais le
  * JWT est renvoyé dans le corps (l'iframe Word ne peut pas recevoir le cookie
