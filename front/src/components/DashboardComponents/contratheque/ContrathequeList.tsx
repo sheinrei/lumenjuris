@@ -7,6 +7,7 @@ import { STATUS_LABEL } from "./types";
 import { ViewTabs } from "./ViewTabs";
 import type { ContrathequeTab } from "./ViewTabs";
 import type { ContractStats, ContractListItem, ListFilters, ContractStatus } from "./types";
+import { ConfirmationModal } from "../../ui/ConfirmationModal";
 
 interface Props {
   onOpen: (id: string) => void;
@@ -26,6 +27,9 @@ export function ContrathequeList({ onOpen, onImport, tab, onTab, canDelete, refr
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [contractId, setContractId] = useState<string | null> (null);
+  const [contractTitle, setContractTitle] = useState<string | null> (null);
+  const [validateModalOpen, setValidateModalOpen] = useState(false);
 
   const [filters, setFilters] = useState<ListFilters>({ sortBy: "endDate", sortDir: "asc", page: 1, pageSize: PAGE_SIZE });
   const [search, setSearch] = useState("");
@@ -56,15 +60,25 @@ export function ContrathequeList({ onOpen, onImport, tab, onTab, canDelete, refr
   }
 
   async function handleDelete(id: string, title: string) {
-    if (!confirm(`Supprimer définitivement le contrat « ${title} » ?`)) return;
-    // Optimiste : on retire la ligne immédiatement, puis on resynchronise.
-    setItems((prev) => prev.filter((c) => c.id !== id));
+    setContractId(id);
+    setContractTitle(title);
+    setValidateModalOpen(true);
+    
+  }
+
+  async function validateConfirmed() {
+    if (!contractId || !contractTitle) return;
+    setItems((prev) => prev.filter((c) => c.id !== contractId));
     try {
-      await contractApi.remove(id);
+      await contractApi.remove(contractId);
       await loadData();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Échec de la suppression");
       await loadData();
+    } finally {
+      setContractId(null);
+      setContractTitle(null);
+      setValidateModalOpen(false);
     }
   }
 
@@ -176,6 +190,14 @@ export function ContrathequeList({ onOpen, onImport, tab, onTab, canDelete, refr
             </div>
           )}
       </div>
+      <ConfirmationModal
+        open={validateModalOpen}
+        title="Supprimer le contrat"
+        description={`Souhaitez-vous supprimer le contrat : ${contractTitle} ?`}
+        confirmLabel="Valider"
+        onConfirm={validateConfirmed}
+        onCancel={() => { setValidateModalOpen(false); setContractId(null); setContractTitle(null) }}
+      />
     </div>
   );
 }

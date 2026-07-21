@@ -10,6 +10,7 @@ import { contractApi } from "./api";
 import { negotiationApi } from "../negotiation/api";
 import { fmtDate, daysUntil, RENEWAL_LABEL } from "./types";
 import type { ContractDetail as Detail, ValidationStatus } from "./types";
+import { ConfirmationModal } from "../../ui/ConfirmationModal";
 
 interface Props {
   contractId: string;
@@ -26,6 +27,8 @@ export function ContractDetail({ contractId, canDelete, onBack, onDeleted }: Pro
   const [error, setError] = useState("");
   const [openingNego, setOpeningNego] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [contractDelete, setContractDelete] = useState(false);
+  const [validateModalOpen, setValidateModalOpen] = useState(false);
 
   // Point d'entrée du tunnel : ouvre (ou rejoint) la négociation isolée de ce contrat.
   async function handleNegotiate() {
@@ -59,9 +62,20 @@ export function ContractDetail({ contractId, canDelete, onBack, onDeleted }: Pro
   }
 
   async function handleDelete() {
-    if (!confirm("Supprimer définitivement ce contrat ?")) return;
-    await contractApi.remove(contractId);
-    onDeleted();
+    setContractDelete(true);
+    setValidateModalOpen(true);
+  }
+
+  async function validateConfirmed() {
+    if (!contractDelete) return;
+    try {
+      await contractApi.remove(contractId);
+      onDeleted();
+    } catch {}
+    finally {
+      setContractDelete(false);
+      setValidateModalOpen(false);
+    }
   }
 
   if (loading) {
@@ -159,6 +173,14 @@ export function ContractDetail({ contractId, canDelete, onBack, onDeleted }: Pro
           </div>
         </div>
       </div>
+      <ConfirmationModal
+        open={validateModalOpen}
+        title="Supprimer le contrat"
+        description={`Souhaitez-vous supprimer le contrat : ${data?.title} ?`}
+        confirmLabel="Valider"
+        onConfirm={validateConfirmed}
+        onCancel={() => { setValidateModalOpen(false); setContractDelete(false); }}
+      />
     </div>
   );
 }

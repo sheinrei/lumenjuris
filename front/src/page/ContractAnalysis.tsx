@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useMemo, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useBlocker } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { UploadZone } from "../components/ContractAnalysis/UploadZone";
 import {
@@ -7,6 +7,7 @@ import {
   DocumentViewerRef,
 } from "../components/ContractAnalysis/DocumentViewer";
 import { AddToContrathequeButton } from "../components/ContractAnalysis/AddToContrathequeButton";
+import { ConfirmationModal } from "../components/ui/ConfirmationModal";
 
 // ===> ACTION 3 : CORRIGER L'IMPORT ICI
 import { EnhancedClauseDetail } from "../components/ContractAnalysis/EnhancedClauseDetail/EnhancedClauseDetail";
@@ -750,6 +751,7 @@ export default function ContractAnalysis() {
     isProcessing ||
     (contract && (!contract.processed || showAnalysisForm)),
   );
+  const blocker = useBlocker(shouldWarnBeforeLeaving);
 
   const confirmLeavingUnfinishedAnalysis = () => {
     if (!shouldWarnBeforeLeaving) return true;
@@ -759,12 +761,8 @@ export default function ContractAnalysis() {
       RECENT_NAVIGATION_CONFIRM_MS;
     if (hasRecentlyConfirmed) return true;
 
-    const confirmed = window.confirm(LEAVE_ANALYSIS_WARNING);
-    if (confirmed) {
-      confirmedNavigationAtRef.current = Date.now();
-    }
 
-    return confirmed;
+    return true;
   };
 
   useEffect(() => {
@@ -784,48 +782,6 @@ export default function ContractAnalysis() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [shouldWarnBeforeLeaving]);
-
-  useEffect(() => {
-    if (!shouldWarnBeforeLeaving) return;
-
-    const handleDocumentLinkClick = (event: MouseEvent) => {
-      if (
-        event.defaultPrevented ||
-        event.button !== 0 ||
-        event.metaKey ||
-        event.ctrlKey ||
-        event.shiftKey ||
-        event.altKey
-      ) {
-        return;
-      }
-
-      const target = event.target;
-      if (!(target instanceof Element)) return;
-
-      const anchor = target.closest("a[href]");
-      if (!(anchor instanceof HTMLAnchorElement)) return;
-
-      const targetAttribute = anchor.getAttribute("target");
-      if (targetAttribute && targetAttribute !== "_self") return;
-
-      const nextUrl = new URL(anchor.href, window.location.href);
-      if (nextUrl.href === window.location.href) return;
-
-      if (window.confirm(LEAVE_ANALYSIS_WARNING)) {
-        confirmedNavigationAtRef.current = Date.now();
-        return;
-      }
-
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    };
-
-    document.addEventListener("click", handleDocumentLinkClick, true);
-    return () => {
-      document.removeEventListener("click", handleDocumentLinkClick, true);
     };
   }, [shouldWarnBeforeLeaving]);
 
@@ -855,10 +811,10 @@ export default function ContractAnalysis() {
     setShowMarketAnalysis(false);
   };
 
-  const handleNewAnalysis = () => {
-    if (!confirmLeavingUnfinishedAnalysis()) return;
-    resetPageState();
-  };
+  // const handleNewAnalysis = () => {
+  //   if (!confirmLeavingUnfinishedAnalysis()) return;
+  //   resetPageState();
+  // };
 
   const onFileUpload = async (file: File) => {
     const preparationKey = `file:${getFileUploadKey(file)}`;
@@ -1127,49 +1083,49 @@ export default function ContractAnalysis() {
     setActiveHistoryId(historyId);
   };
 
-  const handleDeleteHistoryItem = async (historyId: string) => {
-    const isTemporaryItem = Boolean(
-      temporaryHistoryEntriesRef.current[historyId],
-    );
-    const isDraftItem =
-      isTemporaryItem ||
-      (historyId === currentHistoryId && contract?.processed === false);
-    const confirmMessage = isDraftItem
-      ? "Abandonner cette analyse en cours ?"
-      : "Supprimer ce document de l'historique ?";
+  // const handleDeleteHistoryItem = async (historyId: string) => {
+  //   const isTemporaryItem = Boolean(
+  //     temporaryHistoryEntriesRef.current[historyId],
+  //   );
+  //   const isDraftItem =
+  //     isTemporaryItem ||
+  //     (historyId === currentHistoryId && contract?.processed === false);
+  //   const confirmMessage = isDraftItem
+  //     ? "Abandonner cette analyse en cours ?"
+  //     : "Supprimer ce document de l'historique ?";
 
-    if (!window.confirm(confirmMessage)) return;
+  //   if (!window.confirm(confirmMessage)) return;
 
-    if (isTemporaryItem) {
-      removeTemporaryHistoryEntry(historyId);
+  //   if (isTemporaryItem) {
+  //     removeTemporaryHistoryEntry(historyId);
 
-      if (historyId !== currentHistoryId) return;
+  //     if (historyId !== currentHistoryId) return;
 
-      setActiveHistoryId(null);
-      resetAllPatches();
-      clearEnhancedClauseCaches();
-      resetAnalysis();
-      setSelectedClause(null);
-      setReviewedClauses(new Set());
-      setShowAnalysisForm(false);
-      setShowMarketAnalysis(false);
-      return;
-    }
+  //     setActiveHistoryId(null);
+  //     resetAllPatches();
+  //     clearEnhancedClauseCaches();
+  //     resetAnalysis();
+  //     setSelectedClause(null);
+  //     setReviewedClauses(new Set());
+  //     setShowAnalysisForm(false);
+  //     setShowMarketAnalysis(false);
+  //     return;
+  //   }
 
-    await deleteContractHistoryEntry(historyId);
-    setHistoryItems(await loadContractHistoryIndex());
+  //   await deleteContractHistoryEntry(historyId);
+  //   setHistoryItems(await loadContractHistoryIndex());
 
-    if (historyId !== currentHistoryId) return;
+  //   if (historyId !== currentHistoryId) return;
 
-    setActiveHistoryId(null);
-    resetAllPatches();
-    clearEnhancedClauseCaches();
-    resetAnalysis();
-    setSelectedClause(null);
-    setReviewedClauses(new Set());
-    setShowAnalysisForm(false);
-    setShowMarketAnalysis(false);
-  };
+  //   setActiveHistoryId(null);
+  //   resetAllPatches();
+  //   clearEnhancedClauseCaches();
+  //   resetAnalysis();
+  //   setSelectedClause(null);
+  //   setReviewedClauses(new Set());
+  //   setShowAnalysisForm(false);
+  //   setShowMarketAnalysis(false);
+  // };
 
   const clauseData = contract?.clauses.find((c) => c.id === selectedClause);
 
@@ -1337,6 +1293,16 @@ export default function ContractAnalysis() {
               </Suspense>
             </div>
           </div>
+          // Dans le JSX :
+          <ConfirmationModal
+            open={blocker.state === "blocked"}
+            title="Quitter l'analyse ?"
+            description={LEAVE_ANALYSIS_WARNING}
+            confirmLabel="Quitter"
+            confirmClassName="bg-red-600 text-white hover:bg-red-700"
+            onConfirm={() => blocker.proceed?.()}
+            onCancel={() => blocker.reset?.()}
+          />
         </div>
       )}
 
