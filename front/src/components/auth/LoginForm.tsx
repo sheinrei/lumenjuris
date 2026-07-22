@@ -93,7 +93,6 @@ const LoginForm = ({
     setEmailSent(false);
   }, []);
 
-
   //Handle de la connexion d'un user
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

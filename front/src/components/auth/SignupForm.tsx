@@ -81,6 +81,8 @@ const SignupForm = ({
   confirmPassword,
   setConfirmPassword,
 }: SignupFormProps) => {
+ 
+
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -133,19 +135,16 @@ const SignupForm = ({
     const trimedFirstName = firstName.trim();
 
     let enterpriseData: object | null = null;
-    if (siren) {
+    if (siren && siren.trim().replace(/\D/g, "").length === 9) {
       try {
-        const sirenResponse = await fetchProxy(`/api/insee/${siren.trim()}`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
+        const sirenNormalized = siren.trim().replace(/\D/g, "");
+        const res = await fetchProxy(`/api/insee/${encodeURIComponent(sirenNormalized)}`, {
           credentials: "include",
-          cache: "no-store",
         });
-        if (sirenResponse.ok) {
-          const sirenPayload = await sirenResponse.json();
-          if (sirenPayload?.success && sirenPayload?.data) {
-            enterpriseData = sirenPayload.data;
-          }
+        const payload = await res.json().catch(() => null);
+        console.log(payload.data);
+        if (res.ok && payload?.success && payload.data) {
+          enterpriseData = payload.data;
         }
       } catch {
         // INSEE lookup best-effort, on continue sans données entreprise
