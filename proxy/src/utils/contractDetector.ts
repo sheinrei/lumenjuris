@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import type { AnalysisContext } from "../services/aiAnalyser/types.js";
+import { AnalysisContext } from "../services/aiAnalyser/types.js";
 import { callOpenAI } from "./openaiClient.js";
 
 export interface DetectedContractInfo {
@@ -531,9 +531,17 @@ export async function detectContractWithAI(
 ): Promise<AnalysisContext> {
   const prompt = `Tu es un expert juridique. Analyse cet extrait de contrat et détermine intelligemment les informations suivantes.
 
+ÉTAPE 1 - VALIDATION :
+Vérifie si le texte est un VÉRITABLE document contractuel ou juridique. 
+Si le texte est du texte totalement étranger au droit, définis "isLegalDocument" à false.
+
+ÉTAPE 2 - EXTRACTION (seulement si isLegalDocument est true) :
+Détermine de manière précise et intelligente les informations suivantes.
+
 IMPORTANT: Ne te limite pas à des catégories pré-définies. Sois précis et adapte tes réponses au contenu réel du document.
 
 Retourne un JSON avec:
+- "isLegalDocument": boolean, // true si document juridique/contractuel valide, false si non-juridique
 - contractType: Le type EXACT et précis du contrat (ex: "Bail commercial 3-6-9 avec clause de révision triennale", "CDI cadre au forfait jour avec clause de mobilité internationale")
 - userRole: Le rôle le plus probable de la personne qui analyse ce contrat (ex: "Locataire commerçant indépendant", "Salarié cadre supérieur")
 - specificQuestions: Des questions pertinentes à poser pour cette analyse (ex: "Vérifier la clause de révision du loyer et les conditions de cession du bail")
@@ -562,6 +570,7 @@ Réponds UNIQUEMENT avec le JSON, sans explication.`;
     const result = JSON.parse(txt);
     console.log("🤖 Détection IA dynamique:", result);
     return {
+      isLegalDocument: result.isLegalDocument ?? true,
       contractType: result.contractType || "",
       userRole: result.userRole || "",
       specificQuestions: result.specificQuestions || "",

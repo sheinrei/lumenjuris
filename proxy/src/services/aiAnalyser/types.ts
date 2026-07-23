@@ -27,6 +27,7 @@ export interface EnterpriseAnalysisContext {
 }
 
 export interface AnalysisContext {
+  isLegalDocument?: boolean;
   contractType: string;
   industry?: string;
   userRole: string;

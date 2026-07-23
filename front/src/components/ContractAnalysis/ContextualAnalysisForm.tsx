@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { AnalysisContext } from "../../types/contextualAnalysis";
 import { detectContractWithAI } from "../../utils/contractDetector";
+import { AlertBanner } from "../common/AlertBanner";
+import { useNavigate } from "react-router-dom";
 
 interface ContextualAnalysisFormProps {
   onSubmit: (context: AnalysisContext) => void;
@@ -31,6 +33,8 @@ export const ContextualAnalysisForm: React.FC<ContextualAnalysisFormProps> = ({
   const [placeholders] = useState({ mission: "", questions: "" }); // Retiré setPlaceholders
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isEquitable = context.interestOrientation === "balanced";
+  const [notLegalDocument, setNotLegalDocument] = useState(false);
+  const navigate = useNavigate();
 
   // Détection automatique au chargement du formulaire - 100% IA
   useEffect(() => {
@@ -47,6 +51,14 @@ export const ContextualAnalysisForm: React.FC<ContextualAnalysisFormProps> = ({
       try {
         // Utilise UNIQUEMENT l'IA pour déterminer TOUT
         const aiResult = await detectContractWithAI(extractedText);
+
+        if (aiResult.isLegalDocument === false) {
+            setNotLegalDocument(true);
+            setTimeout(() => {
+              navigate("/conformite");
+            }, 8000);
+            return;
+        }
 
         if (isActive) {
           // Remplace TOUT le contexte par les valeurs de l'IA
@@ -139,6 +151,19 @@ export const ContextualAnalysisForm: React.FC<ContextualAnalysisFormProps> = ({
             </div>
           )
         }
+
+        {notLegalDocument && (
+          <div className="mb-3">
+        <AlertBanner
+          title="Fichier incorrect"
+          variant="error"
+          detail="Le fichier que vous avez analyser n'a aucun rapport avec le droit."
+          onClose={() => {
+            setNotLegalDocument(false);
+          }}
+        />
+        </div>
+      )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Type de contrat - maintenant en texte libre */}

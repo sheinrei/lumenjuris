@@ -43,7 +43,7 @@ export function AlertBanner({
   variant,
   title,
   detail,
-  duration = 5000,
+  duration = 8000,
   accent = false,
   onClose,
 }: AlertBannerProps) {
