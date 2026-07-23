@@ -373,6 +373,10 @@ function handleNodeLogin(req: Request, res: Response): void {
   relayToNode(req, res, "/user/auth/login");
 }
 
+function handleNodeVerifyAccount(req: Request, res: Response): void {
+  relayToNode(req, res, "/user/resend-verify");
+}
+
 function handleNodeLogout(req: Request, res: Response): void {
   relayToNode(req, res, "/user/auth/logout");
 }
@@ -443,7 +447,9 @@ function handleNodeUserResetPassword(req: Request, res: Response): void {
   relayToNode(req, res, "/user/updatepassword");
 }
 
-function handleNodeGoogle(_req: Request, res: Response): void {
+function handleNodeGoogle(req: Request, res: Response): void {
+  console.log("[proxy/google] redirect vers :", `${BACKNODE_URL}/auth/google`);
+  console.log("[proxy/google] cookies entrants :", req.headers.cookie);
   res.redirect(`${BACKNODE_URL}/auth/google`);
 }
 
@@ -1167,7 +1173,7 @@ const auth = proxyAuthMiddleware;
 // Routes publiques (pas d'auth requise)
 app.post("/api/signup", handleSignUpUser);
 app.post("/api/user/auth/login", handleNodeLogin);
-
+app.post("/user/resend-verify", handleNodeVerifyAccount);
 /**
  * Login du complément Word : mêmes identifiants que la plateforme, mais le
  * JWT est renvoyé dans le corps (l'iframe Word ne peut pas recevoir le cookie
@@ -1235,7 +1241,7 @@ app.post("/api/addin/login", async (req: Request, res: Response) => {
 
 app.post("/api/auth/forgotpassword", handleNodeUserForgotPassword);
 app.post("/api/user/resetpassword", handleNodeUserResetPassword);
-app.get("/api/google", handleNodeGoogle);
+app.get("/auth/google", handleNodeGoogle);
 app.post("/api/billing/customer", auth, handleBillingCustomer);
 app.post("/api/billing/payment-intent", auth, handleBillingPaymentIntent);
 app.get("/api/veille", handleNodeVeille);

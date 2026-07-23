@@ -3,6 +3,7 @@ import { MessageSquare, Send, Check, Trash2, Loader2 } from "lucide-react";
 import { contractApi } from "./api";
 import { fmtDate } from "./types";
 import type { ContractDetail, ContractComment } from "./types";
+import { ConfirmationModal } from "../../ui/ConfirmationModal";
 
 interface Props {
   data: ContractDetail;
@@ -26,6 +27,8 @@ function CommentsCard({
 }) {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [deleteComment, setDeleteComment] = useState<ContractComment | null>(null);
+  const [validateModalOpen, setValidateModalOpen] = useState(false);
 
   async function add() {
     if (!draft.trim()) return;
@@ -40,9 +43,20 @@ function CommentsCard({
   }
 
   async function remove(c: ContractComment) {
-    if (!confirm("Supprimer ce commentaire ?")) return;
-    await contractApi.deleteComment(c.id);
-    onChanged();
+    setDeleteComment(c);
+    setValidateModalOpen(true);
+  }
+
+  async function validateConfirmed() {
+    if (!deleteComment) return;
+    try {
+      await contractApi.deleteComment(deleteComment.id);
+      onChanged()
+    } catch {}
+    finally {
+      setDeleteComment(null);
+      setValidateModalOpen(false);
+    };
   }
 
   return (
@@ -113,6 +127,14 @@ function CommentsCard({
           </button>
         </div>
       )}
+      <ConfirmationModal
+        open={validateModalOpen}
+        title="Supprimer le commentaire"
+        description={`Souhaitez-vous supprimer le commentaire ?`}
+        confirmLabel="Valider"
+        onConfirm={validateConfirmed}
+        onCancel={() => { setValidateModalOpen(false); setDeleteComment(null) }}
+      />
     </div>
   );
 }

@@ -1,9 +1,10 @@
-import { useDropzone } from "react-dropzone";
+import { FileRejection, useDropzone } from "react-dropzone";
 import { twMerge } from "tailwind-merge";
 import { Upload } from "lucide-react";
 
 interface InputFileProps {
   onDrop: (acceptedFiles: File[]) => void;
+  onDropRejected: (fileRejection: FileRejection[]) => void;
   fieldTitle?: string;
   fieldDescription?: string;
   supportedFileType?: string;
@@ -48,6 +49,7 @@ interface InputFileProps {
  */
 const InputFile = ({
   onDrop,
+  onDropRejected,
   fieldTitle = "Importez votre fichier",
   fieldDescription = "Cliquez ici ou glissez-déposez votre fichier",
   supportedFileType = "tous formats",
@@ -63,6 +65,7 @@ const InputFile = ({
   // Props pour react-dropzone | Remplace les props de la balise <input/>
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
+    onDropRejected,
     //accept: Object.keys(accepted).length > 0 ? accepted : undefined, Ajout de accepted && (si json vide cela reste true)
     accept: accepted && Object.keys(accepted).length ? accepted : undefined,
     disabled: disabled,

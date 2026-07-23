@@ -9,6 +9,7 @@ import { ClauseEditor } from "./ClauseEditor";
 import { CATEGORY_LABEL, POSITION_LABEL, POSITION_STYLE } from "./types";
 import type { Clause, ClauseCategory, ClauseStats } from "./types";
 import { useUserStore } from "../../../store/userStore";
+import { ConfirmationModal } from "../../ui/ConfirmationModal";
 
 /** Bibliothèque de clauses — référentiel réutilisable pour génération & négociation. */
 export function ClausesLibrary() {
@@ -23,6 +24,9 @@ export function ClausesLibrary() {
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<ClauseFilters>({});
   const [editing, setEditing] = useState<Clause | null | "new">(null);
+
+  const [clauseDelete, setClauseDelete] = useState<Clause | null>(null);
+  const [validateModalOpen, setValidateModalOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true); setError("");
@@ -50,10 +54,19 @@ export function ClausesLibrary() {
   }, [items]);
 
   async function handleDelete(c: Clause) {
-    if (!confirm(`Supprimer définitivement la clause « ${c.title} » ?`)) return;
-    setItems((prev) => prev.filter((x) => x.id !== c.id));
-    try { await clauseApi.remove(c.id); await loadData(); }
+    setClauseDelete(c);
+    setValidateModalOpen(true);
+  }
+
+  async function validateConfirmed() {
+    if (!clauseDelete) return;
+    setItems((prev) => prev.filter((x) => x.id !== clauseDelete.id));
+    try { await clauseApi.remove(clauseDelete.id); await loadData(); }
     catch (e) { setError(e instanceof Error ? e.message : "Échec de la suppression"); await loadData(); }
+    finally {
+      setClauseDelete(null);
+      setValidateModalOpen(false);
+    }
   }
 
   function patch(p: Partial<ClauseFilters>) { setFilters((f) => ({ ...f, ...p })); }
@@ -191,6 +204,14 @@ export function ClausesLibrary() {
           onSaved={() => { setEditing(null); void loadData(); }}
         />
       )}
+      <ConfirmationModal
+        open={validateModalOpen}
+        title="Supprimer la clause"
+        description={`Souhaitez-vous supprimer la clause ?`}
+        confirmLabel="Valider"
+        onConfirm={validateConfirmed}
+        onCancel={() => { setValidateModalOpen(false); setClauseDelete(null); }}
+      />
     </div>
   );
 }

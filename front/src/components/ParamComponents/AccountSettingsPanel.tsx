@@ -56,6 +56,8 @@ type AccountSettingsPanelProps = {
   onPasswordAdded: () => void;
   onExportDataClick: () => void;
   onDeleteAccountClick: () => void;
+  confirmPassword: string;
+  setConfirmPassword: React.Dispatch<React.SetStateAction<string>>;
 };
 
 export function AccountSettingsPanel({

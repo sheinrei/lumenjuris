@@ -1,7 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Plus, FileText, Send, Clock, CheckCircle2, Loader2, Trash2, Filter, MoreVertical, FileSearch } from "lucide-react";
 import { fetchProxy } from "../../../utils/fetchProxy";
+<<<<<<< HEAD
 import { AlertBanner, type AlertVariant } from "../../common/AlertBanner";
+=======
+import { ConfirmationModal } from "../../ui/ConfirmationModal";
+>>>>>>> jeremy/auth
 
 /** Statuts d'enveloppe (miroir de l'enum Prisma). */
 type EnvelopeStatus = "DRAFT" | "SENT" | "PARTIALLY_SIGNED" | "SIGNED" | "DECLINED" | "EXPIRED";
@@ -56,8 +60,14 @@ export function SignatureDashboard({ onNewContract, refreshKey }: Props) {
   const [list, setList] = useState<EnvelopeDTO[]>([]);
   const [filter, setFilter] = useState<EnvelopeStatus | "ALL">("ALL");
   const [loading, setLoading] = useState(true);
+<<<<<<< HEAD
   const [alert, setAlert] = useState<{ variant: AlertVariant; title: string; detail?: string } | null>(null);
 
+=======
+  const [error, setError] = useState("");
+  const [validateModalOpen, setValidateModalOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+>>>>>>> jeremy/auth
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -79,16 +89,26 @@ export function SignatureDashboard({ onNewContract, refreshKey }: Props) {
 
   useEffect(() => { void fetchAll(); }, [fetchAll, refreshKey]);
 
+  
   async function handleDelete(externalId: string) {
-    if (!confirm("Supprimer définitivement cette enveloppe ?")) return;
+    setPendingDeleteId(externalId);
+    setValidateModalOpen(true);
+  }
+
+  async function validateConfirmed() {
+     if (!pendingDeleteId) return;
     try {
-      await fetchProxy(`/api/signature-envelope/${externalId}`, {
+      await fetchProxy(`/api/signature-envelope/${pendingDeleteId}`, {
         method: "DELETE",
         credentials: "include",
       });
       await fetchAll();
     } catch { /* silent */ }
-  }
+      finally {
+      setValidateModalOpen(false);
+      setPendingDeleteId(null);
+    }
+  } 
 
 
 
@@ -197,6 +217,7 @@ export function SignatureDashboard({ onNewContract, refreshKey }: Props) {
       <StatusFilters current={filter} onChange={setFilter} />
 
       {/* Liste */}
+<<<<<<< HEAD
       <EnvelopeList
         list={list}
         loading={loading}
@@ -204,6 +225,17 @@ export function SignatureDashboard({ onNewContract, refreshKey }: Props) {
         onResend={handleResend}
         onDownload={handleDownload}
       />
+=======
+      <EnvelopeList list={list} loading={loading} onDelete={handleDelete} />
+        <ConfirmationModal
+          open={validateModalOpen}
+          title="Supprimer l'enveloppe"
+          description={`Souhaitez-vous supprimer l'enveloppe ?`}
+          confirmLabel="Valider"
+          onConfirm={validateConfirmed}
+          onCancel={() => { setValidateModalOpen(false); setPendingDeleteId(null); }}
+        />
+>>>>>>> jeremy/auth
     </div>
   );
 }

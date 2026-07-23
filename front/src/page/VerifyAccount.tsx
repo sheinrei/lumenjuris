@@ -22,7 +22,7 @@ export const VerifyAccount = () => {
   const handleResend = async () => {
     console.log(email);
     setResent(true);
-    const resendEmail = await fetchProxy("user/resend-verify", {
+    const resendEmail = await fetchProxy("/user/resend-verify", {
       headers: {
         "Content-type": "application/json",
       },

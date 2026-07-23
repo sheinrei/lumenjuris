@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { GitCompare, Loader2, FilePlus2, CheckCircle2 } from "lucide-react";
 import { negotiationApi } from "./api";
 import type { NegotiationDetail, DiffResult, DiffClause } from "./types";
+import { ConfirmationModal } from "../../ui/ConfirmationModal";
 
 interface Props {
   data: NegotiationDetail;
@@ -24,6 +25,8 @@ export function VersionDiff({ data, canEdit, onChanged }: Props) {
   const [diff, setDiff] = useState<DiffResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [versionIdState, setVersionIdState] = useState<string | null>(null);
+  const [validateModalOpen, setValidateModalOpen] = useState(false);
 
   // Nouvelle version
   const [newText, setNewText] = useState("");
@@ -66,9 +69,21 @@ export function VersionDiff({ data, canEdit, onChanged }: Props) {
   }
 
   async function validate(versionId: string) {
-    if (!confirm("Valider cette version comme version finale (prête pour signature) ?")) return;
-    await negotiationApi.validateVersion(data.id, versionId);
-    onChanged();
+    setVersionIdState(versionId);
+    setValidateModalOpen(true);
+  }
+
+  async function validateConfirmed() {
+    if (!versionIdState) return;
+    try {
+      await negotiationApi.validateVersion(data.id, versionIdState);
+      onChanged();
+    } catch {}
+    finally {
+      setVersionIdState(null);
+      setValidateModalOpen(false);
+    }
+    
   }
 
   return (
@@ -193,6 +208,14 @@ export function VersionDiff({ data, canEdit, onChanged }: Props) {
           )}
         </>
       )}
+      <ConfirmationModal
+        open={validateModalOpen}
+        title="Valider la version"
+        description={`Valider cette version comme version finale (prête pour signature) ?`}
+        confirmLabel="Valider"
+        onConfirm={validateConfirmed}
+        onCancel={() => { setValidateModalOpen(false); setVersionIdState(null) }}
+      />
     </div>
   );
 }

@@ -74,12 +74,18 @@ const LoginForm = ({
   const [serverErrorMessage, setServerErrorMessage] = useState(
     "Une erreur est survenue, veuillez réessayer...",
   );
+<<<<<<< HEAD
   const [isBanned, setIsBanned] = useState<true|null>(null)
+=======
+  const [isBanned, setIsBanned] = useState(false);
+>>>>>>> jeremy/auth
   const [twoFactorModalOpen, setTwoFactorModalOpen] = useState(false);
   const [twoFactorEmail, setTwoFactorEmail] = useState("");
   const [verificationError, setVerificationError] = useState(false);
   const verificationErrorMessage =
     "Pour valider votre compte veuillez cliquer sur le lien qui vous a été envoyé par email.";
+
+  const [showRateLimitModal, setShowRateLimitModal] = useState(false);
 
   const navigate = useNavigate();
   const { fetchUser } = useUserStore();
@@ -91,7 +97,10 @@ const LoginForm = ({
     setEmailSent(false);
   }, []);
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> jeremy/auth
   //Handle de la connexion d'un user
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -113,11 +122,20 @@ const LoginForm = ({
       const dataResponse = await loginResponse.json();
       console.log("▶️▶️ RETOUR SERVEUR CONNEXION :", dataResponse);
 
+<<<<<<< HEAD
       if(loginResponse.status == 403){
         return console.log("banneeddd (403)")
       }
+=======
+>>>>>>> jeremy/auth
 
       if (!loginResponse.ok || !dataResponse.success) {
+        if(loginResponse.status == 403){
+          setIsBanned(true);
+          setServerError(false);
+          setSubmitLoading(false);
+          return;
+        }
         setServerError(true);
         setServerErrorMessage(
           dataResponse.message ||
@@ -182,7 +200,7 @@ const LoginForm = ({
 
   // Connexion via Google
   const handleSubmitGoogle = () => {
-    window.location.href = `${PROXY_URL}/api/google`;
+    window.location.href = `${PROXY_URL}/auth/google`;
   };
 
   const handleSubmitForgotPassword = async (
@@ -195,13 +213,25 @@ const LoginForm = ({
       setSubmitLoading(true);
       setEmailSent(true);
       try {
-        await fetchProxy("/api/auth/forgotpassword", {
+        const response = await fetchProxy("/api/auth/forgotpassword", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
           credentials: "include",
         });
-      } catch (error) {}
+        if (response.status === 429) {
+          setEmailSent(false);
+          setShowRateLimitModal(true);
+          setSubmitLoading(false);
+          return;
+        }
+        if (!response.ok) {
+          setEmailSent(false);
+          setSubmitLoading(false);
+        }
+      } catch (error) {
+        console.error(error);
+      }
     }
   };
 
@@ -237,6 +267,21 @@ const LoginForm = ({
         />
       )}
 
+<<<<<<< HEAD
+=======
+      {showRateLimitModal && (
+        <AlertBanner
+          title="Trop de requête !"
+          variant="error"
+          detail="Vous avez demandé à réinitialiser votre mot de passe de trop nombreuses fois, veuillez attendre 15 minutes."
+          duration={12000}
+          onClose={() => {
+            setShowRateLimitModal(false);
+          }}
+        />
+      )}
+
+>>>>>>> jeremy/auth
       {isBanned && (
         <AlertBanner 
         title="Votre compte a été bloqué"
@@ -244,7 +289,11 @@ const LoginForm = ({
         detail="Votre compte a été bloqué par les services de modération, si vous ne comprenez pas les raisons vous pouvez nous contacter par email à l'adresse contact@lumenjuris.com"
         duration={15000}
         onClose={()=>
+<<<<<<< HEAD
           setIsBanned(null)
+=======
+          setIsBanned(false)
+>>>>>>> jeremy/auth
         }
         />
       )
@@ -277,7 +326,7 @@ const LoginForm = ({
         />
       )}
 
-      {emailSent && (
+      { emailSent &&  (
         <section className="flex flex-col gap-2">
           <AlertBanner
             title="Email envoyé !"

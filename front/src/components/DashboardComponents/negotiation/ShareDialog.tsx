@@ -3,6 +3,7 @@ import { Link2, Loader2, Copy, Check, Ban } from "lucide-react";
 import { fmtDate } from "../contratheque/types";
 import { negotiationApi } from "./api";
 import type { NegotiationDetail } from "./types";
+import { ConfirmationModal } from "../../ui/ConfirmationModal";
 
 interface Props {
   data: NegotiationDetail;
@@ -19,6 +20,8 @@ export function ShareDialog({ data, canEdit, onChanged }: Props) {
   const [ttl, setTtl] = useState(168);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState("");
+  const [linkId, setLinkId] = useState<string | null>(null);
+  const [validateModalOpen, setValidateModalOpen] = useState(false);
 
   async function create() {
     setBusy(true);
@@ -26,9 +29,21 @@ export function ShareDialog({ data, canEdit, onChanged }: Props) {
     finally { setBusy(false); }
   }
   async function revoke(id: string) {
-    if (!confirm("Révoquer ce lien d'accès ?")) return;
-    await negotiationApi.revokeGuest(data.id, id);
-    onChanged();
+    setLinkId(id);
+    setValidateModalOpen(true);
+  }
+
+  async function validateConfirmed() {
+    if (!linkId) return;
+    try {
+      await negotiationApi.revokeGuest(data.id, linkId);
+      onChanged();
+    } catch {}
+    finally {
+      setLinkId(null);
+      setValidateModalOpen(false);
+    }
+    
   }
   function copy(token: string) {
     void navigator.clipboard.writeText(guestUrl(token));
@@ -86,6 +101,14 @@ export function ShareDialog({ data, canEdit, onChanged }: Props) {
           ))}
         </div>
       )}
+      <ConfirmationModal
+        open={validateModalOpen}
+        title="Révoquer le lien d'accès"
+        description={`Souhaitez-vous révoquer ce lien d'accès ?`}
+        confirmLabel="Valider"
+        onConfirm={validateConfirmed}
+        onCancel={() => { setValidateModalOpen(false); setLinkId(null) }}
+      />
     </div>
   );
 }

@@ -105,19 +105,19 @@ export class Enterprise {
             const data = err.response?.data
 
             if (typeof data === "string" && data.trim()) {
-                return status ? `Erreur INSEE ${status}: ${data}` : data
+                return status ? `Erreur INSEE : ${data}` : data
             }
 
             if (data?.header?.message) {
-                return status ? `Erreur INSEE ${status}: ${data.header.message}` : data.header.message
+                return status ? `Erreur INSEE : ${data.header.message}` : data.header.message
             }
 
             if (data?.message) {
-                return status ? `Erreur INSEE ${status}: ${data.message}` : data.message
+                return status ? `Erreur INSEE : ${data.message}` : data.message
             }
 
             return status
-                ? `Erreur INSEE ${status}: ${err.message}`
+                ? `Erreur INSEE : ${err.message}`
                 : err.message
         }
 
