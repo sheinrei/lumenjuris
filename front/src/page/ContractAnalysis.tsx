@@ -1,4 +1,4 @@
-﻿﻿﻿import { useState, useEffect, useMemo, useRef } from "react";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { UploadZone } from "../components/ContractAnalysis/UploadZone";
@@ -989,6 +989,7 @@ export default function ContractAnalysis() {
     const analysisHistoryId = currentHistoryIdRef.current;
     if (!analysisHistoryId || !contract) return;
 
+    const existingContext = currentAnalysisContext ?? undefined;
     if (!temporaryHistoryEntriesRef.current[analysisHistoryId]) {
       rememberTemporaryContract(analysisHistoryId, contract);
     }
@@ -1009,7 +1010,7 @@ export default function ContractAnalysis() {
       isProcessing: false,
     }));
 
-    void startTemporaryAnalysis(analysisHistoryId, "standard");
+    void startTemporaryAnalysis(analysisHistoryId, existingContext ? "contextual" : "standard", existingContext);
   };
 
   const onContextualAnalysis = (context: AnalysisContext) => {
@@ -1265,6 +1266,8 @@ export default function ContractAnalysis() {
                   <div className="flex justify-center">
                     <ActionButtons
                       onShareReport={handleShareReport}
+                      contract={contract}
+                      context={currentAnalysisContext || undefined}
                       isProcessed={Boolean(contract?.processed)}
                       originalContent={contract?.content}
                       htmlContent={htmlContent}

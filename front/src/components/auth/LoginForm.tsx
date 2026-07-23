@@ -74,11 +74,7 @@ const LoginForm = ({
   const [serverErrorMessage, setServerErrorMessage] = useState(
     "Une erreur est survenue, veuillez réessayer...",
   );
-<<<<<<< HEAD
-  const [isBanned, setIsBanned] = useState<true|null>(null)
-=======
   const [isBanned, setIsBanned] = useState(false);
->>>>>>> jeremy/auth
   const [twoFactorModalOpen, setTwoFactorModalOpen] = useState(false);
   const [twoFactorEmail, setTwoFactorEmail] = useState("");
   const [verificationError, setVerificationError] = useState(false);
@@ -97,10 +93,6 @@ const LoginForm = ({
     setEmailSent(false);
   }, []);
 
-<<<<<<< HEAD
-
-=======
->>>>>>> jeremy/auth
   //Handle de la connexion d'un user
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -122,12 +114,6 @@ const LoginForm = ({
       const dataResponse = await loginResponse.json();
       console.log("▶️▶️ RETOUR SERVEUR CONNEXION :", dataResponse);
 
-<<<<<<< HEAD
-      if(loginResponse.status == 403){
-        return console.log("banneeddd (403)")
-      }
-=======
->>>>>>> jeremy/auth
 
       if (!loginResponse.ok || !dataResponse.success) {
         if(loginResponse.status == 403){
@@ -267,8 +253,6 @@ const LoginForm = ({
         />
       )}
 
-<<<<<<< HEAD
-=======
       {showRateLimitModal && (
         <AlertBanner
           title="Trop de requête !"
@@ -281,7 +265,6 @@ const LoginForm = ({
         />
       )}
 
->>>>>>> jeremy/auth
       {isBanned && (
         <AlertBanner 
         title="Votre compte a été bloqué"
@@ -289,11 +272,7 @@ const LoginForm = ({
         detail="Votre compte a été bloqué par les services de modération, si vous ne comprenez pas les raisons vous pouvez nous contacter par email à l'adresse contact@lumenjuris.com"
         duration={15000}
         onClose={()=>
-<<<<<<< HEAD
-          setIsBanned(null)
-=======
           setIsBanned(false)
->>>>>>> jeremy/auth
         }
         />
       )
