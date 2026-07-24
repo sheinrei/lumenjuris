@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { Upload, FileText, Type } from "lucide-react";
+import { AlertBanner } from "../common/AlertBanner";
 
 import InputFile from "../common/InputFile";
 
@@ -52,12 +53,12 @@ export const TextInputZone: React.FC<TextInputZoneProps> = ({
     analyseCredit < 100;
   const [activeTab, setActiveTab] = useState<"text" | "file">("file");
   const [textContent, setTextContent] = useState("");
+  const [fileError, setFileError] = useState(false);
+  const [textError, setTextError] = useState(false);
 
   const handleTextSubmit = () => {
     if (textContent.trim().length < 100) {
-      alert(
-        "Le texte doit contenir au moins 100 caractères pour une analyse pertinente.",
-      );
+      setTextError(true);
       return;
     }
 
@@ -78,19 +79,50 @@ export const TextInputZone: React.FC<TextInputZoneProps> = ({
       if (acceptedFiles.length > 0) {
         const file = acceptedFiles[0];
         if (!ACCEPTED_MIME_TYPES.has(file.type)) {
-          alert("Seuls les fichiers PDF, DOC et DOCX (Word) sont acceptés.");
+          setFileError(true);
           return;
         }
+        setFileError(false);
         onFileUpload(file);
       }
     },
     [onFileUpload],
   );
 
+  const onDropRejected = useCallback(() => {
+    setFileError(true);
+  }, []);
+
   const isTextValid = textContent.trim().length >= 100;
 
   return (
     <div className="w-full max-w-4xl mx-auto">
+    
+      {fileError && (
+        <div className="mb-4"> 
+        <AlertBanner
+            title="Erreur de fichier"
+            variant="error"
+            detail="Seuls les fichiers PDF, DOC et DOCX (Word) sont acceptés."
+            duration={8000}
+            onClose={() => setFileError(false)}
+          />
+          </div>
+      )}
+
+      {textError && (
+        <div className="mb-4"> 
+        <AlertBanner
+            title="Texte trop court"
+            variant="error"
+            detail="Le texte doit contenir au moins 100 caractères pour une analyse pertinente."
+            duration={8000}
+            onClose={() => setTextError(false)}
+          />
+          </div>
+      )}
+      
+
       {/* Onglets */}
       <div className="flex bg-gray-100 rounded-t-2xl overflow-hidden">
         <button
@@ -200,6 +232,7 @@ Le prestataire s'engage à...
             {/* Composant input file avec React-dropzone pour le drag & drop */}
             <InputFile
               onDrop={onDrop}
+              onDropRejected={onDropRejected}
               accepted={{
                 "application/pdf": [".pdf"],
                 "application/msword": [".doc"],

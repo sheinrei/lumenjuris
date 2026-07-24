@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { SETTINGS_TABS } from "../config/paramSettings";
 import { useEnterpriseSettings } from "../hooks/useEnterpriseSettings";
 import { AccountSettingsPanel } from "../components/ParamComponents/AccountSettingsPanel";
@@ -53,6 +53,7 @@ export function ParamCompte() {
     EMPTY_ACCOUNT_PROFILE,
   );
   const [accountPassword, setAccountPassword] = useState("");
+  const  [confirmPassword, setConfirmPassword] = useState("");
   const [accountProvider, setAccountProvider] = useState<AccountProvider>(null);
   const [isTwoFactorEnabled, setIsTwoFactorEnabled] = useState(false);
   const [isTwoFactorCodeModalOpen, setIsTwoFactorCodeModalOpen] =
@@ -289,6 +290,19 @@ export function ParamCompte() {
     }
   };
 
+  const handleResendTwoFactorCode = async () => {
+    const response = await fetchProxy("/api/user/two-factor",{ 
+      method: "POST",
+      credentials: "include",
+    })
+    const payload = (await response.json().catch(() => null)) as ApiResponse<unknown> | null;
+    if (!response.ok || !payload?.success) {
+      throw new Error(
+        payload?.message || "Impossible d'envoyer le code de vérification"
+      );
+    }
+  };
+
   const handlePreferenceCheckedChange = (checked: boolean) => {
     void setDyslexicMode(checked);
   };
@@ -431,6 +445,8 @@ export function ParamCompte() {
       profile={accountProfile}
       password={accountPassword}
       setPassword={setAccountPassword}
+      confirmPassword={confirmPassword}
+      setConfirmPassword={setConfirmPassword}
       provider={accountProvider}
       isTwoFactorEnabled={isTwoFactorEnabled}
       onProfileFieldChange={handleProfileFieldChange}
@@ -544,6 +560,7 @@ export function ParamCompte() {
           setIsTwoFactorEnabled(false);
         }}
         onVerify={handleTwoFactorCodeVerify}
+        onResendMail={handleResendTwoFactorCode}
       />
     </>
   );

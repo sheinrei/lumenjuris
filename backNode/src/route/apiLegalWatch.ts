@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response, Router } from "express"
 import express from "express"
-import { authMiddleware } from "../middleware/authMiddleware"
-import { LegalWatchService } from "../services/legalWatch/classLegalWatch"
+import { authMiddleware } from "../middleware/authMiddleware.js"
+import { LegalWatchService } from "../services/legalWatch/classLegalWatch.js"
 
 /**
  * Routes de la veille juridique.

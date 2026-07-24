@@ -20,6 +20,7 @@ export function Inscription() {
   const [acceptCgu, setAcceptCgu] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const authStatus = useUserStore((state) => state.authStatus);
 
@@ -96,6 +97,8 @@ export function Inscription() {
                   setSiren={setSiren}
                   acceptCgu={acceptCgu}
                   setAcceptCgu={setAcceptCgu}
+                  confirmPassword={confirmPassword}
+                  setConfirmPassword={setConfirmPassword}
                 />
               )}
             </>

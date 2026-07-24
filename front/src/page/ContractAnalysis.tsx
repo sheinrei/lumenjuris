@@ -6,6 +6,7 @@ import {
   DocumentViewer,
   DocumentViewerRef,
 } from "../components/ContractAnalysis/DocumentViewer";
+import { AddToContrathequeButton } from "../components/ContractAnalysis/AddToContrathequeButton";
 
 // ===> ACTION 3 : CORRIGER L'IMPORT ICI
 import { EnhancedClauseDetail } from "../components/ContractAnalysis/EnhancedClauseDetail/EnhancedClauseDetail";
@@ -89,7 +90,6 @@ type TemporaryHistoryEntry = {
   processingPhase: ProcessingPhase;
   analysisProgress: AnalysisProgress | null;
 };
-
 const consumedNavigationUploadKeys = new Set<string>();
 const LEAVE_ANALYSIS_WARNING =
   "Une analyse est en cours ou n'a pas été finalisée. Si vous quittez cette page, elle sera abandonnée.";
@@ -398,7 +398,7 @@ export default function ContractAnalysis() {
     context?: AnalysisContext,
   ) => {
     const entry = temporaryHistoryEntriesRef.current[historyId];
-    if (!entry || entry.isProcessing) return;
+    if (!entry || entry.isProcessing) return;  
 
     const baseContract = entry.contract;
     const analysisContext = analysisType === "contextual" ? context : undefined;
@@ -415,9 +415,18 @@ export default function ContractAnalysis() {
       setShowAnalysisForm(false);
     }
 
+    let contentToAnalyze = baseContract.content;
+
+    if (entry.htmlContent) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(entry.htmlContent, "text/html");
+      const plainText = doc.body.innerText || doc.body.textContent || baseContract.content;
+      contentToAnalyze = plainText;
+    } 
+
     try {
       const cached = loadAnalysisFromCache(
-        baseContract.content,
+        contentToAnalyze,
         analysisContext,
       );
       let analysisResults: ClauseRisk[];
@@ -446,7 +455,7 @@ export default function ContractAnalysis() {
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
-            content: baseContract.content,
+            content: contentToAnalyze,
             context: analysisContext,
           }),
         });
@@ -460,7 +469,7 @@ export default function ContractAnalysis() {
         analysisResults = data.clauses ?? [];
 
         saveAnalysisToCache(
-          baseContract.content,
+          contentToAnalyze,
           analysisResults,
           analysisContext,
         );
@@ -469,8 +478,10 @@ export default function ContractAnalysis() {
       const latestEntry = temporaryHistoryEntriesRef.current[historyId];
       if (!latestEntry) return;
 
+      const contractToProcess = entry.htmlContent ? {...baseContract, content: contentToAnalyze} : baseContract;
+
       const updatedContract = processContractAnalysisResults(
-        baseContract,
+        contractToProcess,
         analysisResults,
         analysisType,
         analysisContext,
@@ -487,7 +498,7 @@ export default function ContractAnalysis() {
       const savedItem = await saveContractHistorySnapshot(
         createTemporaryHistorySnapshot({
           ...completedEntry,
-          htmlContent: null,
+          htmlContent: completedEntry.htmlContent,
         }),
       );
       if (savedItem) {
@@ -529,10 +540,6 @@ export default function ContractAnalysis() {
     }
   };
 
-
-
-
-  //Bouton d'ajout d'une nouvelle clause depuis la modale "Clauses suggérées"
   const handleAppendClause = (clause: MissingClause) => {
     let titreClause = clause.titreSuggestion;
     let texteClause = clause.corpsSuggestion;
@@ -982,9 +989,16 @@ export default function ContractAnalysis() {
     const analysisHistoryId = currentHistoryIdRef.current;
     if (!analysisHistoryId || !contract) return;
 
+    const existingContext = currentAnalysisContext ?? undefined;
     if (!temporaryHistoryEntriesRef.current[analysisHistoryId]) {
       rememberTemporaryContract(analysisHistoryId, contract);
     }
+
+    const liveHtmlContent = useDocumentTextStore.getState().htmlContent;
+    updateTemporaryHistoryEntry(analysisHistoryId, (e) => ({
+      ...e,
+      htmlContent: liveHtmlContent
+    }));
 
     clearAnalysisCache(contract.content, currentAnalysisContext ?? undefined);
     clearAllAppliedRecommendations();
@@ -996,7 +1010,7 @@ export default function ContractAnalysis() {
       isProcessing: false,
     }));
 
-    void startTemporaryAnalysis(analysisHistoryId, "standard");
+    void startTemporaryAnalysis(analysisHistoryId, existingContext ? "contextual" : "standard", existingContext);
   };
 
   const onContextualAnalysis = (context: AnalysisContext) => {
@@ -1175,17 +1189,6 @@ export default function ContractAnalysis() {
 
   const clauseData = contract?.clauses.find((c) => c.id === selectedClause);
 
-
-
-
-
-
-
-
-
-  /**
-   * Retour du JSX
-   */
   return (
     <>
       <div className="-m-5 lg:-m-7 px-4 py-8 overflow-x-hidden">
@@ -1263,6 +1266,8 @@ export default function ContractAnalysis() {
                   <div className="flex justify-center">
                     <ActionButtons
                       onShareReport={handleShareReport}
+                      contract={contract}
+                      context={currentAnalysisContext || undefined}
                       isProcessed={Boolean(contract?.processed)}
                       originalContent={contract?.content}
                       htmlContent={htmlContent}
@@ -1271,9 +1276,6 @@ export default function ContractAnalysis() {
                       isRelaunchingAnalysis={displayedIsProcessing}
                       onSuggestedClauses={handleMarketAnalysisClick}
                       isLoadingSuggested={isMarketAnalysisLoading}
-
-                      contract={contract}
-                      context={currentAnalysisContext ?? undefined}
                     />
                   </div>
                   <DocumentViewer

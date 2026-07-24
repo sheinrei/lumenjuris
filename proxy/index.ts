@@ -373,6 +373,10 @@ function handleNodeLogin(req: Request, res: Response): void {
   relayToNode(req, res, "/user/auth/login");
 }
 
+function handleNodeVerifyAccount(req: Request, res: Response): void {
+  relayToNode(req, res, "/user/resend-verify");
+}
+
 function handleNodeLogout(req: Request, res: Response): void {
   relayToNode(req, res, "/user/auth/logout");
 }
@@ -443,7 +447,9 @@ function handleNodeUserResetPassword(req: Request, res: Response): void {
   relayToNode(req, res, "/user/updatepassword");
 }
 
-function handleNodeGoogle(_req: Request, res: Response): void {
+function handleNodeGoogle(req: Request, res: Response): void {
+  console.log("[proxy/google] redirect vers :", `${BACKNODE_URL}/auth/google`);
+  console.log("[proxy/google] cookies entrants :", req.headers.cookie);
   res.redirect(`${BACKNODE_URL}/auth/google`);
 }
 
@@ -1122,8 +1128,22 @@ async function handleUserUploadsAsset(
   res: Response,
 ): Promise<void> {
   try {
+    if (!res.locals.userId) {
+      res.status(401).json({success: false, message: "Non autorisé"});
+      return;
+    }
     const filename = encodeURIComponent(req.params.filename as string);
-    const r = await fetch(`${BACKNODE_URL}/userassets/${filename}`);
+    const r = await fetch(`${BACKNODE_URL}/userassets/${filename}`, {
+      headers: {
+        "x-internal-api-key": process.env.INTERNAL_API_KEY || "",
+      ...(res.locals.userId !== undefined
+        ? {
+            "x-user-id": String(res.locals.userId),
+            "x-user-role": String(res.locals.role ?? "USER"),
+          }
+        : {}),
+      }
+    });
     if (!r.ok || !r.body) {
       res.status(r.status).end();
       return;
@@ -1142,23 +1162,25 @@ async function handleUserUploadsAsset(
 // Multipart (upload PDF) — stream direct, body non consommé par express.json
 app.post(
   ["/extract-document-text", "/api/extract-document-text"],
+  proxyAuthMiddleware,
   handleExtractDocumentText,
 );
 
 // JSON routes — body déjà parsé par express.json
 app.post(
   ["/legifrance-search", "/api/legifrance-search"],
+  proxyAuthMiddleware,
   handleLegifranceSearch,
 );
-app.post(["/jurisprudence", "/api/jurisprudence"], handleJurisprudence);
-app.post(["/classify-veille", "/api/classify-veille"], handleClassifyVeille);
-app.post(["/analyze-clause", "/api/analyze-clause"], handleAnalyzeClause);
-app.post(["/api/chat", "/chat"], handleChat);
-app.post(["/api/openai-chat", "/openai-chat"], handleOpenAiChat);
-app.post(["/api/openai-chat-5", "/openai-chat-5"], handleOpenAiChat5);
+app.post(["/jurisprudence", "/api/jurisprudence"], proxyAuthMiddleware, handleJurisprudence,);
+app.post(["/classify-veille", "/api/classify-veille"],proxyAuthMiddleware, handleClassifyVeille,);
+app.post(["/analyze-clause", "/api/analyze-clause"],proxyAuthMiddleware, handleAnalyzeClause,);
+app.post(["/api/chat", "/chat"],proxyAuthMiddleware, handleChat,);
+app.post(["/api/openai-chat", "/openai-chat"],proxyAuthMiddleware, handleOpenAiChat,);
+app.post(["/api/openai-chat-5", "/openai-chat-5"],proxyAuthMiddleware, handleOpenAiChat5,);
 app.post(
   ["/api/huggingface-generate", "/huggingface-generate"],
-  handleHuggingFaceGenerate,
+  proxyAuthMiddleware, handleHuggingFaceGenerate, 
 );
 
 // Node - Requêtes Backend
@@ -1167,7 +1189,7 @@ const auth = proxyAuthMiddleware;
 // Routes publiques (pas d'auth requise)
 app.post("/api/signup", handleSignUpUser);
 app.post("/api/user/auth/login", handleNodeLogin);
-
+app.post("/user/resend-verify", handleNodeVerifyAccount);
 /**
  * Login du complément Word : mêmes identifiants que la plateforme, mais le
  * JWT est renvoyé dans le corps (l'iframe Word ne peut pas recevoir le cookie
@@ -1187,7 +1209,10 @@ app.post("/api/addin/login", async (req: Request, res: Response) => {
     }
     const r = await fetch(`${BACKNODE_URL}/user/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "x-internal-api-key": process.env.INTERNAL_API_KEY ?? "",
+       },
       body: JSON.stringify({ email, password }),
     });
     const data = (await r.json().catch(() => ({}))) as {
@@ -1235,11 +1260,11 @@ app.post("/api/addin/login", async (req: Request, res: Response) => {
 
 app.post("/api/auth/forgotpassword", handleNodeUserForgotPassword);
 app.post("/api/user/resetpassword", handleNodeUserResetPassword);
-app.get("/api/google", handleNodeGoogle);
+app.get("/auth/google", handleNodeGoogle);
 app.post("/api/billing/customer", auth, handleBillingCustomer);
 app.post("/api/billing/payment-intent", auth, handleBillingPaymentIntent);
-app.get("/api/veille", handleNodeVeille);
-app.get("/api/veille/debug", handleNodeVeilleDebug);
+app.get("/api/veille", auth, handleNodeVeille);
+app.get("/api/veille/debug", auth, handleNodeVeilleDebug);
 app.get("/api/user-uploads", auth, handleUserUploadsGet);
 app.post("/api/user-uploads/upload", auth, handleUserUploadsPost);
 app.put("/api/user-uploads/:filename", auth, handleUserUploadsRename);

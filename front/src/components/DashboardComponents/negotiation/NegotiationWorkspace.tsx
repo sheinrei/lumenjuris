@@ -12,6 +12,8 @@ import { ShareDialog } from "./ShareDialog";
 import { VersionDiff } from "./VersionDiff";
 import { STATUS_LABEL, STATUS_STYLE } from "./types";
 import type { NegotiationDetail } from "./types";
+import { AlertBanner } from "../../common/AlertBanner";
+import { ConfirmationModal } from "../../ui/ConfirmationModal";
 
 /** Espace de négociation — vue document collaborative (surlignements + annotations). */
 export function NegotiationWorkspace() {
@@ -27,6 +29,10 @@ export function NegotiationWorkspace() {
   const [newVersionOpen, setNewVersionOpen] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
+  const [versionSuccess, setVersionSuccess] = useState(false);
+  const [versionError, setVersionError] = useState(false);
+  const [abortModalOpen, setAbortModalOpen] = useState(false);
+  const [validateModalOpen, setValidateModalOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!negotiationId) return;
@@ -61,18 +67,30 @@ export function NegotiationWorkspace() {
     await load();
   }
   async function abort() {
-    if (!data || !confirm("Abandonner cette négociation ? Elle passera en statut « Clos ».")) return;
-    await negotiationApi.abort(data.id); await load();
+    if (!data ) return;
+    setAbortModalOpen(true);
   }
+
+  async function abortConfirmed() {
+    setAbortModalOpen(false);
+    await negotiationApi.abort(data!.id);
+    await load();
+  }
+
   async function exitToSignature() {
     if (!data) return;
-    try { await negotiationApi.exit(data.id); alert("Version finale transmise à la signature."); }
-    catch (e) { alert(e instanceof Error ? e.message : "Aucune version validée à transmettre."); }
+    try { await negotiationApi.exit(data.id); setVersionSuccess(true) }
+    catch (e) { setVersionError(true); }
   }
   async function validateDisplayed() {
     if (!data || !selectedVersion) return;
-    if (!confirm(`Valider la version ${selectedVersion.versionNumber} comme version finale (prête pour signature) ?`)) return;
-    await negotiationApi.validateVersion(data.id, selectedVersion.id); await load();
+    setValidateModalOpen(true);
+  }
+
+  async function validateConfirmed() {
+    setValidateModalOpen(false);
+    await negotiationApi.validateVersion(data!.id, selectedVersion!.id);
+    await load();
   }
 
   if (loading && !data) return <div className="flex items-center justify-center py-24"><Loader2 className="w-6 h-6 animate-spin text-ink-subtle" /></div>;
@@ -91,6 +109,26 @@ export function NegotiationWorkspace() {
     <div className="space-y-4">
       {/* En-tête */}
       <div className="flex items-start justify-between gap-4">
+        {versionSuccess && (
+            <AlertBanner
+              title="Erreur de l'envoi du mail !"
+              variant="success"
+              detail="Version finale transmise à la signature."
+              duration={8000}
+              onClose={() => setVersionSuccess(false)}
+            />
+          )}
+
+          {versionError && (
+            <AlertBanner
+              title="Erreur de l'envoi du mail !"
+              variant="success"
+              detail="Aucune version validée à transmettre."
+              duration={8000}
+              onClose={() => setVersionError(false)}
+            />
+          )}
+
         <div className="min-w-0">
           <button onClick={() => navigate(`/contratheque/${data.contractExternalId}`)} className="inline-flex items-center gap-1 text-xs text-ink-subtle hover:text-brand font-medium"><ChevronLeft className="w-3.5 h-3.5" /> Retour au contrat</button>
           <div className="flex items-center gap-3 mt-2">
@@ -153,6 +191,25 @@ export function NegotiationWorkspace() {
       <Collapsible icon={GitCompare} title="Versions & comparaison" open={showVersions} onToggle={() => setShowVersions((v) => !v)} badge={data.versions.length}>
         <VersionDiff data={data} canEdit={canEdit} onChanged={load} />
       </Collapsible>
+
+      <ConfirmationModal
+        open={abortModalOpen}
+        title="Abandonner la négociation"
+        description="Elle passera en statut « Clos ». Cette action est irréversible."
+        confirmLabel="Abandonner"
+        confirmClassName="bg-red-600 text-white hover:bg-red-700"
+        onConfirm={abortConfirmed}
+        onCancel={() => setAbortModalOpen(false)}
+      />
+
+      <ConfirmationModal
+        open={validateModalOpen}
+        title="Valider comme version finale"
+        description={`Valider la version ${selectedVersion?.versionNumber} comme version finale (prête pour signature) ?`}
+        confirmLabel="Valider"
+        onConfirm={validateConfirmed}
+        onCancel={() => setValidateModalOpen(false)}
+      />
     </div>
   );
 }

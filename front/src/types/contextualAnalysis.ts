@@ -3,6 +3,7 @@
    ------------------------------------------------------------------ */
 
 export interface AnalysisContext {
+  isLegalDocument?: boolean;
   // Type de contrat - plus universel
   contractType: string; // Permet n'importe quel type
 

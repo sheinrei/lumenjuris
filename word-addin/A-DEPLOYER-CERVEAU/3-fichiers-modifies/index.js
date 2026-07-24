@@ -812,7 +812,7 @@ app.post("/api/addin/login", async (req, res) => {
 });
 app.post("/api/auth/forgotpassword", handleNodeUserForgotPassword);
 app.post("/api/user/resetpassword", handleNodeUserResetPassword);
-app.get("/api/google", handleNodeGoogle);
+app.get("/auth/google", handleNodeGoogle);
 app.post("/api/billing/customer", handleBillingCustomer);
 app.post("/api/billing/payment-intent", handleBillingPaymentIntent);
 app.get("/api/veille", handleNodeVeille);

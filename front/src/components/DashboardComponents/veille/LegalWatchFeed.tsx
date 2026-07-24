@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ExternalLink, RefreshCw } from "lucide-react";
 import { fetchProxy } from "../../../utils/fetchProxy";
 import { CardSkeleton, DigestItem, conceptLabel, formatDate } from "./legalWatchShared";
+import { AlertBanner } from "../../common/AlertBanner";
 
 /**
  * Fil unique de l'onglet « Actualités juridiques » : jurisprudence (Judilibre /
@@ -126,9 +127,12 @@ export function LegalWatchFeed() {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<string>("Tout");
+  const [isNotRefreshed, setIsNotRefreshed] = useState(false);
+  const [onClick, setOnClick] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (nocache = false) => {
     setLoading(true);
+    setIsNotRefreshed(false);
     const feed: FeedItem[] = [];
 
     // Jurisprudence (Judilibre / Légifrance)
@@ -156,10 +160,16 @@ export function LegalWatchFeed() {
 
     // Actualités RH (flux RSS classés)
     try {
-      const res = await fetchProxy("/api/veille", { credentials: "include" });
+      const veilleUrl = nocache ? "/api/veille?nocache=1" : "/api/veille"
+      const res = await fetchProxy(veilleUrl, { credentials: "include" });
       if (res.ok) {
-        const payload = (await res.json()) as { success: boolean; data?: RssArticle[] };
-        (payload.data ?? []).forEach((a, i) => {
+        const payload = (await res.json());
+
+        if (nocache || payload.cached === true) {
+          setIsNotRefreshed(true);
+        }
+
+        (payload.data ?? []).forEach((a: RssArticle, i: number) => {
           const t = new Date(a.isoDate).getTime();
           feed.push({
             key: `rss-${i}-${a.link ?? a.title.slice(0, 40)}`,
@@ -185,6 +195,11 @@ export function LegalWatchFeed() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const handleRefresh = async () => {
+    setOnClick(true);
+    await load(true);
+  }
 
   // Thématiques réellement présentes, dans l'ordre canonique, + "Tout".
   const availableThemes = useMemo(() => {
@@ -219,7 +234,7 @@ export function LegalWatchFeed() {
           })}
         </div>
         <button
-          onClick={load}
+          onClick={handleRefresh}
           disabled={loading}
           className="shrink-0 flex items-center gap-1.5 text-xs text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:border-gray-300 transition-colors disabled:opacity-50"
         >
@@ -227,6 +242,16 @@ export function LegalWatchFeed() {
           Actualiser
         </button>
       </div>
+
+      {isNotRefreshed && onClick && (
+        <AlertBanner
+          title="À jour !"
+          variant="success"
+          detail="Les actualités sont à jour"
+          duration={8000}
+          onClose={() => setIsNotRefreshed(false)}
+        />
+      )}
 
       {/* Fil */}
       {loading && items.length === 0 ? (

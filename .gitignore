@@ -55,3 +55,6 @@ back/venv/
 
 # Build info TypeScript (artefacts)
 *.tsbuildinfo
+
+TEST_PLAN.md
+TEST_FEEDBACK.md

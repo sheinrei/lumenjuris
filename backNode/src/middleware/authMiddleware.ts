@@ -8,29 +8,40 @@ export async function authMiddleware(
   res: Response,
   next: NextFunction,
 ) {
-  const userId = req.headers["x-user-id"] as string | undefined;
-  if (!userId) {
+  const rawUserId = req.headers["x-user-id"] as string | undefined;
+  if (!rawUserId) {
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }
-  req.idUser = userId;
-  req.role = (req.headers["x-user-role"] as string) || "USER";
+
+  const userId = Number(rawUserId);
+  if (isNaN(userId)) {
+    return res.status(400).json({success: false, message:"Invalid User ID"});
+  }
 
   try {
     const user = await prisma.user.findUnique({
       where: { idUser: Number(userId) },
       select: { isBanned: true },
     });
-    if (user?.isBanned) {
+
+    if (!user) {
+      return res.status(401).json({success: false, message: "Utilisateur introuvable"});
+    }
+
+    if (user.isBanned) {
       return res.status(403).json({
         success: false,
         message: "Votre compte a été suspendu. Contactez l'administrateur .",
         banned: true,
       });
     }
+
+    req.idUser = String(userId);
+    req.role = (req.headers["x-user-role"] as string) || "USER";
   } catch (err) {
     console.error("[authMiddleware] ban check error:", err);
+    return res.status(500).json({success: false, message: "Erreur serveur"});
   }
-
   next();
 }
 

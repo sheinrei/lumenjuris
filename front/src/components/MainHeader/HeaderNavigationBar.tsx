@@ -128,7 +128,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
 
   const fetchNotificationData = useCallback(() => {
     const tab: NotificationItem[] = [];
-    if (!userData?.enterprise) {
+    if (!userData?.enterprise?.name && !userData?.enterprise?.siren) {
       tab.push({
         id: "missingEnterpriseData",
         ...NOTIFICATION_TYPES.missingEnterpriseData,

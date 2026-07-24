@@ -21,6 +21,7 @@ import {
   loadCreatedContracts, addCreatedContract, removeCreatedContract,
   type CreatedContract,
 } from "./generateur/createdContracts";
+import { ConfirmationModal } from "../ui/ConfirmationModal";
 
 // ─── Types modèles importés ───────────────────────────────────────────────────
 
@@ -121,6 +122,8 @@ function LibrarySection({
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [internalRefresh, setInternalRefresh] = useState(0);
+  const [validateModalOpen, setValidateModalOpen] = useState(false);
+  const [contractDelete, setContractDelete] = useState<ContractTemplateDTO | null>(null);
 
   // Charge la liste des modèles personnalisés (générés/importés) + l'historique local.
   useEffect(() => {
@@ -150,11 +153,21 @@ function LibrarySection({
   const createdMatches = created.filter((c) => !nq || norm(c.title).includes(nq));
 
   async function handleDelete(t: ContractTemplateDTO) {
-    if (!confirm("Supprimer définitivement le modèle « " + t.name + " » ?")) return;
+    setContractDelete(t);
+    setValidateModalOpen(true);
+    
+  }
+
+  async function validateConfirmed() {
+    if (!contractDelete) return;
     try {
-      await fetchProxy("/api/template/" + t.id, { method: "DELETE", credentials: "include" });
+      await fetchProxy("/api/template/" + contractDelete.id, { method: "DELETE", credentials: "include" });
       setInternalRefresh((k) => k + 1);
     } catch { /* silent */ }
+    finally {
+      setContractDelete(null);
+      setValidateModalOpen(false);
+    }
   }
 
   function handleDeleteCreated(id: string) {
@@ -241,7 +254,14 @@ function LibrarySection({
             ))}
           </div>
         )}
-
+        <ConfirmationModal
+          open={validateModalOpen}
+          title="Supprimer le modèle"
+          description={`Souhaitez-vous supprimer le modèle ?`}
+          confirmLabel="Valider"
+          onConfirm={validateConfirmed}
+          onCancel={() => { setValidateModalOpen(false); setContractDelete(null); }}
+        />
       </div>
       )}
 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { AnalysisContext } from "../../types/contextualAnalysis";
 import { detectContractWithAI } from "../../utils/contractDetector";
+import { AlertBanner } from "../common/AlertBanner";
+import { useNavigate } from "react-router-dom";
 
 interface ContextualAnalysisFormProps {
   onSubmit: (context: AnalysisContext) => void;
@@ -31,6 +33,8 @@ export const ContextualAnalysisForm: React.FC<ContextualAnalysisFormProps> = ({
   const [placeholders] = useState({ mission: "", questions: "" }); // Retiré setPlaceholders
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isEquitable = context.interestOrientation === "balanced";
+  const [notLegalDocument, setNotLegalDocument] = useState(false);
+  const navigate = useNavigate();
 
   // Détection automatique au chargement du formulaire - 100% IA
   useEffect(() => {
@@ -47,6 +51,14 @@ export const ContextualAnalysisForm: React.FC<ContextualAnalysisFormProps> = ({
       try {
         // Utilise UNIQUEMENT l'IA pour déterminer TOUT
         const aiResult = await detectContractWithAI(extractedText);
+
+        if (aiResult.isLegalDocument === false) {
+            setNotLegalDocument(true);
+            setTimeout(() => {
+              navigate("/conformite");
+            }, 8000);
+            return;
+        }
 
         if (isActive) {
           // Remplace TOUT le contexte par les valeurs de l'IA
@@ -90,11 +102,9 @@ export const ContextualAnalysisForm: React.FC<ContextualAnalysisFormProps> = ({
     console.log("🎯 Formulaire soumis avec contexte:", context);
 
     if (!context.contractType.trim()) {
-      alert("Veuillez spécifier le type de contrat");
       return;
     }
     if (!isEquitable && !context.userRole.trim()) {
-      alert("Veuillez spécifier votre position");
       return;
     }
 
@@ -128,19 +138,32 @@ export const ContextualAnalysisForm: React.FC<ContextualAnalysisFormProps> = ({
           📋 Questions d'analyse personnalisée
         </h3>
 
+          
         {isDetecting ? (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-sm text-blue-700">
+          <div className="mb-4 mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-sm text-blue-700">
             <div className="animate-spin shrink-0 w-4 h-4 border-2 border-current border-t-transparent rounded-full"></div>
             Le document est en cours d'analyse pour vous aider à remplir automatiquement les champs.
           </div>)
           : (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-sm text-green-700">
+            <div className="mb-4 mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-sm text-green-700">
               Les champs ont été préremplis automatiquement. <br />
               Vous pouvez les ajuster si nécessaire afin de refléter au mieux votre situation.
             </div>
           )
-
         }
+
+        {notLegalDocument && (
+          <div className="mb-3">
+        <AlertBanner
+          title="Fichier incorrect"
+          variant="error"
+          detail="Le fichier que vous avez analyser n'a aucun rapport avec le droit."
+          onClose={() => {
+            setNotLegalDocument(false);
+          }}
+        />
+        </div>
+      )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Type de contrat - maintenant en texte libre */}

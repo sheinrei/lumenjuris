@@ -29,6 +29,10 @@ import { seedBootstrapUsers } from "./src/services/bootstrapUsers.js";
 import { seedPlans } from "./src/services/planSeeder.js";
 import { Mailer } from "./src/infrastructure/mailer/classMailer.js";
 import { globalLimiter } from "./src/securite/limiter.js";
+import { authMiddleware } from "./src/middleware/authMiddleware.js";
+import { prisma } from "./prisma/singletonPrisma.js";
+import fs from "fs";
+import { internalApiKeyMiddleware } from "./src/middleware/internalApiKeyMiddleware.js";
 // import { internalApiKeyMiddleware } from "./middleware/internalApiKeyMiddleware";
 
 
@@ -51,6 +55,10 @@ const port = process.env.PORT || 3020;
 app.use(express.json({ limit: "20mb" }));
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
+app.use((req, _res, next) => {
+  console.log("[backnode] requête :", req.method, req.path, "| origin :", req.headers.origin, "| cookies :", req.headers.cookie);
+  next();
+});
 app.use(
   cors({
     origin:
@@ -62,9 +70,8 @@ app.use(
 );
 app.use(globalLimiter);
 app.set("trust-proxy", 1);
-// app.use(internalApiKeyMiddleware);
+app.use(internalApiKeyMiddleware);
 
-app.use("/userassets", express.static(path.join(process.cwd(), "userassets")));
 app.use("/", routerGoogleAuth);
 app.use("/llm", routerLlm);
 app.use("/user", routerUser);
@@ -89,6 +96,31 @@ app.get("/health", (req: Request, res: Response) => {
     health: true,
     port,
   });
+});
+
+app.get("/userassets/:filename", authMiddleware, async (req, res) => {
+  try {
+    const filename = req.params.filename as string;
+    const userId = Number(req.idUser);
+    const userUpload = await prisma.userUpload.findUnique({ where: { userId } });
+    const images = (userUpload?.uploadedImages ?? []) as { filename: string }[];
+    const owned = images.some(img => img.filename === filename);
+
+    if (!owned) {
+      return res.status(403).json({ success: false, message: "Accès refusé à ce fichier." });
+    }
+
+    const filepath = path.join(process.cwd(), "userassets", filename);
+
+    if (!fs.existsSync(filepath)) {
+      return res.status(404).json({ success: false, message: "Fichier non trouvé." });
+    }
+
+    return res.sendFile(filepath);
+  } catch (error) {
+    console.error("Erreur assets :", error);
+    return res.status(500).json({ success: false, message: "Erreur serveur." });
+  }
 });
 
 async function sandbox() {

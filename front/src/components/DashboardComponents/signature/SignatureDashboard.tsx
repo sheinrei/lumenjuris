@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { Plus, FileText, Send, Clock, CheckCircle2, Loader2, Trash2, Filter, MoreVertical, FileSearch } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { Plus, FileText, Send, Clock, CheckCircle2, Loader2, Trash2, AlertCircle, Filter } from "lucide-react";
 import { fetchProxy } from "../../../utils/fetchProxy";
-import { AlertBanner, type AlertVariant } from "../../common/AlertBanner";
+import { ConfirmationModal } from "../../ui/ConfirmationModal";
 
 /** Statuts d'enveloppe (miroir de l'enum Prisma). */
 type EnvelopeStatus = "DRAFT" | "SENT" | "PARTIALLY_SIGNED" | "SIGNED" | "DECLINED" | "EXPIRED";
@@ -56,11 +56,13 @@ export function SignatureDashboard({ onNewContract, refreshKey }: Props) {
   const [list, setList] = useState<EnvelopeDTO[]>([]);
   const [filter, setFilter] = useState<EnvelopeStatus | "ALL">("ALL");
   const [loading, setLoading] = useState(true);
-  const [alert, setAlert] = useState<{ variant: AlertVariant; title: string; detail?: string } | null>(null);
-
+  const [error, setError] = useState("");
+  const [validateModalOpen, setValidateModalOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
       const [statsRes, listRes] = await Promise.all([
         fetchProxy("/api/signature-envelope/stats", { credentials: "include" }),
@@ -71,7 +73,7 @@ export function SignatureDashboard({ onNewContract, refreshKey }: Props) {
       if (statsData.success && statsData.data) setStats(statsData.data);
       if (listData.success && listData.data) setList(listData.data);
     } catch (e: unknown) {
-      setAlert({ variant: "error", title: "Chargement impossible", detail: e instanceof Error ? e.message : "Erreur réseau" });
+      setError(e instanceof Error ? e.message : "Erreur réseau");
     } finally {
       setLoading(false);
     }
@@ -79,86 +81,36 @@ export function SignatureDashboard({ onNewContract, refreshKey }: Props) {
 
   useEffect(() => { void fetchAll(); }, [fetchAll, refreshKey]);
 
+  
   async function handleDelete(externalId: string) {
-    if (!confirm("Supprimer définitivement cette enveloppe ?")) return;
+    setPendingDeleteId(externalId);
+    setValidateModalOpen(true);
+  }
+
+  async function validateConfirmed() {
+     if (!pendingDeleteId) return;
     try {
-      await fetchProxy(`/api/signature-envelope/${externalId}`, {
+      await fetchProxy(`/api/signature-envelope/${pendingDeleteId}`, {
         method: "DELETE",
         credentials: "include",
       });
       await fetchAll();
     } catch { /* silent */ }
-  }
-
-
-
-
-
-  async function handleResend(id: string) {
-    try {
-      const res = await fetchProxy(`/api/signature-envelope/resend`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ externalId: id }),
-      });
-      const data = await res.json().catch(() => ({})) as { success?: boolean; message?: string };
-      if (!res.ok || !data.success) {
-        setAlert({ variant: "error", title: "Renvoi impossible", detail: data.message ?? "L'email n'a pas pu être renvoyé." });
-        return;
-      }
-      setAlert({ variant: "success", title: "Email renvoyé", detail: "L'invitation à signer a été renvoyée au cocontractant." });
-    } catch (err) {
-      console.error(err);
-      setAlert({ variant: "error", title: "Renvoi impossible", detail: "Erreur réseau." });
+      finally {
+      setValidateModalOpen(false);
+      setPendingDeleteId(null);
     }
-  }
-
-
-
-
-  async function handleDownload(externalId: string) {
-    try {
-      const res = await fetchProxy(`/api/signature-envelope/download/${externalId}`, {
-        method: "GET",
-        credentials: "include",
-      });
-      if (!res.ok) {
-        setAlert({ variant: "error", title: "Téléchargement impossible", detail: "Le document signé n'a pas pu être récupéré." });
-        return;
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      // Récupère le nom proposé par le serveur (Content-Disposition), sinon fallback.
-      const cd = res.headers.get("content-disposition") ?? "";
-      const match = /filename="?([^"]+)"?/.exec(cd);
-      a.download = match?.[1] ?? "document_signe.pdf";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-
-
+  } 
 
   return (
     <div className="space-y-5">
       <Header onNewContract={onNewContract} />
 
-      {alert && (
-        <AlertBanner
-          variant={alert.variant}
-          title={alert.title}
-          detail={alert.detail}
-          accent
-          onClose={() => setAlert(null)}
-        />
+      {error && (
+        <div className="flex items-center gap-2 text-sm text-danger-dark bg-danger-light border border-danger/20 px-4 py-3 rounded-xl">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          {error}
+        </div>
       )}
 
       {/* KPIs */}
@@ -197,13 +149,15 @@ export function SignatureDashboard({ onNewContract, refreshKey }: Props) {
       <StatusFilters current={filter} onChange={setFilter} />
 
       {/* Liste */}
-      <EnvelopeList
-        list={list}
-        loading={loading}
-        onDelete={handleDelete}
-        onResend={handleResend}
-        onDownload={handleDownload}
-      />
+      <EnvelopeList list={list} loading={loading} onDelete={handleDelete} />
+        <ConfirmationModal
+          open={validateModalOpen}
+          title="Supprimer l'enveloppe"
+          description={`Souhaitez-vous supprimer l'enveloppe ?`}
+          confirmLabel="Valider"
+          onConfirm={validateConfirmed}
+          onCancel={() => { setValidateModalOpen(false); setPendingDeleteId(null); }}
+        />
     </div>
   );
 }
@@ -278,10 +232,11 @@ function StatusFilters({
         <button
           key={o.id}
           onClick={() => onChange(o.id)}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all shadow-card ${current === o.id
-            ? "bg-brand text-white border-brand"
-            : "text-ink-secondary bg-white border-line hover:bg-surface-subtle"
-            }`}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all shadow-card ${
+            current === o.id
+              ? "bg-brand text-white border-brand"
+              : "text-ink-secondary bg-white border-line hover:bg-surface-subtle"
+          }`}
         >
           {o.label}
         </button>
@@ -292,13 +247,11 @@ function StatusFilters({
 
 /** Liste des enveloppes. */
 function EnvelopeList({
-  list, loading, onDelete,onResend, onDownload
+  list, loading, onDelete,
 }: {
   list: EnvelopeDTO[];
   loading: boolean;
   onDelete: (id: string) => void;
-  onResend: (id: string) => void;
-  onDownload: (id: string) => void;
 }) {
   if (loading) {
     return (
@@ -324,110 +277,38 @@ function EnvelopeList({
   }
 
   return (
-    <div className="bg-white rounded-card border border-line shadow-card divide-y divide-line-subtle ">
+    <div className="bg-white rounded-card border border-line shadow-card divide-y divide-line-subtle overflow-hidden">
       {list.map((env) => (
-        <EnvelopeRow
-          key={env.id}
-          env={env}
-          onDelete={() => onDelete(env.id)}
-          onResend={() => onResend(env.id)}
-          onDownload={() => onDownload(env.id)}
-        />
+        <EnvelopeRow key={env.id} env={env} onDelete={() => onDelete(env.id)} />
       ))}
     </div>
   );
 }
 
 /** Une ligne d'enveloppe dans la liste. */
-function EnvelopeRow({ env, onDelete, onResend, onDownload }: { env: EnvelopeDTO; onDelete: () => void; onResend: () => void; onDownload: () => void }) {
-  const [openMenu, setOpenMenu] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const classActionBtn = "p-1.5 rounded-lg text-ink-subtle hover:text-ink hover:bg-surface-muted flex justify-start gap-2 items-center"
-  console.log("Data de la signature", env)
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as Node)
-      ) {
-        setOpenMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-
+function EnvelopeRow({ env, onDelete }: { env: EnvelopeDTO; onDelete: () => void }) {
   return (
-    <div className="group flex items-center gap-4 px-5 py-3 hover:bg-surface-subtle/60 transition-colors relative">
-
+    <div className="group flex items-center gap-4 px-5 py-3 hover:bg-surface-subtle/60 transition-colors">
       <div className="w-9 h-9 rounded-panel bg-surface-subtle border border-line flex items-center justify-center shrink-0">
         <FileText className="w-4 h-4 text-ink-subtle" />
       </div>
-
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-ink truncate">
-          {env.documentName}
-        </p>
-
+        <p className="text-sm font-semibold text-ink truncate">{env.documentName}</p>
         <p className="text-[11px] text-ink-subtle truncate">
           {env.counterpartyName} · {env.counterpartyEmail}
         </p>
       </div>
-
       <div className="hidden md:block text-[11px] text-ink-subtle shrink-0 min-w-[120px] text-right">
         {formatDate(env.sentAt ?? env.createdAt)}
       </div>
-
       <StatusBadge status={env.status} />
-
-
-      <div ref={menuRef} className="relative">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setOpenMenu((prev) => !prev);
-          }}
-          className="p-1.5 text-ink-subtle hover:text-ink-secondary transition-colors rounded-lg hover:bg-surface-muted"
-        >
-          <MoreVertical className="w-4 h-4 stroke-[1.5]" />
-        </button>
-
-
-        {openMenu && (
-          <div className="absolute right-0 top-8 z-10 flex flex-col p-1 bg-white border border-line rounded-panel shadow-card-md py-1 min-w-[180px]">
-            <button
-              onClick={onDelete}
-              className="p-1.5 rounded-lg text-ink-subtle hover:text-danger hover:bg-danger-light flex justify-start gap-2 items-center"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Supprimer
-            </button>
-
-
-            <button
-              onClick={onResend}
-              className={classActionBtn}
-            >
-              <Send className="w-3.5 h-3.5" />
-              Renvoyer l'email
-            </button>
-
-
-            <button
-              onClick={onDownload}
-              className={classActionBtn}
-            >
-              <FileSearch className="w-3.5 h-3.5" />
-              Télécharger
-            </button>
-
-          </div>
-        )}
-      </div>
-
+      <button
+        onClick={onDelete}
+        className="p-1.5 rounded-lg text-ink-subtle hover:text-danger hover:bg-danger-light transition-all opacity-0 group-hover:opacity-100"
+        title="Supprimer"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 }
@@ -446,12 +327,12 @@ function StatusBadge({ status }: { status: EnvelopeStatus }) {
 }
 
 const STATUS_CONFIG: Record<EnvelopeStatus, { label: string; bg: string; fg: string }> = {
-  DRAFT: { label: "Brouillon", bg: "#f1f5f9", fg: "#64748b" },
-  SENT: { label: "Envoyé", bg: "#fef3c7", fg: "#92400e" },
-  PARTIALLY_SIGNED: { label: "Partiellement", bg: "#dbeafe", fg: "#1e40af" },
-  SIGNED: { label: "Signé", bg: "#d1fae5", fg: "#065f46" },
-  DECLINED: { label: "Refusé", bg: "#fee2e2", fg: "#991b1b" },
-  EXPIRED: { label: "Expiré", bg: "#f3f4f6", fg: "#6b7280" },
+  DRAFT:             { label: "Brouillon",      bg: "#f1f5f9", fg: "#64748b" },
+  SENT:              { label: "Envoyé",         bg: "#fef3c7", fg: "#92400e" },
+  PARTIALLY_SIGNED:  { label: "Partiellement",  bg: "#dbeafe", fg: "#1e40af" },
+  SIGNED:            { label: "Signé",          bg: "#d1fae5", fg: "#065f46" },
+  DECLINED:          { label: "Refusé",         bg: "#fee2e2", fg: "#991b1b" },
+  EXPIRED:           { label: "Expiré",         bg: "#f3f4f6", fg: "#6b7280" },
 };
 
 /** "JJ/MM/AAAA" à partir d'un ISO ou d'un timestamp. */

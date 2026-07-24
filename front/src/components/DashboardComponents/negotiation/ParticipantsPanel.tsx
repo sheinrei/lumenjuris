@@ -3,6 +3,7 @@ import { Users, Plus, Trash2, Loader2 } from "lucide-react";
 import { negotiationApi } from "./api";
 import { ROLE_LABEL } from "./types";
 import type { NegotiationDetail, ParticipantRole, ParticipantSide } from "./types";
+import { ConfirmationModal } from "../../ui/ConfirmationModal";
 
 interface Props {
   data: NegotiationDetail;
@@ -18,6 +19,8 @@ export function ParticipantsPanel({ data, canEdit, onChanged }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
+  const [participantDelete, setParticipantDelete] = useState<string | null>(null);
+  const [validateModalOpen, setValidateModalOpen] = useState(false);
 
   async function add() {
     setBusy(true);
@@ -29,10 +32,21 @@ export function ParticipantsPanel({ data, canEdit, onChanged }: Props) {
   }
 
   async function remove(id: string) {
-    if (!confirm("Retirer ce participant ?")) return;
-    await negotiationApi.removeParticipant(data.id, id);
-    onChanged();
+    setParticipantDelete(id);
+    setValidateModalOpen(true);
   }
+
+  async function validateConfirmed() {
+    if (!participantDelete) return;
+    try {
+      await negotiationApi.removeParticipant(data.id, participantDelete);
+      onChanged();
+    } catch {}
+    finally {
+      setParticipantDelete(null);
+      setValidateModalOpen(false);
+    }
+  } 
 
   return (
     <div className="bg-white rounded-card border border-line shadow-card p-5 space-y-3">
@@ -92,6 +106,14 @@ export function ParticipantsPanel({ data, canEdit, onChanged }: Props) {
           ))}
         </div>
       )}
+      <ConfirmationModal
+        open={validateModalOpen}
+        title="Supprimer le participant"
+        description={`Souhaitez-vous supprimer le participant ?`}
+        confirmLabel="Valider"
+        onConfirm={validateConfirmed}
+        onCancel={() => { setValidateModalOpen(false); setParticipantDelete(null); }}
+      />
     </div>
   );
 }

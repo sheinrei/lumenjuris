@@ -31,6 +31,8 @@ interface SignupFormProps {
   setSiren: React.Dispatch<React.SetStateAction<string>>;
   acceptCgu: boolean;
   setAcceptCgu: React.Dispatch<React.SetStateAction<boolean>>;
+  confirmPassword: string;
+  setConfirmPassword: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const PROXY_URL: string =
@@ -76,8 +78,11 @@ const SignupForm = ({
   setSiren,
   acceptCgu,
   setAcceptCgu,
+  confirmPassword,
+  setConfirmPassword,
 }: SignupFormProps) => {
-  const [confirmPassword, setConfirmPassword] = useState("");
+ 
+
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -115,25 +120,31 @@ const SignupForm = ({
       return;
     }
 
+    if (password !== confirmPassword) {
+        setConfirmPasswordError("Les mots de passe doivent être identiques");
+        return;
+    }
+
+    if (passwordError) {
+      return;
+    }
+
     setSubmitLoading(true);
     setSubmitPending(true);
     const trimedLastName = lastName.trim();
     const trimedFirstName = firstName.trim();
 
     let enterpriseData: object | null = null;
-    if (siren) {
+    if (siren && siren.trim().replace(/\D/g, "").length === 9) {
       try {
-        const sirenResponse = await fetchProxy(`/api/insee/${siren.trim()}`, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
+        const sirenNormalized = siren.trim().replace(/\D/g, "");
+        const res = await fetchProxy(`/api/insee/${encodeURIComponent(sirenNormalized)}`, {
           credentials: "include",
-          cache: "no-store",
         });
-        if (sirenResponse.ok) {
-          const sirenPayload = await sirenResponse.json();
-          if (sirenPayload?.success && sirenPayload?.data) {
-            enterpriseData = sirenPayload.data;
-          }
+        const payload = await res.json().catch(() => null);
+        console.log(payload.data);
+        if (res.ok && payload?.success && payload.data) {
+          enterpriseData = payload.data;
         }
       } catch {
         // INSEE lookup best-effort, on continue sans données entreprise
@@ -181,7 +192,7 @@ const SignupForm = ({
 
   // Inscription via Google
   const handleSubmitGoogle = () => {
-    window.location.href = `${PROXY_URL}/api/google`;
+    window.location.href = `${PROXY_URL}/auth/google`;
   };
 
   const handleChangeLastname = (event: React.ChangeEvent<HTMLInputElement>) => {
