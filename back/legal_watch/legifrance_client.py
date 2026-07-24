@@ -186,3 +186,5 @@ def collect_texts(
             continue
         texts.append({**txt, "rawText": raw})
     return texts
+
+
