@@ -60,10 +60,10 @@ app = FastAPI()
 # Veille juridique (ingestion Judilibre + enrichissement LLM — stateless)
 app.include_router(legal_watch_router)
 
-
+proxyUrl = ["http://localhost:3020", "https://proxy.lumenjuris.com"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[proxyUrl],
     allow_methods=["*"],
     allow_headers=["*"],
 ) 

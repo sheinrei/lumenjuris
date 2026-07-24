@@ -1162,15 +1162,15 @@ async function handleUserUploadsAsset(
 // Multipart (upload PDF) — stream direct, body non consommé par express.json
 app.post(
   ["/extract-document-text", "/api/extract-document-text"],
+  proxyAuthMiddleware,
   handleExtractDocumentText,
-  proxyAuthMiddleware
 );
 
 // JSON routes — body déjà parsé par express.json
 app.post(
   ["/legifrance-search", "/api/legifrance-search"],
-  handleLegifranceSearch,
   proxyAuthMiddleware,
+  handleLegifranceSearch,
 );
 app.post(["/jurisprudence", "/api/jurisprudence"], proxyAuthMiddleware, handleJurisprudence,);
 app.post(["/classify-veille", "/api/classify-veille"],proxyAuthMiddleware, handleClassifyVeille,);

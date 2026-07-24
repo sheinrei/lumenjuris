@@ -82,6 +82,33 @@ for (const nafEntry of Object.values(nafData)) {
     }
 }
 
+for (const [topKey, nafEntry] of Object.entries(nafData)) {
+    const normalizedKey = topKey.trim().toUpperCase();
+    if (nafContextByCodeNaf.has(normalizedKey)) continue;
+
+    const seen = new Set<string>();
+    const merged: ConventionCollectiveItem[] = [];
+
+    for (const source of nafEntry.Sources ?? []) {
+        for (const idcc of source.IDCC ?? []) {
+            const code = String(idcc.CodeIDCC ?? "").trim();
+            if (!code || code === "Autre" || seen.has(code)) continue;
+            seen.add(code);
+            merged.push({
+                key: `naf-${normalizedKey}-${code}`,
+                name: String(idcc["IntituléIDCC"] ?? "").trim(),
+                idccCode: code,
+                source: "naf",
+            });
+        }
+    }
+
+    nafContextByCodeNaf.set(normalizedKey, {
+        intituleNaf: String(nafEntry["IntituléNaf"] ?? "").trim() || null,
+        conventionCollectives: merged,
+    });
+}
+
 // Les customs sans code IDCC utilisent une clé dérivée du libellé pour rester sélectionnables dans le temps.
 function normalizeKeyFragment(value: string) {
     return value

@@ -1,6 +1,6 @@
 import crypto from "crypto"
-import { prisma } from "../../../prisma/singletonPrisma"
-import { matchContractsForItem } from "./matching"
+import { prisma } from "../../../prisma/singletonPrisma.js"
+import { matchContractsForItem } from "./matching.js"
 
 /**
  * Service métier de la veille juridique.
