@@ -630,24 +630,144 @@ Si la question demande des améliorations, propose des reformulations concrètes
 
 
 
+
+
+
+
+
+
+
+
+
+
+LEGAL_KEYWORDS = {
+    "droit", "juridique", "loi", "code", "contrat", "clause",
+    "convention", "collective", "prud'homme", "prudhomme",
+    "tribunal", "justice", "juge", "avocat", "notaire",
+    "société", "sas", "sarl", "entreprise", "association",
+    "licenciement", "cdi", "cdd", "rupture", "salarié",
+    "employeur", "travail", "bail", "location", "propriété",
+    "succession", "héritage", "donation", "divorce",
+    "responsabilité", "obligation", "facture", "tva",
+    "impôt", "fiscal", "rgpd", "cnil"
+}
+
+async def is_legal_question(message: str) -> bool:
+    """
+    Vérifie si une question est dans la thematique du juridique pour le chat juridique.
+    """
+
+    lower = message.lower()
+
+    # Cas évident : présence d'un mot-clé juridique
+    if any(keyword in lower for keyword in LEGAL_KEYWORDS):
+        return True
+
+    # Cas ambigu : classification GPT
+    response = await run_in_threadpool(
+        lambda: _openai_client.responses.create(
+            model="gpt-5.4-nano",
+            input=[
+                {
+                    "role": "system",
+                    "content": """
+                            Tu es un classificateur.
+
+                            Réponds UNIQUEMENT par :
+                            LEGAL
+                            ou
+                            NOT_LEGAL
+
+                            Une question est LEGAL si elle concerne notamment :
+                            - le droit
+                            - les contrats
+                            - les entreprises
+                            - les obligations
+                            - les conventions collectives
+                            - les RH
+                            - la fiscalité
+                            - la conformité
+                            - les administrations
+                            - les litiges
+                            - les procédures
+                            - les réglementations françaises
+
+                            Tout le reste est NOT_LEGAL.
+                            """,
+                },
+                {
+                    "role": "user",
+                    "content": message,
+                },
+            ],
+        )
+    )
+
+    return response.output_text.strip().upper() == "LEGAL"
+
+
 @app.post("/chat")
 async def chat(req: ChatRequest):
     if not req.message:
         raise HTTPException(status_code=400, detail="Message manquant")
+
     if not _openai_client:
         raise HTTPException(status_code=503, detail="Service de chat non disponible")
+
+    # Vérification du domaine
+    if not await is_legal_question(req.message):
+        return {
+            "success": False,
+            "response": (
+                "Je suis un assistant spécialisé dans le domaine juridique français et "
+                "ne peux répondre qu'aux questions ayant un lien avec le droit."
+            ),
+        }
+
     messages = [
         {
             "role": "system",
-            "content": "Tu es un assistant juridique expert en droit français, spécialisé dans l'analyse de contrats.\nTu fournis des conseils clairs, précis et adaptés au contexte français.\nReste professionnel mais accessible. Utilise des exemples concrets quand c'est pertinent.",
+            "content": """
+Tu es un assistant juridique expert en droit français.
+
+Tu réponds uniquement aux questions ayant un lien direct avec le droit français,
+les contrats, les entreprises, les conventions collectives, les obligations
+légales, la conformité, les procédures ou la réglementation.
+
+Si une question n'est pas juridique, réponds exactement :
+
+"Je suis un assistant spécialisé dans le domaine juridique français et ne peux répondre qu'aux questions ayant un lien avec le droit."
+
+Tu ne dois jamais répondre à une question hors de ce périmètre.
+
+Tes réponses doivent être :
+- précises ;
+- pédagogiques ;
+- adaptées au droit français ;
+- nuancées lorsqu'il existe plusieurs situations possibles.
+
+Lorsque cela est pertinent, précise qu'un professionnel du droit peut être nécessaire.
+""",
         }
     ]
+
     if req.context:
-        messages.append({"role": "system", "content": f"Contexte du document analysé:\n{req.context[:2000]}"})
+        messages.append({
+            "role": "system",
+            "content": f"Contexte du document analysé :\n{req.context[:2000]}"
+        })
+
     for h in req.history[-10:]:
         if h.role and h.content:
-            messages.append({"role": h.role, "content": h.content})
-    messages.append({"role": "user", "content": req.message})
+            messages.append({
+                "role": h.role,
+                "content": h.content,
+            })
+
+    messages.append({
+        "role": "user",
+        "content": req.message,
+    })
 
     if req.model in {"gpt-5.2", "gpt-5.4-nano"}:
         response = await run_in_threadpool(
@@ -658,25 +778,38 @@ async def chat(req: ChatRequest):
                 text={"verbosity": "medium"},
             )
         )
-        assistant_response = response.output_text.strip()
+
         return {
             "success": True,
-            "response": assistant_response,
+            "response": response.output_text.strip(),
             "openai_tokens": extract_token_usage(response, req.model),
         }
 
-    response = _openai_client.chat.completions.create(
-        model=req.model,
-        messages=messages,
-        temperature=0.7,
-        max_tokens=800,
+    response = await run_in_threadpool(
+        lambda: _openai_client.chat.completions.create(
+            model=req.model,
+            messages=messages,
+            temperature=0.7,
+            max_tokens=800,
+        )
     )
-    assistant_response = response.choices[0].message.content.strip()
+
     return {
         "success": True,
-        "response": assistant_response,
+        "response": response.choices[0].message.content.strip(),
         "openai_tokens": extract_token_usage(response, req.model),
     }
+
+
+
+
+
+
+
+
+
+
+
 
 
 

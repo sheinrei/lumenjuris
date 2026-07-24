@@ -23,16 +23,23 @@ logger = logging.getLogger(__name__)
 _TAG_RE = re.compile(r"<[^>]+>")
 
 
+
+
+
 def _base_url() -> str:
     if LEGI_ENDPOINT:
         return LEGI_ENDPOINT.rstrip("/").removesuffix("/search")
     return "https://api.piste.gouv.fr/dila/legifrance/lf-engine-app"
 
 
+
+
 def _strip_html(html: Optional[str]) -> str:
     if not html:
         return ""
     return _TAG_RE.sub(" ", html).replace("&nbsp;", " ").replace("[...]", "…").strip()
+
+
 
 
 def _post_with_retry(path: str, body: Dict[str, Any], token: str,
@@ -62,6 +69,9 @@ def _post_with_retry(path: str, body: Dict[str, Any], token: str,
             delay *= 2
     logger.warning(f"[Légifrance] Échec après {attempts} tentatives : {last_err}")
     return None
+
+
+
 
 
 def search_texts(
@@ -126,6 +136,9 @@ def search_texts(
     return out
 
 
+
+
+
 def fetch_text(cid: str) -> Optional[str]:
     """Corps d'un texte via /consult/jorf : titre + visa + articles."""
     token = _get_legifrance_token()
@@ -149,6 +162,9 @@ def fetch_text(cid: str) -> Optional[str]:
         parts.append(_strip_html(str(data["nota"])))
     text = "\n".join(p for p in parts if p).strip()
     return text or None
+
+
+
 
 
 def collect_texts(
