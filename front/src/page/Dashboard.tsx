@@ -4,7 +4,6 @@ import { InfoBanner } from "../components/DashboardComponents/home/InfoBanner";
 import { HeroHeader } from "../components/DashboardComponents/home/HeroHeader";
 import { UpcomingDeadlines } from "../components/DashboardComponents/home/UpcomingDeadlines";
 import { TodayQueue } from "../components/DashboardComponents/home/TodayQueue";
-import { SubscriptionCard } from "../components/DashboardComponents/home/SubscriptionCard";
 
 /**
  * Page d'accueil (`/dashboard`).
