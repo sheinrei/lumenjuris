@@ -3,7 +3,15 @@ import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "../ui/InputGroup";
 import { Field, FieldLabel, FieldDescription } from "../ui/Field";
-import { EyeOffIcon, EyeIcon, SendIcon, LogInIcon, X } from "lucide-react";
+import {
+  EyeOffIcon,
+  EyeIcon,
+  SendIcon,
+  LogInIcon,
+  MailIcon,
+  PencilIcon,
+  X,
+} from "lucide-react";
 
 import { AlertBanner } from "../common/AlertBanner";
 import { TwoFactorCodeModal } from "../ui/TwoFactorCodeModal";
@@ -15,6 +23,7 @@ import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 
 import { fetchProxy } from "../../utils/fetchProxy";
 import { ConnectGoogle } from "./ConnectGoogle";
+import { ConnectMicrosoft } from "./ConnectMicrosoft";
 
 
 
@@ -31,8 +40,14 @@ interface LoginFormProps {
  * ancrée sous le bouton « Se connecter », montée via un portail pour ne pas
  * déformer la barre de navigation.
  *
+ * La connexion par e-mail se fait en deux étapes : on demande d'abord
+ * l'adresse, puis seulement le mot de passe. L'adresse reste affichée à la
+ * seconde étape, en lecture seule, avec un bouton « Changer d'email » pour
+ * revenir en arrière.
+ *
  * Il gère les trois flux d'authentification : e-mail / mot de passe (avec 2FA
- * et compte non vérifié), Google OAuth, et mot de passe oublié.
+ * et compte non vérifié), Google OAuth, et mot de passe oublié. Le bouton
+ * Microsoft n'est qu'une maquette, sa route serveur n'existe pas encore.
  */
 export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
 
@@ -65,6 +80,22 @@ export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
   const [password, setPassword] = useState("");
   const [forgotPassword, setForgotPassword] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+
+  // La connexion se fait en deux temps : on demande l'adresse, puis seulement
+  // le mot de passe. L'adresse reste affichée à la seconde étape, en lecture,
+  // pour que l'utilisateur voie sous quel compte il se connecte.
+  const [etape, setEtape] = useState<"email" | "motDePasse">("email");
+
+
+  // Retour à la saisie de l'adresse : on repose le curseur dans le champ, sans
+  // quoi l'utilisateur devrait cliquer dedans pour corriger. Le champ est
+  // retrouvé par son id : le composant Input partagé n'est pas un forwardRef,
+  // une ref React ne l'atteindrait pas.
+  useEffect(() => {
+    if (etape === "email" && email) {
+      document.getElementById("email")?.focus();
+    }
+  }, [etape]);
 
   // Échap referme le panneau, comme la croix.
   useEffect(() => {
@@ -258,6 +289,31 @@ export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
     }
   };
 
+  /**
+   * Un seul bouton de soumission pour les deux étapes : à la première il fait
+   * avancer vers le mot de passe, à la seconde il lance la connexion.
+   */
+  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    if (etape === "motDePasse") {
+      void handleSubmit(event);
+      return;
+    }
+
+    event.preventDefault();
+    if (!email) {
+      setSubmitError(true);
+      return;
+    }
+    setEtape("motDePasse");
+  };
+
+  /** Retour à la saisie de l'adresse : le mot de passe déjà tapé n'a plus lieu d'être. */
+  const handleChangerEmail = () => {
+    setPassword("");
+    setShowPassword(false);
+    setEtape("email");
+  };
+
   const handleChangeEmail = (event: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(event.target.value);
   };
@@ -434,7 +490,7 @@ export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
               </button>
             </form>
           ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
               <Field>
                 <FieldLabel htmlFor="email" className="text-[13px]">
                   E-mail
@@ -442,48 +498,81 @@ export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
                 <Input
                   id="email"
                   type="email"
-                  autoFocus
+                  autoFocus={etape === "email"}
+                  readOnly={etape === "motDePasse"}
                   placeholder="Saisissez votre e-mail de connexion"
                   value={email}
                   onChange={handleChangeEmail}
+                  className={
+                    etape === "motDePasse"
+                      ? "bg-surface-subtle text-ink-secondary"
+                      : undefined
+                  }
                 />
               </Field>
 
-              <Field>
-                <FieldLabel htmlFor="password" className="text-[13px]">
-                  Mot de passe
-                </FieldLabel>
-                <InputGroup>
-                  <InputGroupInput
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Saisissez votre mot de passe"
-                    value={password}
-                    onChange={handleChangePassword}
-                  />
-                  <InputGroupAddon
-                    align="inline-end"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="hover:cursor-pointer"
-                  >
-                    {showPassword ? (
-                      <EyeOffIcon className="h-4 w-4" />
-                    ) : (
-                      <EyeIcon className="h-4 w-4" />
-                    )}
-                  </InputGroupAddon>
-                </InputGroup>
-              </Field>
+              {etape === "email" ? (
+                <Button
+                  className="w-full text-background border border-lumenjuris"
+                  disabled={submitLoading || !email}
+                  type="submit"
+                  size="lg"
+                >
+                  <MailIcon className="h-4 w-4" />
+                  Continuer avec l'email
+                </Button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleChangerEmail}
+                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-line text-sm font-medium text-ink-secondary transition-colors hover:border-brand/40 hover:text-brand"
+                >
+                  <PencilIcon className="h-4 w-4" />
+                  Changer d'email
+                </button>
+              )}
 
-              <Button
-                className="w-full text-background border border-lumenjuris"
-                disabled={submitLoading || submitError}
-                type="submit"
-                size="lg"
-              >
-                <LogInIcon className="h-4 w-4" />
-                Se connecter
-              </Button>
+              {/* Le mot de passe n'apparaît qu'une fois l'adresse validée. */}
+              {etape === "motDePasse" && (
+                <>
+                  <Field>
+                    <FieldLabel htmlFor="password" className="text-[13px]">
+                      Mot de passe
+                    </FieldLabel>
+                    <InputGroup>
+                      <InputGroupInput
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        autoFocus
+                        placeholder="Saisissez votre mot de passe"
+                        value={password}
+                        onChange={handleChangePassword}
+                      />
+                      <InputGroupAddon
+                        align="inline-end"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="hover:cursor-pointer"
+                      >
+                        {showPassword ? (
+                          <EyeOffIcon className="h-4 w-4" />
+                        ) : (
+                          <EyeIcon className="h-4 w-4" />
+                        )}
+                      </InputGroupAddon>
+                    </InputGroup>
+                  </Field>
+
+                  <Button
+                    className="w-full text-background border border-lumenjuris"
+                    disabled={submitLoading || submitError}
+                    type="submit"
+                    size="lg"
+                  >
+                    <LogInIcon className="h-4 w-4" />
+                    Se connecter
+                  </Button>
+                </>
+              )}
 
               <div className="flex items-center gap-3">
                 <div className="h-px w-full bg-line" />
@@ -494,8 +583,7 @@ export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
               </div>
 
               <ConnectGoogle />
-
-
+              <ConnectMicrosoft />
 
               <button
                 type="button"
