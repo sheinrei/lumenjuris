@@ -154,6 +154,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
   // ouvre aussi, quand un visiteur clique sur un module. Un seul à la fois,
   // ils se superposeraient au même endroit de l'écran.
   const panneauAuth = useAuthPanelStore((state) => state.panneau);
+  const presentationAuth = useAuthPanelStore((state) => state.presentation);
   const ouvrirConnexion = useAuthPanelStore((state) => state.ouvrirConnexion);
   const ouvrirInscription = useAuthPanelStore((state) => state.ouvrirInscription);
   const basculerPanneauAuth = useAuthPanelStore((state) => state.basculerVers);
@@ -311,6 +312,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
         <LoginForm
           onClose={fermerPanneauAuth}
           onSwitchToSignup={() => basculerPanneauAuth("inscription")}
+          presentation={presentationAuth}
         />
       )}
 
@@ -318,6 +320,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
         <SignupForm
           onClose={fermerPanneauAuth}
           onSwitchToLogin={() => basculerPanneauAuth("connexion")}
+          presentation={presentationAuth}
         />
       )}
     </div>

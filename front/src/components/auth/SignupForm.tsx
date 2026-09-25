@@ -10,15 +10,16 @@ import {
   FieldGroup,
 } from "../ui/Field";
 import { Checkbox } from "../ui/Checkbox";
-import { EyeOffIcon, EyeIcon, PenBoxIcon, X } from "lucide-react";
+import { EyeOffIcon, EyeIcon, PenBoxIcon } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 
 import { AlertBanner } from "../common/AlertBanner";
 
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useRef, useState } from "react";
 
+import { AuthPanelShell } from "./AuthPanelShell";
 import { VerifierBoiteMail } from "./VerifierBoiteMail";
+import type { PresentationPanneau } from "../../store/authPanelStore";
 import { fetchProxy } from "../../utils/fetchProxy";
 
 
@@ -34,6 +35,8 @@ interface SignupFormProps {
   /** Bascule sur le panneau de connexion, depuis le pied du formulaire ou
    *  l'écran « Vérifiez votre boîte mail ». */
   onSwitchToLogin: () => void;
+  /** Carte sous le bouton de l'en-tête, ou fenêtre centrée sur fond flouté. */
+  presentation: PresentationPanneau;
 }
 
 /**
@@ -45,7 +48,11 @@ interface SignupFormProps {
  * Une fois le compte créé, le formulaire cède la place à l'écran
  * « Vérifiez votre boîte mail », dans le même panneau.
  */
-export const SignupForm = ({ onClose, onSwitchToLogin }: SignupFormProps) => {
+export const SignupForm = ({
+  onClose,
+  onSwitchToLogin,
+  presentation,
+}: SignupFormProps) => {
 
   // Adresse à laquelle l'e-mail de vérification vient de partir : tant qu'elle
   // est renseignée, l'écran de vérification remplace le formulaire.
@@ -80,15 +87,6 @@ export const SignupForm = ({ onClose, onSwitchToLogin }: SignupFormProps) => {
 
 
 
-
-  // Échap referme le panneau, comme la croix.
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [onClose]);
 
   const passwordErrorTimeout = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -327,36 +325,15 @@ export const SignupForm = ({ onClose, onSwitchToLogin }: SignupFormProps) => {
     </div>
   );
 
-  // Le panneau est monté en dehors du header : la barre ne fait que 48 px de
-  // haut, un formulaire posé dans son flux l'aurait déformée.
-  return createPortal(
-    <>
-      {/* Zone transparente couvrant la page : un clic à côté referme le panneau. */}
-      <div className="fixed inset-0 z-40" onClick={onClose} aria-hidden="true" />
-
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="signup-panel-title"
-        className="fixed right-3 top-14 z-50 flex max-h-[calc(100vh-4.5rem)] w-[380px] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-xl"
-      >
-        <header className="flex shrink-0 items-center justify-between border-b border-line-subtle px-5 py-3.5">
-          <h2 id="signup-panel-title" className="text-[15px] font-semibold text-ink">
-            {emailAVerifier ? "Vérifiez votre boîte mail" : "Créer un compte"}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer"
-            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-surface-subtle hover:text-ink"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </header>
-
-        {/* Le formulaire est long : la carte est bornée à la hauteur de l'écran
-            (en-tête compris) et c'est ce bloc qui défile. */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+  return (
+    <AuthPanelShell
+      id="signup-panel-title"
+      titre={emailAVerifier ? "Vérifiez votre boîte mail" : "Créer un compte"}
+      presentation={presentation}
+      onClose={onClose}
+      largeur={380}
+    >
+      <div>
           {emailAVerifier ? (
             <VerifierBoiteMail
               email={emailAVerifier}
@@ -574,9 +551,7 @@ export const SignupForm = ({ onClose, onSwitchToLogin }: SignupFormProps) => {
               </p>
             </form>
           )}
-        </div>
       </div>
-    </>,
-    document.body,
+    </AuthPanelShell>
   );
 };

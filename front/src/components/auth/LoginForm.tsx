@@ -10,21 +10,21 @@ import {
   LogInIcon,
   MailIcon,
   PencilIcon,
-  X,
 } from "lucide-react";
 
 import { AlertBanner } from "../common/AlertBanner";
 import { TwoFactorCodeModal } from "../ui/TwoFactorCodeModal";
 import { useUserStore } from "../../store/userStore";
-import { useAuthPanelStore } from "../../store/authPanelStore";
+import type { PresentationPanneau } from "../../store/authPanelStore";
+import { consommerDestination } from "../../utils/destinationApresConnexion";
 
 import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 
 import { fetchProxy } from "../../utils/fetchProxy";
 import { ConnectGoogle } from "./ConnectGoogle";
 import { ConnectMicrosoft } from "./ConnectMicrosoft";
+import { AuthPanelShell } from "./AuthPanelShell";
 
 
 
@@ -33,6 +33,8 @@ interface LoginFormProps {
   onClose: () => void;
   /** Bascule sur le panneau d'inscription, depuis le pied du formulaire. */
   onSwitchToSignup: () => void;
+  /** Carte sous le bouton de l'en-tête, ou fenêtre centrée sur fond flouté. */
+  presentation: PresentationPanneau;
 }
 
 /**
@@ -50,7 +52,11 @@ interface LoginFormProps {
  * et compte non vérifié), Google OAuth, et mot de passe oublié. Le bouton
  * Microsoft n'est qu'une maquette, sa route serveur n'existe pas encore.
  */
-export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
+export const LoginForm = ({
+  onClose,
+  onSwitchToSignup,
+  presentation,
+}: LoginFormProps) => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
@@ -74,9 +80,6 @@ export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
 
   const navigate = useNavigate();
   const { fetchUser } = useUserStore();
-  // Module que le visiteur voulait ouvrir avant qu'on lui demande de se
-  // connecter : on l'y emmène plutôt que de le laisser sur l'accueil.
-  const destination = useAuthPanelStore((state) => state.destination);
   const location = useLocation();
   const locationState = location.state as { plan?: object } | null;
 
@@ -100,15 +103,6 @@ export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
       document.getElementById("email")?.focus();
     }
   }, [etape]);
-
-  // Échap referme le panneau, comme la croix.
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [onClose]);
 
 
 
@@ -207,6 +201,9 @@ export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
       }
 
       await fetchUser();
+      // La destination est lue avant la fermeture : `onClose` l'efface, pour
+      // qu'un abandon ne détourne pas la connexion suivante.
+      const destination = consommerDestination();
       onClose();
       if (locationState?.plan) {
         navigate("/souscription", { state: { plan: locationState.plan } });
@@ -234,6 +231,7 @@ export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
     }
 
     await fetchUser();
+    const destination = consommerDestination();
     onClose();
     navigate(destination ?? "/dashboard");
   };
@@ -327,36 +325,16 @@ export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
   };
 
 
-  // Le panneau est monté en dehors du header : la barre ne fait que 48 px de
-  // haut, un formulaire posé dans son flux l'aurait déformée.
-  return createPortal(
+  return (
     <>
-      {/* Zone transparente couvrant la page : un clic à côté referme le panneau. */}
-      <div className="fixed inset-0 z-40" onClick={onClose} aria-hidden="true" />
-
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="login-panel-title"
-        className="fixed right-3 top-14 z-50 flex max-h-[calc(100vh-4.5rem)] w-[360px] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-xl"
+      <AuthPanelShell
+        id="login-panel-title"
+        titre={forgotPassword ? "Mot de passe oublié" : "Connexion"}
+        presentation={presentation}
+        onClose={onClose}
+        largeur={360}
       >
-        <header className="flex shrink-0 items-center justify-between border-b border-line-subtle px-5 py-3.5">
-          <h2 id="login-panel-title" className="text-[15px] font-semibold text-ink">
-            {forgotPassword ? "Mot de passe oublié" : "Connexion"}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer"
-            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-surface-subtle hover:text-ink"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </header>
-
-        {/* La carte est bornée à la hauteur de l'écran (en-tête compris) : sur
-            un petit écran, avec une bannière d'erreur, ce bloc défile. */}
-        <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
+        <div className="flex flex-col gap-4">
           {submitError && (
             <AlertBanner
               title="Champs manquants !"
@@ -610,7 +588,7 @@ export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
             </form>
           )}
         </div>
-      </div>
+      </AuthPanelShell>
 
       <TwoFactorCodeModal
         open={twoFactorModalOpen}
@@ -620,7 +598,6 @@ export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
           void handleTwoFactorCancel();
         }}
       />
-    </>,
-    document.body,
+    </>
   );
 };

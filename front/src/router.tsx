@@ -31,6 +31,7 @@ import { ConfirmDeleteAccountPage } from "./page/DeleteAccount";
 
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import { RequireAuth } from "./components/auth/RequireAuth";
+import { useRetourConnexionExterne } from "./components/auth/useRetourConnexionExterne";
 import { useUserStore } from "./store/userStore";
 import { usePreferencesStore } from "./store/preferencesStore";
 import { SignerPage } from "./page/SignerPage";
@@ -57,6 +58,9 @@ export function App() {
       void fetchUser();
     }
   }, [authStatus, fetchUser]);
+
+  // Retour de Google : on reprend la page que l'utilisateur voulait ouvrir.
+  useRetourConnexionExterne();
 
   useEffect(() => {
     if (authStatus === "authenticated") {
