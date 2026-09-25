@@ -46,7 +46,7 @@ export function RequireAuth({ children }: RequireAuthProps) {
 
   if (authStatus === "unauthenticated") {
     return (
-      <Navigate to="/inscription" replace state={{ from: location.pathname }} />
+      <Navigate to="/dashboard" replace state={{ from: location.pathname }} />
     );
   }
 

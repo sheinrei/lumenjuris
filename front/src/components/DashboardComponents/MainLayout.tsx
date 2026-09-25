@@ -192,18 +192,27 @@ function NavItemRow({ item, onNavigate }: { item: NavItem; onNavigate: () => voi
   );
 }
 
+
+
 export function MainLayout({ children }: { children?: React.ReactNode }) {
   const userData = useUserStore((s) => s.userData);
+  const authStatus = useUserStore((s) => s.authStatus);
   const isAdmin = userData?.profile?.role === "ADMIN";
   const location = useLocation();
+
   const refreshUnreadCount = useLegalWatchStore((s) => s.refreshUnreadCount);
 
+
+  
   // Pastille veille juridique : chargée à l'ouverture, rafraîchie toutes les 5 min.
+  // Réservée aux utilisateurs connectés : l'accueil est désormais visible sans
+  // compte, et cet appel répondrait 401 pour un visiteur.
   useEffect(() => {
+    if (authStatus !== "authenticated") return;
     refreshUnreadCount();
     const interval = setInterval(refreshUnreadCount, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [refreshUnreadCount]);
+  }, [authStatus, refreshUnreadCount]);
 
   // sidebarOpen pilote à la fois :
   // - le drawer mobile/tablette (overlay)

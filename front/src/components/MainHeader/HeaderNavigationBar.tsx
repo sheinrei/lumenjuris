@@ -5,6 +5,8 @@ import {
   LogOutIcon,
   AlertCircleIcon,
   HandCoinsIcon,
+  LogInIcon,
+  PenBoxIcon,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -18,6 +20,9 @@ import { useState, useEffect, useCallback } from "react";
 import type { MouseEvent } from "react";
 
 import { useUserStore } from "../../store/userStore";
+
+import { LoginForm } from "../auth/LoginForm";
+import { SignupForm} from "../auth/SignupForm"
 
 type NavigationClickHandler = (
   event?: MouseEvent<HTMLElement>,
@@ -144,6 +149,22 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
     if (success) navigate("/inscription");
   };
 
+  // Un seul panneau d'authentification à la fois : ils se superposeraient,
+  // et les deux flux passent l'un vers l'autre par leur pied de page.
+  const [showLogin, setShowLogin] = useState<boolean>(false);
+  const [showNewAccount, setShowNewAccount] = useState<boolean>(false);
+
+  const openLoginPanel = () => {
+    setShowNewAccount(false);
+    setShowLogin(true);
+  };
+
+  const openSignupPanel = () => {
+    setShowLogin(false);
+    setShowNewAccount(true);
+  };
+
+
   return (
     <div className="flex items-center gap-1 lg:pr-2">
       {/* Menu du haut volontairement minimal : la navigation vit dans la sidebar.
@@ -264,7 +285,46 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
             </DropdownMenu>
           </div>
         </section>
-      ) : null}
+      ) : (
+        // UTILISATEUR NON CONNECTE : les deux points d'entrée vers un compte.
+        // Sous 640 px, les deux libellés ne tiennent plus côte à côte dans la
+        // barre : on ne garde que les icônes, le titre du panneau prend le relais.
+        <section className="flex items-center gap-2">
+          <button
+            onClick={openLoginPanel}
+            aria-label="Se connecter"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-[13px] font-semibold text-ink-secondary transition-colors hover:border-brand/40 hover:text-brand sm:px-3"
+          >
+            <LogInIcon size={15} />
+            <span className="hidden sm:inline">Se connecter</span>
+          </button>
+
+          <button
+            onClick={openSignupPanel}
+            aria-label="Inscrivez-vous"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-2.5 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-brand-hover sm:px-3"
+          >
+            <PenBoxIcon size={15} />
+            <span className="hidden sm:inline">Inscrivez-vous</span>
+          </button>
+        </section>
+      )}
+
+      {/* Les deux panneaux se placent eux-mêmes sous l'en-tête, et ne sont
+          jamais ouverts en même temps. */}
+      {showLogin && (
+        <LoginForm
+          onClose={() => setShowLogin(false)}
+          onSwitchToSignup={openSignupPanel}
+        />
+      )}
+
+      {showNewAccount && (
+        <SignupForm
+          onClose={() => setShowNewAccount(false)}
+          onSwitchToLogin={openLoginPanel}
+        />
+      )}
     </div>
   );
 };

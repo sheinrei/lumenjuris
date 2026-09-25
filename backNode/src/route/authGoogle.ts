@@ -7,9 +7,9 @@ import { User } from "../services/classUser.js";
 import { Google } from "../services/classGoogle.js";
 import { prisma } from "../../prisma/singletonPrisma.js";
 import { Subscription } from "../services/classSubscription.js";
+import { Mailer } from "../infrastructure/mailer/classMailer.js";
 
 const routerAuthGoogle: Router = express.Router();
-
 const oauthStates = new Map<string, number>()
 
 //Route auth vers Google
@@ -104,6 +104,8 @@ routerAuthGoogle.get( "/auth/google/callback", async (req: Request, res: Respons
       );
     }
 
+  
+
     //New AuthProviderAccount
     const newGoogle = await new Google().create({
       providerId: sub,
@@ -115,6 +117,11 @@ routerAuthGoogle.get( "/auth/google/callback", async (req: Request, res: Respons
     new Subscription()
       .activateFreemium(newUser.data?.idUser!)
       .catch(console.error);
+
+
+    //Envoyer l'email de bienvenue
+    await new Mailer(newUser.data.email).sendWelcomeFreemium()
+
 
     //Créer session JWT cookie http only
     createCookieAuth(newUser.data?.idUser!, "USER", res);

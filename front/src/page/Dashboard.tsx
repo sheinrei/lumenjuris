@@ -24,10 +24,13 @@ export function Dashboard() {
       {/* Halo très léger derrière le contenu, pour décoller la page du fond uni. */}
       <div className="pointer-events-none absolute -top-16 left-1/2 -z-10 h-72 w-[680px] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse,rgba(76,124,192,0.10)_0%,rgba(76,124,192,0)_70%)]" />
 
-      <InfoBanner />
+      {/* Les annonces produit passent par une route authentifiée : on ne les
+          demande pas pour un visiteur. */}
+      {!data.isGuest && <InfoBanner />}
 
       <HeroHeader
         firstName={firstName}
+        isGuest={data.isGuest}
         isEmpty={data.isEmpty}
         pendingActions={data.pendingActions}
         kpis={data.kpis}
@@ -37,8 +40,8 @@ export function Dashboard() {
       {/* Le titre « Lumen Juris » de bas de page a été retiré : le logo du menu
           suffit à situer l'utilisateur, la page d'accueil reste utilitaire. */}
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-        <TodayQueue items={data.queue} loading={data.loading} />
-        <UpcomingDeadlines items={data.deadlines} loading={data.loading} />
+        <TodayQueue items={data.queue} loading={data.loading} isGuest={data.isGuest} />
+        <UpcomingDeadlines items={data.deadlines} loading={data.loading} isGuest={data.isGuest} />
       </div>
     </div>
   );
