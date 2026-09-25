@@ -20,6 +20,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { MouseEvent } from "react";
 
 import { useUserStore } from "../../store/userStore";
+import { useAuthPanelStore } from "../../store/authPanelStore";
 
 import { LoginForm } from "../auth/LoginForm";
 import { SignupForm} from "../auth/SignupForm"
@@ -146,23 +147,17 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
     if (onNavClick?.() === false) return;
 
     const success = await logoutUser();
-    if (success) navigate("/inscription");
+    if (success) navigate("/");
   };
 
-  // Un seul panneau d'authentification à la fois : ils se superposeraient,
-  // et les deux flux passent l'un vers l'autre par leur pied de page.
-  const [showLogin, setShowLogin] = useState<boolean>(false);
-  const [showNewAccount, setShowNewAccount] = useState<boolean>(false);
-
-  const openLoginPanel = () => {
-    setShowNewAccount(false);
-    setShowLogin(true);
-  };
-
-  const openSignupPanel = () => {
-    setShowLogin(false);
-    setShowNewAccount(true);
-  };
+  // Les panneaux sont rendus ici mais pilotés par un store : l'accueil les
+  // ouvre aussi, quand un visiteur clique sur un module. Un seul à la fois,
+  // ils se superposeraient au même endroit de l'écran.
+  const panneauAuth = useAuthPanelStore((state) => state.panneau);
+  const ouvrirConnexion = useAuthPanelStore((state) => state.ouvrirConnexion);
+  const ouvrirInscription = useAuthPanelStore((state) => state.ouvrirInscription);
+  const basculerPanneauAuth = useAuthPanelStore((state) => state.basculerVers);
+  const fermerPanneauAuth = useAuthPanelStore((state) => state.fermer);
 
 
   return (
@@ -291,7 +286,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
         // barre : on ne garde que les icônes, le titre du panneau prend le relais.
         <section className="flex items-center gap-2">
           <button
-            onClick={openLoginPanel}
+            onClick={() => ouvrirConnexion()}
             aria-label="Se connecter"
             className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-[13px] font-semibold text-ink-secondary transition-colors hover:border-brand/40 hover:text-brand sm:px-3"
           >
@@ -300,7 +295,7 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
           </button>
 
           <button
-            onClick={openSignupPanel}
+            onClick={() => ouvrirInscription()}
             aria-label="Inscrivez-vous"
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-2.5 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-brand-hover sm:px-3"
           >
@@ -312,17 +307,17 @@ const HeaderNavigationBar = ({ onNavClick }: HeaderNavBarProps) => {
 
       {/* Les deux panneaux se placent eux-mêmes sous l'en-tête, et ne sont
           jamais ouverts en même temps. */}
-      {showLogin && (
+      {panneauAuth === "connexion" && (
         <LoginForm
-          onClose={() => setShowLogin(false)}
-          onSwitchToSignup={openSignupPanel}
+          onClose={fermerPanneauAuth}
+          onSwitchToSignup={() => basculerPanneauAuth("inscription")}
         />
       )}
 
-      {showNewAccount && (
+      {panneauAuth === "inscription" && (
         <SignupForm
-          onClose={() => setShowNewAccount(false)}
-          onSwitchToLogin={openLoginPanel}
+          onClose={fermerPanneauAuth}
+          onSwitchToLogin={() => basculerPanneauAuth("connexion")}
         />
       )}
     </div>

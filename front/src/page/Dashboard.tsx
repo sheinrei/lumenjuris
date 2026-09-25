@@ -4,6 +4,7 @@ import { InfoBanner } from "../components/DashboardComponents/home/InfoBanner";
 import { HeroHeader } from "../components/DashboardComponents/home/HeroHeader";
 import { UpcomingDeadlines } from "../components/DashboardComponents/home/UpcomingDeadlines";
 import { TodayQueue } from "../components/DashboardComponents/home/TodayQueue";
+import { ModulesSection } from "../components/DashboardComponents/home/ModulesSection";
 
 /**
  * Page d'accueil (`/dashboard`).
@@ -36,6 +37,11 @@ export function Dashboard() {
         kpis={data.kpis}
         loading={data.loading}
       />
+
+      {/* Les modules viennent juste après l'en-tête : pour un visiteur c'est la
+          présentation de l'outil, pour un utilisateur connecté ce sont des
+          raccourcis vers son travail. */}
+      <ModulesSection isGuest={data.isGuest} />
 
       {/* Le titre « Lumen Juris » de bas de page a été retiré : le logo du menu
           suffit à situer l'utilisateur, la page d'accueil reste utilitaire. */}

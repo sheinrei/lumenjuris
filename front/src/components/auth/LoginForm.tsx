@@ -16,6 +16,7 @@ import {
 import { AlertBanner } from "../common/AlertBanner";
 import { TwoFactorCodeModal } from "../ui/TwoFactorCodeModal";
 import { useUserStore } from "../../store/userStore";
+import { useAuthPanelStore } from "../../store/authPanelStore";
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -73,6 +74,9 @@ export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
 
   const navigate = useNavigate();
   const { fetchUser } = useUserStore();
+  // Module que le visiteur voulait ouvrir avant qu'on lui demande de se
+  // connecter : on l'y emmène plutôt que de le laisser sur l'accueil.
+  const destination = useAuthPanelStore((state) => state.destination);
   const location = useLocation();
   const locationState = location.state as { plan?: object } | null;
 
@@ -204,11 +208,11 @@ export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
 
       await fetchUser();
       onClose();
-      locationState?.plan
-        ? navigate("/souscription", {
-          state: { plan: locationState?.plan || null },
-        })
-        : navigate("/dashboard");
+      if (locationState?.plan) {
+        navigate("/souscription", { state: { plan: locationState.plan } });
+      } else {
+        navigate(destination ?? "/dashboard");
+      }
     } catch (error) {
       setServerError(true);
       setSubmitLoading(false);
@@ -231,7 +235,7 @@ export const LoginForm = ({ onClose, onSwitchToSignup }: LoginFormProps) => {
 
     await fetchUser();
     onClose();
-    navigate("/dashboard");
+    navigate(destination ?? "/dashboard");
   };
 
   const handleTwoFactorCancel = async () => {
