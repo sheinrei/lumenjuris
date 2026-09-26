@@ -56,7 +56,7 @@ interface UserState {
  *
  * // Déconnexion avec redirection conditionnelle
  * const success = await logoutUser();
- * if (success) navigate("/inscription");
+ * if (success) navigate("/");
  * ```
  */
 export const useUserStore = create<UserState>((set) => ({

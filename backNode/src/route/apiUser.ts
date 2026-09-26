@@ -1043,6 +1043,14 @@ routerUser.post(
       });
 
       if (user) {
+        // Une nouvelle demande invalide les précédentes : sans cela, tous les
+        // liens de réinitialisation encore valides restaient utilisables en
+        // parallèle. Seul le dernier lien envoyé doit fonctionner.
+        await prisma.token.updateMany({
+          where: { userId: user.idUser, type: "forgotPassword", status: "ACTIVE" },
+          data: { status: "EXPIRED" },
+        });
+
         const token = await new Token().createToken(
           user.idUser,
           "forgotPassword",

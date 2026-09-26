@@ -98,8 +98,9 @@ function deriveOverallBadge(tab: NotificationItem[]): NotificationBadge {
  *    `/analyzer`), les liens admin-only (`/sandbox`, `/monitoring`), la cloche
  *    de notifications et le menu utilisateur (avatar, logout, mon compte, formules).
  *
- * 2. **Utilisateur non connecté** — affiche uniquement les liens `/souscription`
- *    et `/inscription`.
+ * 2. **Utilisateur non connecté** — affiche les boutons « Se connecter » et
+ *    « Inscrivez-vous », qui ouvrent les panneaux d'authentification (store
+ *    `authPanelStore`) plutôt qu'une page dédiée.
  *
  * 3. **Responsive** — deux rendus parallèles (mobile/tablette `< 768 px` vs
  *    desktop `≥ 768 px`) via Tailwind `lg:hidden` / `hidden lg:flex` :

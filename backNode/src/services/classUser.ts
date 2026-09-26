@@ -138,11 +138,20 @@ export class User {
 
       const isValid = await bcrypt.compare(password, findUser.password);
 
+      // Mot de passe invalide : on ne renvoie AUCUNE donnée du compte. Les
+      // renvoyer même en cas d'échec était un piège : un appelant qui aurait
+      // regardé `data` plutôt que `success` aurait pu ouvrir une session sur un
+      // mot de passe faux.
+      if (!isValid) {
+        return {
+          success: false,
+          message: "E-mail ou mot de passe invalide",
+        };
+      }
+
       return {
-        success: isValid ? true : false,
-        message: isValid
-          ? "Connexion réussie"
-          : "E-mail ou mot de passe invalide",
+        success: true,
+        message: "Connexion réussie",
         data: {
           idUser: findUser.idUser,
           email: findUser.email,

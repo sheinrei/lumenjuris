@@ -22,15 +22,8 @@ export type MailAttachment = {
 };
 
 export type MailExtraOptions = {
-  /** Adresse(s) en copie. */
   cc?: string;
-  /**
-   * Adresse à laquelle les réponses doivent arriver. L'expéditeur technique
-   * est un no-reply de la plateforme : sans `replyTo`, une réponse du
-   * destinataire se perd. On y met l'e-mail de l'utilisateur concerné.
-   */
   replyTo?: string;
-  /** Pièces jointes. */
   attachments?: MailAttachment[];
 };
 
@@ -49,8 +42,7 @@ const MAILER_HOST = process.env.MAILER_HOST || "mail.lumenjuris.com";
 const MAILER_PORT = Number(process.env.MAILER_PORT || 465);
 
 /** Adresse affichee comme expediteur. Doit appartenir au domaine authentifie. */
-const MAILER_FROM =
-  process.env.MAILER_FROM || '"Lumen Juris" <no-reply@lumenjuris.com>';
+const MAILER_FROM = process.env.MAILER_FROM || '"Lumen Juris" <no-reply@lumenjuris.com>';
 
 const transporter = nodemailer.createTransport({
   host: MAILER_HOST,

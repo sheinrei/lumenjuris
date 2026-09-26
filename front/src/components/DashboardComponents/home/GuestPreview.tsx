@@ -1,5 +1,6 @@
-import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+
+import { useAuthPanelStore } from "../../../store/authPanelStore";
 
 interface Props {
   /** Ce que le bloc contiendra une fois l'utilisateur connecté. */
@@ -17,6 +18,8 @@ interface Props {
  * d'afficher une liste vide, et on propose de créer un compte.
  */
 export function GuestPreview({ description, examples }: Props) {
+  const ouvrirInscription = useAuthPanelStore((state) => state.ouvrirInscription);
+
   return (
     <div className="flex flex-col gap-3 border-t border-line-subtle px-5 py-4">
       <p className="text-[12.5px] leading-relaxed text-ink-muted">{description}</p>
@@ -30,13 +33,14 @@ export function GuestPreview({ description, examples }: Props) {
         ))}
       </ul>
 
-      <Link
-        to="/inscription"
+      <button
+        type="button"
+        onClick={() => ouvrirInscription()}
         className="inline-flex w-fit items-center gap-1 text-[12.5px] font-semibold text-blue-primary hover:underline"
       >
         Créer un compte
         <ArrowRight className="h-3.5 w-3.5" />
-      </Link>
+      </button>
     </div>
   );
 }

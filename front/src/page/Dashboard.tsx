@@ -5,7 +5,7 @@ import { HeroHeader } from "../components/DashboardComponents/home/HeroHeader";
 import { UpcomingDeadlines } from "../components/DashboardComponents/home/UpcomingDeadlines";
 import { TodayQueue } from "../components/DashboardComponents/home/TodayQueue";
 import { ModulesSection } from "../components/DashboardComponents/home/ModulesSection";
-import { BlockedAccountNotice } from "../components/DashboardComponents/home/BlockedAccountNotice";
+import { AccountRedirectNotice } from "../components/DashboardComponents/home/AccountRedirectNotice";
 
 /**
  * Page d'accueil (`/dashboard`).
@@ -28,7 +28,7 @@ export function Dashboard() {
 
       {/* Un compte bloqué est renvoyé ici par le serveur après une tentative
           de connexion : le message doit être visible avant tout le reste. */}
-      <BlockedAccountNotice />
+      <AccountRedirectNotice />
 
       {/* Les annonces produit passent par une route authentifiée : on ne les
           demande pas pour un visiteur. */}

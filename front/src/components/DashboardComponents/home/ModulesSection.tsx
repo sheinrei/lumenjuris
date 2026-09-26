@@ -46,7 +46,7 @@ const MODULES: Module[] = [
   },
   {
     icon: ShieldCheck,
-    label: "Analyse de conformité",
+    label: "Analyse des risques",
     description: "Vérifiez la conformité juridique de vos documents.",
     path: "/conformite",
   },

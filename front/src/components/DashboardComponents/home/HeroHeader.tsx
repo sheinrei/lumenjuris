@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles, Upload } from "lucide-react";
 
 import type { KpiCard } from "./types";
+import { useAuthPanelStore } from "../../../store/authPanelStore";
 
 interface Props {
   firstName: string;
@@ -23,6 +24,8 @@ interface Props {
  * cliquables : ce sont des repères, pas le sujet de la page.
  */
 export function HeroHeader({ firstName, isGuest, isEmpty, pendingActions, kpis, loading }: Props) {
+  const ouvrirConnexion = useAuthPanelStore((state) => state.ouvrirConnexion);
+
   // Le prénom peut manquer (compte créé via OAuth sans profil complet).
   let greeting = isEmpty
     ? `Bienvenue${firstName ? `, ${firstName}` : ""}.`
@@ -61,13 +64,14 @@ export function HeroHeader({ firstName, isGuest, isEmpty, pendingActions, kpis, 
           <p className="max-w-xl text-sm leading-relaxed text-white/60">{subline}</p>
 
           {isGuest && (
-            <Link
-              to="/inscription"
+            <button
+              type="button"
+              onClick={() => ouvrirConnexion()}
               className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full border border-white/25 px-3.5 py-1.5 text-[12.5px] font-semibold text-white transition-colors hover:border-white/50 hover:bg-white/10"
             >
               Se connecter ou créer un compte
               <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+            </button>
           )}
         </div>
 

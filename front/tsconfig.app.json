@@ -19,7 +19,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "../Archives/Navigation.tsx"],
+  "include": ["src"],
   "exclude": ["Archives"],
   "baseUrl": ".",
   "paths": {
