@@ -4,6 +4,7 @@ import "dotenv/config";
 import cookieParser from "cookie-parser";
 import path from "path";
 import routerGoogleAuth from "./src/route/authGoogle.js";
+import microsoftRouter from "./src/route/authMicrosoft.js";
 import routerLlm from "./src/route/apiLlm.js";
 import routerUser from "./src/route/apiUser.js";
 import routerEnterprise from "./src/route/apiEnterprise.js";
@@ -104,6 +105,7 @@ app.use(internalApiKeyMiddleware);
 app.use(addErrorFeedbackLogger);
 
 app.use("/", routerGoogleAuth);
+app.use("/", microsoftRouter);
 app.use("/llm", routerLlm);
 app.use("/user", routerUser);
 app.use("/enterprise", routerEnterprise);
