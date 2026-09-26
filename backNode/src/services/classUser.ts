@@ -156,6 +156,30 @@ export class User {
     }
   }
 
+  /**
+   * Vérifie le mot de passe actuel d'un utilisateur, pour les opérations
+   * sensibles qui exigent une ré-authentification (changement de mot de passe).
+   *
+   * `hasPassword` est faux pour un compte créé via Google qui n'a jamais défini
+   * de mot de passe : dans ce cas il n'y a rien à confirmer, il peut en créer un.
+   */
+  async verifyPassword(
+    idUser: number,
+    plainPassword: string,
+  ): Promise<{ hasPassword: boolean; valid: boolean }> {
+    const user = await prisma.user.findUnique({
+      where: { idUser },
+      select: { password: true },
+    });
+
+    if (!user?.password) {
+      return { hasPassword: false, valid: false };
+    }
+
+    const valid = await bcrypt.compare(plainPassword, user.password);
+    return { hasPassword: true, valid };
+  }
+
   async update(idUser: number, dataUpdated: DataUpdatedDTO ): Promise<ReturnData> {
     try {
       const nextData = { ...dataUpdated };

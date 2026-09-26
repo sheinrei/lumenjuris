@@ -488,19 +488,35 @@ routerUser.get("/get", authMiddleware, async (req: Request, res: Response) => {
 routerUser.put("/", authMiddleware, async (req: Request, res: Response) => {
   try {
     const idUser = Number(req.idUser);
-    const { email, nom, prenom, password, twoFactorEnabled } = req.body ?? {};
+    const { email, nom, prenom, password, currentPassword, twoFactorEnabled } =
+      req.body ?? {};
 
-    // Un mot de passe changé depuis le profil doit respecter la même politique
-    // qu'à l'inscription. Sans ce contrôle, on pouvait ramener son compte à un
-    // mot de passe faible après coup.
     const nouveauMotDePasse =
       typeof password === "string" ? password.trim() : "";
     if (nouveauMotDePasse) {
+      // Un mot de passe changé depuis le profil doit respecter la même
+      // politique qu'à l'inscription.
       const forcePassword = validatePasswordStrength(nouveauMotDePasse);
       if (!forcePassword.valide) {
         return res.status(400).json({
           success: false,
           message: forcePassword.message,
+        });
+      }
+
+      // Ré-authentification : changer un mot de passe existant exige le mot de
+      // passe actuel. Sans cela, un cookie volé suffisait à prendre le compte.
+      // Un compte Google qui n'a pas encore de mot de passe peut en définir un
+      // sans cette étape (rien à confirmer).
+      const controle = await new User().verifyPassword(
+        idUser,
+        typeof currentPassword === "string" ? currentPassword : "",
+      );
+      if (controle.hasPassword && !controle.valid) {
+        return res.status(400).json({
+          success: false,
+          reason: "wrong-current-password",
+          message: "Le mot de passe actuel est incorrect.",
         });
       }
     }
