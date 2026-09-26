@@ -8,7 +8,7 @@ import { CheckIcon, EyeOffIcon, EyeIcon, Loader2, PenBoxIcon } from "lucide-reac
 
 import { AlertBanner } from "../common/AlertBanner";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { AuthPanelShell } from "./AuthPanelShell";
@@ -98,32 +98,16 @@ export const SignupForm = ({
   const motDePasseValide = criteresMotDePasse.every((critere) => critere.rempli);
   const confirmationCorrespond = confirmPassword === password;
 
-  // Les messages sont rendus sous le bouton d'inscription : on amène ce bloc
-  // dans le champ de vision plutôt que le haut du formulaire, sinon la réponse
-  // s'affiche hors écran juste après le clic.
-  const feedbackRef = useRef<HTMLDivElement>(null);
-  const scrollToFeedback = () => {
-    // Laisse React peindre l'alerte avant de la faire défiler.
-    requestAnimationFrame(() => {
-      feedbackRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    });
-  };
-
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!lastName || !email || !password || !confirmPassword) {
       setSubmitError(true);
-      scrollToFeedback();
       return;
     }
 
     if (!acceptCgu) {
       setSubmitCguError(true);
-      scrollToFeedback();
       return;
     }
 
@@ -134,7 +118,6 @@ export const SignupForm = ({
 
     setSubmitLoading(true);
     setSubmitPending(true);
-    scrollToFeedback();
     const trimedLastName = lastName.trim();
     const trimedFirstName = firstName.trim();
 
@@ -173,7 +156,6 @@ export const SignupForm = ({
         // faire (adresse deja prise, mot de passe trop court) et doit pouvoir
         // resoumettre sans avoir a fermer la banniere au prealable.
         setSubmitLoading(false);
-        scrollToFeedback();
         return;
       }
 
@@ -185,7 +167,6 @@ export const SignupForm = ({
         setServerError(true);
         setServerErrorMessage(data.message);
         setSubmitLoading(false);
-        scrollToFeedback();
         return;
       }
 
@@ -206,7 +187,7 @@ export const SignupForm = ({
   };
 
   const feedback = (
-    <div ref={feedbackRef} className="flex flex-col gap-3 empty:hidden">
+    <div className="flex flex-col gap-3 empty:hidden">
       {submitError && (
         <AlertBanner
           title="Champs manquants !"
@@ -267,6 +248,11 @@ export const SignupForm = ({
         />
       ) : (
         <div className="flex flex-col gap-4">
+
+          {/* Les messages (erreurs, envoi en cours) sont en tête du panneau :
+              toujours visibles, sans pousser le bas du formulaire ni forcer un
+              défilement. */}
+          {feedback}
 
           {/* Le chemin le plus court d'abord : la plupart des gens s'arrêtent ici. */}
           <div className="flex flex-col gap-2">
@@ -373,10 +359,10 @@ export const SignupForm = ({
                 </InputGroupAddon>
               </InputGroup>
 
-              {/* La liste n'apparaît qu'à la première frappe : vide, elle
-                  ressemblerait à une liste de reproches avant même d'avoir
-                  commencé. */}
-              {password.length > 0 && (
+              {/* La liste n'apparaît qu'à la première frappe (vide, elle
+                  ressemblerait à une liste de reproches) et disparaît une fois
+                  toutes les règles satisfaites : elle n'a plus rien à signaler. */}
+              {password.length > 0 && !motDePasseValide && (
                 <ul className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1">
                   {criteresMotDePasse.map((critere) => (
                     <li
@@ -493,8 +479,6 @@ export const SignupForm = ({
               )}
               {submitLoading ? "Création en cours…" : "Créer mon compte"}
             </Button>
-
-            {feedback}
 
             <p className="text-center text-[12.5px] text-ink-muted">
               Déjà un compte ?{" "}

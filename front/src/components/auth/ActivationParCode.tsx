@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, MailCheck, ShieldCheck } from "lucide-react";
+import { ExternalLink, Loader2, MailCheck, ShieldCheck } from "lucide-react";
 
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
@@ -7,6 +7,23 @@ import { fetchProxy } from "../../utils/fetchProxy";
 
 /** Délai minimal entre deux renvois du code (le serveur limite aussi). */
 const ATTENTE_RENVOI_S = 30;
+
+/**
+ * Raccourci « ouvrir sa messagerie » pour aller lire le code. On ne le propose
+ * que lorsqu'on reconnaît le fournisseur (Gmail ou Outlook) dans le domaine de
+ * l'adresse ; pour toute autre adresse, on n'affiche rien (on ne saurait pas
+ * vers quelle boîte envoyer).
+ */
+function messagerie(email: string): { nom: string; url: string } | null {
+  const domaine = email.split("@")[1]?.toLowerCase() ?? "";
+  if (/gmail/.test(domaine)) {
+    return { nom: "Ouvrir Gmail", url: "https://mail.google.com/mail/u/0/#inbox" };
+  }
+  if (/outlook/.test(domaine)) {
+    return { nom: "Ouvrir Outlook", url: "https://outlook.live.com/mail/0/inbox" };
+  }
+  return null;
+}
 
 interface Props {
   /** Adresse à laquelle le code d'activation a été envoyé. */
@@ -138,6 +155,18 @@ export function ActivationParCode({
           </p>
           <p className="break-all text-sm font-semibold text-ink">{email}</p>
         </div>
+
+        {messagerie(email) && (
+          <a
+            href={messagerie(email)!.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-blue-primary px-4 text-[13px] font-semibold text-white transition-colors hover:bg-brand-hover"
+          >
+            {messagerie(email)!.nom}
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
