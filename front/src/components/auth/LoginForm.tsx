@@ -12,14 +12,14 @@ import {
   PencilIcon,
 } from "lucide-react";
 
-import { AlertBanner } from "../common/AlertBanner";
+import { AlertBanner, type AlertVariant } from "../common/AlertBanner";
 import { TwoFactorCodeModal } from "../ui/TwoFactorCodeModal";
 import { useUserStore } from "../../store/userStore";
 import type { PresentationPanneau } from "../../store/authPanelStore";
 import { consommerDestination } from "../../utils/destinationApresConnexion";
 
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import { fetchProxy } from "../../utils/fetchProxy";
 import { ConnectGoogle } from "./ConnectGoogle";
@@ -27,6 +27,23 @@ import { ConnectMicrosoft } from "./ConnectMicrosoft";
 import { AuthPanelShell } from "./AuthPanelShell";
 
 
+
+/** Une bannière du panneau, décrite dans le tableau `alertes` du composant. */
+interface Alerte {
+  /** Clé de rendu, propre à chaque bannière. */
+  id: string;
+  /** La bannière n'est rendue que si cette condition est vraie. */
+  visible: boolean;
+  variant: AlertVariant;
+  title: string;
+  detail: string;
+  /** Durée d'affichage en millisecondes avant disparition automatique. */
+  duration: number;
+  /** Remet à zéro ce que la bannière signalait. */
+  onClose: () => void;
+  /** Précision affichée juste sous la bannière. */
+  complement?: React.ReactNode;
+}
 
 interface LoginFormProps {
   /** Referme le panneau : croix, clic à côté, touche Échap, connexion réussie. */
@@ -76,8 +93,6 @@ export const LoginForm = ({
   const [showRateLimitModal, setShowRateLimitModal] = useState(false);
   const [showRateLimitLogin, setShowRateLimitLogin] = useState(false);
 
-  const [searchParams, setSearchParams] = useSearchParams();
-
   const navigate = useNavigate();
   const { fetchUser } = useUserStore();
   const location = useLocation();
@@ -104,24 +119,6 @@ export const LoginForm = ({
     }
   }, [etape]);
 
-
-
-  useEffect(() => {
-    setForgotPassword(false);
-    setEmailSent(false);
-    const errorParam = searchParams.get("error");
-    const reasonParam = searchParams.get("reason");
-    const isBannedFromUrl = errorParam === "banned" || reasonParam === "banned";
-    if (isBannedFromUrl) {
-      setIsBanned(true);
-      if (isBannedFromUrl) {
-        const newParams = new URLSearchParams(searchParams);
-        newParams.delete("error");
-        newParams.delete("reason");
-        setSearchParams(newParams, { replace: true });
-      }
-    }
-  }, [searchParams]);
 
 
 
@@ -324,6 +321,109 @@ export const LoginForm = ({
     setPassword(event.target.value);
   };
 
+  // Toutes les bannières du panneau sont décrites ici plutôt que répétées dans
+  // le JSX : elles ne diffèrent que par leur condition d'affichage, leur texte
+  // et ce qu'il faut remettre à zéro en les fermant. L'ordre du tableau est
+  // celui de l'affichage.
+  const alertes: Alerte[] = [
+    {
+      id: "champsManquants",
+      visible: submitError,
+      variant: "error",
+      title: "Champs manquants !",
+      detail: "Vérifiez votre adresse e-mail et votre mot de passe.",
+      duration: 8000,
+      onClose: () => setSubmitError(false),
+    },
+    {
+      id: "emailManquant",
+      visible: submitForgotError,
+      variant: "error",
+      title: "E-mail manquant !",
+      detail:
+        "Pour réinitialiser votre mot de passe veuillez renseigner votre adresse e-mail.",
+      duration: 8000,
+      onClose: () => {
+        setForgotPassword(true);
+        setSubmitForgotError(false);
+      },
+    },
+    {
+      id: "tropDeDemandesReinitialisation",
+      visible: showRateLimitModal,
+      variant: "error",
+      title: "Trop de requêtes !",
+      detail:
+        "Vous avez demandé à réinitialiser votre mot de passe de trop nombreuses fois, veuillez attendre 15 minutes.",
+      duration: 12000,
+      onClose: () => setShowRateLimitModal(false),
+    },
+    {
+      id: "tropDeTentativesConnexion",
+      visible: showRateLimitLogin,
+      variant: "error",
+      title: "Trop de tentatives de connexion",
+      detail:
+        "Par sécurité, les tentatives sont bloquées pendant 15 minutes. Réessayez ensuite, ou utilisez « Mot de passe oublié ? » si vous ne le retrouvez pas.",
+      duration: 15000,
+      onClose: () => setShowRateLimitLogin(false),
+    },
+    {
+      id: "compteBloque",
+      visible: isBanned,
+      variant: "error",
+      title: "Votre compte a été bloqué",
+      detail:
+        "Votre compte a été bloqué par les services de modération, si vous ne comprenez pas les raisons vous pouvez nous contacter par email à l'adresse contact@lumenjuris.com",
+      duration: 15000,
+      onClose: () => setIsBanned(false),
+    },
+    {
+      id: "erreurServeur",
+      visible: serverError,
+      variant: "error",
+      title: "Connexion impossible !",
+      detail: serverErrorMessage,
+      duration: 8000,
+      onClose: () => {
+        setServerError(false);
+        setSubmitLoading(false);
+      },
+    },
+    {
+      id: "compteNonValide",
+      visible: verificationError,
+      variant: "error",
+      title: "Votre compte n'a pas été validé !",
+      detail: verificationErrorMessage,
+      duration: 10000,
+      onClose: () => {
+        setVerificationError(false);
+        setSubmitLoading(false);
+      },
+    },
+    {
+      id: "emailReinitialisationEnvoye",
+      visible: emailSent,
+      variant: "success",
+      title: "E-mail envoyé !",
+      detail:
+        "Si un compte est associé à cette adresse, vous recevrez un lien de réinitialisation dans quelques instants.",
+      duration: 12000,
+      onClose: () => {
+        setEmailSent(false);
+        setSubmitLoading(false);
+      },
+      complement: (
+        <p className="text-[12.5px] leading-relaxed text-ink-muted">
+          Pensez à vérifier vos spams si vous ne recevez rien dans quelques
+          minutes.
+        </p>
+      ),
+    },
+  ];
+
+
 
   return (
     <>
@@ -335,103 +435,14 @@ export const LoginForm = ({
         largeur={360}
       >
         <div className="flex flex-col gap-4">
-          {submitError && (
-            <AlertBanner
-              title="Champs manquants !"
-              variant="error"
-              detail="Vérifiez votre adresse e-mail et votre mot de passe."
-              duration={8000}
-              onClose={() => setSubmitError(false)}
-            />
-          )}
-
-          {submitForgotError && (
-            <AlertBanner
-              title="E-mail manquant !"
-              variant="error"
-              detail="Pour réinitialiser votre mot de passe veuillez renseigner votre adresse e-mail."
-              duration={8000}
-              onClose={() => {
-                setForgotPassword(true);
-                setSubmitForgotError(false);
-              }}
-            />
-          )}
-
-          {showRateLimitModal && (
-            <AlertBanner
-              title="Trop de requêtes !"
-              variant="error"
-              detail="Vous avez demandé à réinitialiser votre mot de passe de trop nombreuses fois, veuillez attendre 15 minutes."
-              duration={12000}
-              onClose={() => setShowRateLimitModal(false)}
-            />
-          )}
-
-          {showRateLimitLogin && (
-            <AlertBanner
-              title="Trop de tentatives de connexion"
-              variant="error"
-              detail="Par sécurité, les tentatives sont bloquées pendant 15 minutes. Réessayez ensuite, ou utilisez « Mot de passe oublié ? » si vous ne le retrouvez pas."
-              duration={15000}
-              onClose={() => setShowRateLimitLogin(false)}
-            />
-          )}
-
-          {isBanned && (
-            <AlertBanner
-              title="Votre compte a été bloqué"
-              variant="error"
-              detail="Votre compte a été bloqué par les services de modération, si vous ne comprenez pas les raisons vous pouvez nous contacter par email à l'adresse contact@lumenjuris.com"
-              duration={15000}
-              onClose={() => setIsBanned(false)}
-            />
-          )}
-
-          {serverError && (
-            <AlertBanner
-              title="Connexion impossible !"
-              variant="error"
-              detail={serverErrorMessage}
-              duration={8000}
-              onClose={() => {
-                setServerError(false);
-                setSubmitLoading(false);
-              }}
-            />
-          )}
-
-          {verificationError && (
-            <AlertBanner
-              title="Votre compte n'a pas été validé !"
-              variant="error"
-              detail={verificationErrorMessage}
-              duration={10000}
-              onClose={() => {
-                setVerificationError(false);
-                setSubmitLoading(false);
-              }}
-            />
-          )}
-
-          {emailSent && (
-            <section className="flex flex-col gap-2">
-              <AlertBanner
-                title="E-mail envoyé !"
-                variant="success"
-                detail="Si un compte est associé à cette adresse, vous recevrez un lien de réinitialisation dans quelques instants."
-                duration={12000}
-                onClose={() => {
-                  setEmailSent(false);
-                  setSubmitLoading(false);
-                }}
-              />
-              <p className="text-[12.5px] leading-relaxed text-ink-muted">
-                Pensez à vérifier vos spams si vous ne recevez rien dans quelques
-                minutes.
-              </p>
-            </section>
-          )}
+          {alertes
+            .filter((alerte) => alerte.visible)
+            .map(({ id, visible: _visible, complement, ...proprietes }) => (
+              <section key={id} className="flex flex-col gap-2">
+                <AlertBanner {...proprietes} />
+                {complement}
+              </section>
+            ))}
 
           {forgotPassword ? (
             <form
@@ -473,45 +484,52 @@ export const LoginForm = ({
             </form>
           ) : (
             <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
-              <Field>
-                <FieldLabel htmlFor="email" className="text-[13px]">
-                  E-mail
-                </FieldLabel>
-                <Input
-                  id="email"
-                  type="email"
-                  autoFocus={etape === "email"}
-                  readOnly={etape === "motDePasse"}
-                  placeholder="Saisissez votre e-mail de connexion"
-                  value={email}
-                  onChange={handleChangeEmail}
-                  className={
-                    etape === "motDePasse"
-                      ? "bg-surface-subtle text-ink-secondary"
-                      : undefined
-                  }
-                />
-              </Field>
-
               {etape === "email" ? (
-                <Button
-                  className="w-full text-background border border-lumenjuris"
-                  disabled={submitLoading || !email}
-                  type="submit"
-                  size="lg"
-                >
-                  <MailIcon className="h-4 w-4" />
-                  Continuer avec l'email
-                </Button>
+                <>
+                  <Field>
+                    <FieldLabel htmlFor="email" className="text-[13px]">
+                      E-mail
+                    </FieldLabel>
+                    <Input
+                      id="email"
+                      type="email"
+                      autoFocus
+                      autoComplete="email"
+                      placeholder="Saisissez votre e-mail de connexion"
+                      value={email}
+                      onChange={handleChangeEmail}
+                    />
+                  </Field>
+
+                  <Button
+                    className="w-full text-background border border-lumenjuris"
+                    disabled={submitLoading || !email}
+                    type="submit"
+                    size="lg"
+                  >
+                    <MailIcon className="h-4 w-4" />
+                    Continuer avec l'email
+                  </Button>
+                </>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleChangerEmail}
-                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-line text-sm font-medium text-ink-secondary transition-colors hover:border-brand/40 hover:text-brand"
-                >
-                  <PencilIcon className="h-4 w-4" />
-                  Changer d'email
-                </button>
+                /* Le champ disparaît une fois l'adresse validée : il n'y a
+                   plus rien à y saisir. On garde l'adresse en toutes lettres,
+                   pour que l'utilisateur voie sous quel compte il se connecte,
+                   et le bouton qui ramène à l'étape précédente. */
+                <div className="flex items-center gap-2 rounded-xl border border-line-subtle bg-surface-subtle px-3 py-2">
+                  <MailIcon className="h-4 w-4 shrink-0 text-ink-subtle" />
+                  <span className="flex-1 truncate text-[13px] font-medium text-ink" title={email}>
+                    {email}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleChangerEmail}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold text-brand transition-colors hover:bg-white"
+                  >
+                    <PencilIcon className="h-3 w-3" />
+                    Changer d'email
+                  </button>
+                </div>
               )}
 
               {/* Le mot de passe n'apparaît qu'une fois l'adresse validée. */}

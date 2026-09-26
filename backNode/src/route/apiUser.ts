@@ -11,6 +11,7 @@ import { Enterprise } from "../services/classEnterprise.js";
 import { Subscription } from "../services/classSubscription.js";
 import { normalizeAccountParameters } from "../utils/normalizeAccountParameters.js";
 import { normalizePreferenceUI } from "../utils/normalizePreferenceUI.js";
+import { validatePasswordStrength } from "../utils/passwordPolicy.js";
 import { getUserFullExport } from "../services/getUserData.js";
 import { readLog, writeLog } from "./apiFeedback.js";
 import { hashToken } from "../services/encryption.js";
@@ -19,6 +20,7 @@ import {
   loginLimiter,
   registerLimiter,
   forgotPasswordLimiter,
+  twoFactorLimiter,
 } from "../securite/limiter.js";
 const routerUser: Router = express.Router();
 
@@ -87,11 +89,11 @@ routerUser.post(
         });
       }
 
-      if (!password || typeof password !== "string" || password.length < 8) {
+      const forcePassword = validatePasswordStrength(password);
+      if (!forcePassword.valide) {
         return res.status(400).json({
           success: false,
-          message:
-            "Un mot de passe d'au moins 8 caractères est requis pour la création d'un compte.",
+          message: forcePassword.message,
         });
       }
 
@@ -364,9 +366,6 @@ routerUser.post("/auth/login", loginLimiter, async (req: Request, res: Response)
       })
     }
 
-    // Compte non valide : aucune session n'est ouverte. Sans ce controle, le
-    // cookie etait pose malgre le refus affiche par le front, et il suffisait
-    // d'aller sur /dashboard pour entrer sans avoir valide son adresse.
     if (!logUser.data.isVerified) {
       return res.status(403).json({
         success: false,
@@ -376,10 +375,10 @@ routerUser.post("/auth/login", loginLimiter, async (req: Request, res: Response)
       });
     }
 
+
     // Le role vient du compte : le figer a "USER" retirait ses droits a un
     // administrateur des qu'il se connectait par ce formulaire.
     createCookieAuth(logUser.data.idUser, logUser.data.role, res);
-
 
     if (logUser.data.twoFactorEnabled) {
       const codeResult = await new Token().createTwoFactorCode(
@@ -394,13 +393,6 @@ routerUser.post("/auth/login", loginLimiter, async (req: Request, res: Response)
           .catch((err) =>
             console.error("Envoi du code de double authentification échoué:", err),
           );
-      }
-
-      if (codeResult.success && codeResult.code) {
-        await new Mailer(logUser.data.email).sendTwoFactor(
-          codeResult.code,
-          logUser.data.email,
-        );
       }
 
       return res.status(200).json({
@@ -489,13 +481,26 @@ routerUser.put("/", authMiddleware, async (req: Request, res: Response) => {
     const idUser = Number(req.idUser);
     const { email, nom, prenom, password, twoFactorEnabled } = req.body ?? {};
 
+    // Un mot de passe changé depuis le profil doit respecter la même politique
+    // qu'à l'inscription. Sans ce contrôle, on pouvait ramener son compte à un
+    // mot de passe faible après coup.
+    const nouveauMotDePasse =
+      typeof password === "string" ? password.trim() : "";
+    if (nouveauMotDePasse) {
+      const forcePassword = validatePasswordStrength(nouveauMotDePasse);
+      if (!forcePassword.valide) {
+        return res.status(400).json({
+          success: false,
+          message: forcePassword.message,
+        });
+      }
+    }
+
     const update = await new User().update(idUser, {
       ...(typeof email === "string" ? { email } : {}),
       ...(typeof nom === "string" ? { nom } : {}),
       ...(typeof prenom === "string" ? { prenom } : {}),
-      ...(typeof password === "string" && password.trim()
-        ? { password: password.trim() }
-        : {}),
+      ...(nouveauMotDePasse ? { password: nouveauMotDePasse } : {}),
       ...(typeof twoFactorEnabled === "boolean" ? { twoFactorEnabled } : {}),
     });
 
@@ -745,6 +750,7 @@ routerUser.post(
 
 routerUser.post(
   "/two-factor/verify",
+  twoFactorLimiter,
   authMiddleware,
   async (req: Request, res: Response) => {
     try {
@@ -1056,6 +1062,17 @@ routerUser.post("/updatepassword", async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: "Un token et un mot de passe sont requis.",
+      });
+    }
+
+    // Même exigence de robustesse qu'à l'inscription : sans ce contrôle, la
+    // réinitialisation acceptait n'importe quel mot de passe, y compris un seul
+    // caractère.
+    const forcePassword = validatePasswordStrength(password);
+    if (!forcePassword.valide) {
+      return res.status(400).json({
+        success: false,
+        message: forcePassword.message,
       });
     }
 

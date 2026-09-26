@@ -5,6 +5,7 @@ import { HeroHeader } from "../components/DashboardComponents/home/HeroHeader";
 import { UpcomingDeadlines } from "../components/DashboardComponents/home/UpcomingDeadlines";
 import { TodayQueue } from "../components/DashboardComponents/home/TodayQueue";
 import { ModulesSection } from "../components/DashboardComponents/home/ModulesSection";
+import { BlockedAccountNotice } from "../components/DashboardComponents/home/BlockedAccountNotice";
 
 /**
  * Page d'accueil (`/dashboard`).
@@ -24,6 +25,10 @@ export function Dashboard() {
     <div className="relative mx-auto flex w-full max-w-[1240px] flex-col gap-5">
       {/* Halo très léger derrière le contenu, pour décoller la page du fond uni. */}
       <div className="pointer-events-none absolute -top-16 left-1/2 -z-10 h-72 w-[680px] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse,rgba(76,124,192,0.10)_0%,rgba(76,124,192,0)_70%)]" />
+
+      {/* Un compte bloqué est renvoyé ici par le serveur après une tentative
+          de connexion : le message doit être visible avant tout le reste. */}
+      <BlockedAccountNotice />
 
       {/* Les annonces produit passent par une route authentifiée : on ne les
           demande pas pour un visiteur. */}

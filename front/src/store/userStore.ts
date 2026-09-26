@@ -76,7 +76,6 @@ export const useUserStore = create<UserState>((set) => ({
       });
 
       const dataResponse = await response.json();
-      console.log("Resultat du get data user", dataResponse);
       if (dataResponse.success && dataResponse.data?.profile?.isVerified) {
         const provider = dataResponse.data.provider as { avatarUrl?: string };
         set({

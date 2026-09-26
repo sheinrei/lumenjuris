@@ -9,6 +9,8 @@ import { prisma } from "../../prisma/singletonPrisma.js";
 import { Subscription } from "../services/classSubscription.js";
 import { Mailer } from "../infrastructure/mailer/classMailer.js";
 
+
+
 const routerAuthGoogle: Router = express.Router();
 const oauthStates = new Map<string, number>()
 
@@ -61,7 +63,7 @@ routerAuthGoogle.get( "/auth/google/callback", async (req: Request, res: Respons
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } },
     );
 
-    //Recuperer les data user de google
+    //Recupérer les data user de google
     const userInfo = await axios.get(
       "https://www.googleapis.com/oauth2/v3/userinfo",
       {
@@ -81,7 +83,9 @@ routerAuthGoogle.get( "/auth/google/callback", async (req: Request, res: Respons
 
     if (findUser) {
       if (findUser.isBanned) {
-        return res.redirect(`${FRONT}/inscription?error=banned`);
+        // /inscription n'existe plus : la connexion se fait depuis l'accueil,
+        // qui lit ce parametre et affiche le message de blocage.
+        return res.redirect(`${FRONT}/dashboard?error=banned`);
       }
       return (
         createCookieAuth(findUser.idUser, findUser.role , res),
