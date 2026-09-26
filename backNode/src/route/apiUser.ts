@@ -3,7 +3,10 @@ import type { Request, Response, Router } from "express";
 import { User } from "../services/classUser.js";
 import { Token } from "../services/classToken.js";
 import { Mailer } from "../infrastructure/mailer/classMailer.js";
-import { createCookieAuth } from "../securite/cookieAuth.js";
+import {
+  createCookieAuth,
+  createPendingTwoFactorCookie,
+} from "../securite/cookieAuth.js";
 import { prisma } from "../../prisma/singletonPrisma.js";
 import { authMiddleware } from "../middleware/authMiddleware.js";
 import { Google } from "../services/classGoogle.js";
@@ -376,10 +379,6 @@ routerUser.post("/auth/login", loginLimiter, async (req: Request, res: Response)
     }
 
 
-    // Le role vient du compte : le figer a "USER" retirait ses droits a un
-    // administrateur des qu'il se connectait par ce formulaire.
-    createCookieAuth(logUser.data.idUser, logUser.data.role, res);
-
     if (logUser.data.twoFactorEnabled) {
       const codeResult = await new Token().createTwoFactorCode(
         logUser.data.idUser,
@@ -395,6 +394,11 @@ routerUser.post("/auth/login", loginLimiter, async (req: Request, res: Response)
           );
       }
 
+      // Cookie d'attente uniquement : la session complète n'est ouverte qu'à la
+      // validation du code, par /two-factor/verify. Sans cela, il suffisait de
+      // fermer la fenêtre de saisie pour être déjà connecté.
+      createPendingTwoFactorCookie(logUser.data.idUser, logUser.data.role, res);
+
       return res.status(200).json({
         success: true,
         twoFactorRequired: true,
@@ -402,6 +406,11 @@ routerUser.post("/auth/login", loginLimiter, async (req: Request, res: Response)
         data: logUser.data,
       });
     }
+
+    // Pas de second facteur : l'identité est vérifiée, on ouvre la session.
+    // Le role vient du compte : le figer a "USER" retirait ses droits a un
+    // administrateur des qu'il se connectait par ce formulaire.
+    createCookieAuth(logUser.data.idUser, logUser.data.role, res);
 
     return res.status(200).json({
       success: true,
@@ -806,6 +815,11 @@ routerUser.post(
           data: { twoFactorEnabled: true },
         }),
       ]);
+
+      // Code validé : on échange le cookie d'attente (posé à la connexion)
+      // contre un vrai cookie de session. Sur l'enrôlement depuis le profil,
+      // la session était déjà complète : on la reconduit, sans effet de bord.
+      createCookieAuth(idUser, req.role ?? "USER", res);
 
       return res.status(200).json({
         success: true,

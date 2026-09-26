@@ -4,6 +4,21 @@ import jwt, { type JwtPayload } from "jsonwebtoken";
 interface AuthPayload extends JwtPayload {
   userId: number;
   role: string;
+  /**
+   * Présent et vrai tant que la connexion attend le second facteur. Un tel
+   * jeton n'ouvre pas la session : il n'atteint que les routes ci-dessous.
+   */
+  twoFactorPending?: boolean;
+}
+
+/**
+ * Routes accessibles avec un jeton d'attente 2FA : la saisie / le renvoi du
+ * code, et la déconnexion (pour annuler proprement). Tout le reste est refusé
+ * tant que le second facteur n'est pas validé.
+ */
+function estAutoriseePendantAttente2FA(req: Request): boolean {
+  const chemin = req.originalUrl.split("?")[0];
+  return chemin.includes("/two-factor") || chemin.endsWith("/auth/logout");
 }
 
 export function proxyAuthMiddleware( req: Request, res: Response, next: NextFunction): void {
@@ -39,6 +54,23 @@ export function proxyAuthMiddleware( req: Request, res: Response, next: NextFunc
     const payload = jwt.verify(token, process.env.JWT_SECRET!) as AuthPayload;
     res.locals.userId = payload.userId;
     res.locals.role = payload.role ?? "USER";
+
+    // Connexion en attente du second facteur : le jeton ne vaut que pour les
+    // routes 2FA. On NE rafraîchit PAS le cookie ici — le rafraîchissement
+    // reposerait un jeton sans le marqueur d'attente et rouvrirait la faille.
+    // Le vrai cookie de session est délivré par /two-factor/verify, une fois le
+    // code validé.
+    if (payload.twoFactorPending === true) {
+      if (!estAutoriseePendantAttente2FA(req)) {
+        res.status(401).json({
+          success: false,
+          message: "Second facteur requis pour accéder à cette ressource.",
+        });
+        return;
+      }
+      next();
+      return;
+    }
 
     const refreshed = jwt.sign(
       { userId: payload.userId, role: res.locals.role },
