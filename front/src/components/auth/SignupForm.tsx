@@ -9,12 +9,15 @@ import { CheckIcon, EyeOffIcon, EyeIcon, Loader2, PenBoxIcon } from "lucide-reac
 import { AlertBanner } from "../common/AlertBanner";
 
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { AuthPanelShell } from "./AuthPanelShell";
 import { ConnectGoogle } from "./ConnectGoogle";
 import { ConnectMicrosoft } from "./ConnectMicrosoft";
-import { VerifierBoiteMail } from "./VerifierBoiteMail";
+import { ActivationParCode } from "./ActivationParCode";
 import type { PresentationPanneau } from "../../store/authPanelStore";
+import { useUserStore } from "../../store/userStore";
+import { consommerDestination } from "../../utils/destinationApresConnexion";
 import { fetchProxy } from "../../utils/fetchProxy";
 
 const REGEX_EMAIL =
@@ -24,7 +27,7 @@ interface SignupFormProps {
   /** Referme le panneau : croix, clic à côté, touche Échap. */
   onClose: () => void;
   /** Bascule sur le panneau de connexion, depuis le pied du formulaire ou
-   *  l'écran « Vérifiez votre boîte mail ». */
+   *  l'écran d'activation (compte déjà activé). */
   onSwitchToLogin: () => void;
   /** Carte sous le bouton de l'en-tête, ou fenêtre centrée sur fond flouté. */
   presentation: PresentationPanneau;
@@ -40,17 +43,30 @@ interface SignupFormProps {
  * fil de la frappe, plutôt qu'en message d'erreur : l'utilisateur voit ce qui
  * lui reste à faire au lieu de découvrir un refus après coup.
  *
- * Une fois le compte créé, le formulaire cède la place à l'écran
- * « Vérifiez votre boîte mail », dans le même panneau.
+ * Une fois le compte créé, le formulaire cède la place à la saisie du code
+ * d'activation reçu par e-mail, dans le même panneau. À la validation du code,
+ * la session s'ouvre et l'utilisateur poursuit sa navigation.
  */
 export const SignupForm = ({
   onClose,
   onSwitchToLogin,
   presentation,
 }: SignupFormProps) => {
-  // Adresse à laquelle l'e-mail de vérification vient de partir : tant qu'elle
-  // est renseignée, l'écran de vérification remplace le formulaire.
+  // Adresse à laquelle le code d'activation vient de partir : tant qu'elle est
+  // renseignée, l'écran de saisie du code remplace le formulaire.
   const [emailAVerifier, setEmailAVerifier] = useState<string | null>(null);
+
+  const fetchUser = useUserStore((state) => state.fetchUser);
+  const navigate = useNavigate();
+
+  // Compte activé et session ouverte par /verify-code : on recharge l'utilisateur,
+  // on ferme le panneau et on l'emmène là où il voulait aller (ou l'accueil).
+  const handleCompteActive = async () => {
+    await fetchUser();
+    const destination = consommerDestination();
+    onClose();
+    navigate(destination ?? "/dashboard");
+  };
 
   const [lastName, setLastName] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -237,15 +253,16 @@ export const SignupForm = ({
   return (
     <AuthPanelShell
       id="signup-panel-title"
-      titre={emailAVerifier ? "Vérifiez votre boîte mail" : "Créer un compte"}
+      titre={emailAVerifier ? "Activez votre compte" : "Créer un compte"}
       presentation={presentation}
       onClose={onClose}
       largeur={400}
     >
       {emailAVerifier ? (
-        <VerifierBoiteMail
+        <ActivationParCode
           email={emailAVerifier}
           onModifier={() => setEmailAVerifier(null)}
+          onActive={handleCompteActive}
           onSeConnecter={onSwitchToLogin}
         />
       ) : (

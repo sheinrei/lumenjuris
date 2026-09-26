@@ -134,8 +134,8 @@ routerUser.post(
       }
 
       const { idUser } = createdUser.data;
-      const token = await new Token().createToken(idUser, "verifyAccount");
-      const url = `${process.env.HOST}/user/verify/${token.token}`;
+      // Activation par code (saisi dans le formulaire) plutôt que par lien.
+      const codeResult = await new Token().createVerifyAccountCode(idUser);
 
       if (
         enterprise &&
@@ -161,12 +161,14 @@ routerUser.post(
       // formulaire plus longtemps.
       const MAIL_ATTENTE_MS = 1500;
 
-      const envoi = new Mailer(email)
-        .sendVerifyAccount(url, `${prenom} ${nom}`)
-        .catch((err) => {
-          console.error("Envoi de l'email de vérification échoué:", err);
-          return { success: false as const };
-        });
+      const envoi = codeResult.success
+        ? new Mailer(email)
+            .sendVerifyAccountCode(codeResult.code, `${prenom} ${nom}`)
+            .catch((err) => {
+              console.error("Envoi du code d'activation échoué:", err);
+              return { success: false as const };
+            })
+        : Promise.resolve({ success: false as const });
 
       const resultat = await Promise.race([
         envoi,
@@ -180,7 +182,7 @@ routerUser.post(
         return res.status(200).json({
           success: true,
           mailSent: "pending",
-          message: `Votre compte a été créé. L'email de vérification part à l'instant vers ${email} : consultez votre boîte de réception, et vos spams.`,
+          message: `Votre compte a été créé. Le code d'activation part à l'instant vers ${email} : consultez votre boîte de réception, et vos spams.`,
         });
       }
 
@@ -192,8 +194,8 @@ routerUser.post(
           success: false,
           mailSent: false,
           message:
-            "Votre compte a bien été créé, mais l'e-mail de vérification n'a pas pu être envoyé. " +
-            "Utilisez le lien de renvoi depuis la page de vérification, ou contactez contact@lumenjuris.com.",
+            "Votre compte a bien été créé, mais le code d'activation n'a pas pu être envoyé. " +
+            "Utilisez le bouton de renvoi, ou contactez contact@lumenjuris.com.",
         });
       }
 
@@ -234,19 +236,19 @@ routerUser.post("/resend-verify", forgotPasswordLimiter, async (req: Request, re
       return res.status(200).json({ success: true });
     }
 
-    const token = await new Token().createToken(user.idUser, "verifyAccount");
+    const codeResult = await new Token().createVerifyAccountCode(user.idUser);
 
-    const verifyUrl = `${process.env.HOST}/user/verify/${token.token}`;
+    if (codeResult.success) {
+      const prenom = user.prenom;
+      const nom = user.nom;
+      // Envoi en arriere-plan : la reponse ne depend plus de la poignee de main
+      // SMTP (environ 1 seconde vers o2switch, plus la remise du message).
+      void new Mailer(user.email)
+        .sendVerifyAccountCode(codeResult.code, `${prenom} ${nom}`)
+        .catch((err) => console.error("Renvoi du code d'activation échoué:", err));
+    }
 
-    const prenom = user.prenom;
-    const nom = user.nom;
-    // Envoi en arriere-plan : la reponse ne depend plus de la poignee de main
-    // SMTP (environ 1 seconde vers o2switch, plus la remise du message).
-    void new Mailer(user.email)
-      .sendVerifyAccount(verifyUrl, `${prenom} ${nom}`)
-      .catch((err) => console.error("Renvoi de l'email de vérification échoué:", err));
-
-    return res.status(200).json({ success: true, message: "L'e-mail de vérification a bien été envoyé. " })
+    return res.status(200).json({ success: true, message: "Un nouveau code d'activation a été envoyé." })
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "L'e-mail de vérification n'a pas pu être envoyé." })
@@ -293,6 +295,124 @@ routerUser.get(
       return res.redirect(
         `${process.env.HOST_FRONT}/verify-account?reason=server`,
       );
+    }
+  },
+);
+
+/**
+ * Activation d'un compte par code (nouveau flux) : l'utilisateur saisit dans le
+ * formulaire le code reçu par e-mail. En cas de succès, le compte passe
+ * `isVerified` et la session est ouverte, l'utilisateur poursuit sa navigation.
+ *
+ * Limité en fréquence : le code n'a que 6 chiffres, il se forcerait par balayage
+ * sans plafond.
+ */
+routerUser.post(
+  "/verify-code",
+  twoFactorLimiter,
+  async (req: Request, res: Response) => {
+    try {
+      const { email, code } = req.body;
+
+      if (
+        typeof email !== "string" ||
+        typeof code !== "string" ||
+        !email ||
+        !code
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Une adresse e-mail et un code sont requis.",
+        });
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { email: email.trim() },
+        select: {
+          idUser: true,
+          email: true,
+          role: true,
+          isVerified: true,
+          twoFactorEnabled: true,
+        },
+      });
+
+      // Réponse volontairement identique à « code invalide » quand l'utilisateur
+      // n'existe pas : on ne révèle pas quelles adresses sont inscrites.
+      if (!user) {
+        return res.status(400).json({ success: false, message: "Code invalide." });
+      }
+
+      if (user.isVerified) {
+        return res.status(200).json({
+          success: true,
+          alreadyVerified: true,
+          message: "Ce compte est déjà activé. Vous pouvez vous connecter.",
+        });
+      }
+
+      const tokenEntry = await prisma.token.findFirst({
+        where: {
+          tokenHash: hashToken(code),
+          userId: user.idUser,
+          type: "verifyAccount",
+        },
+      });
+
+      if (!tokenEntry) {
+        return res.status(400).json({ success: false, message: "Code invalide." });
+      }
+
+      if (tokenEntry.status === "USED") {
+        return res
+          .status(400)
+          .json({ success: false, message: "Ce code a déjà été utilisé." });
+      }
+
+      if (tokenEntry.expiresAt < new Date() || tokenEntry.status === "EXPIRED") {
+        await prisma.token.update({
+          where: { idToken: tokenEntry.idToken },
+          data: { status: "EXPIRED" },
+        });
+        return res.status(400).json({
+          success: false,
+          message: "Ce code a expiré. Demandez-en un nouveau.",
+        });
+      }
+
+      await prisma.$transaction([
+        prisma.token.update({
+          where: { idToken: tokenEntry.idToken },
+          data: { status: "USED" },
+        }),
+        prisma.user.update({
+          where: { idUser: user.idUser },
+          data: { isVerified: true },
+        }),
+      ]);
+
+      // Comme l'ancien lien de validation : on active la formule Freemium et on
+      // ouvre la session pour que l'utilisateur poursuive sans se reconnecter.
+      new Subscription().activateFreemium(user.idUser).catch(console.error);
+      createCookieAuth(user.idUser, user.role, res);
+
+      return res.status(200).json({
+        success: true,
+        message: "Votre compte a été activé.",
+        data: {
+          idUser: user.idUser,
+          email: user.email,
+          role: user.role,
+          isVerified: true,
+          twoFactorEnabled: user.twoFactorEnabled,
+        },
+      });
+    } catch (err) {
+      console.error("Erreur lors de l'activation par code:", err);
+      return res.status(500).json({
+        success: false,
+        message: "Une erreur est survenue lors de l'activation du compte.",
+      });
     }
   },
 );

@@ -26,6 +26,11 @@ userRouter.post("/resend-verify", (req,res)=>{
 
 });
 
+// Activation d'un compte par code (utilisateur pas encore connecté).
+userRouter.post("/verify-code", (req, res) => {
+  relayToNode(req, res, "/user/verify-code");
+});
+
 userRouter.post("/auth/login", (req,res)=>{
     relayToNode(req,res, "/user/auth/login")
 });
