@@ -10,7 +10,7 @@ import {
 
 /**
  * Reprend la navigation interrompue quand l'utilisateur revient d'une
- * connexion Google.
+ * connexion via un fournisseur externe (Google, Microsoft).
  *
  * Ce passage recharge entièrement l'application : le panneau de connexion qui
  * gérait la redirection n'existe plus au retour, personne ne lirait la

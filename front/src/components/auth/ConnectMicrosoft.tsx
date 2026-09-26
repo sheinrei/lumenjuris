@@ -1,41 +1,35 @@
-/**
- * Bouton « Continuer avec Microsoft ».
- *
- * La connexion Microsoft n'est pas encore branchée côté serveur : le bouton
- * n'est là que pour la mise en page, et reste désactivé tant que la route
- * d'authentification n'existe pas. On le dit explicitement à l'utilisateur
- * plutôt que de laisser un clic sans effet.
- */
-export const ConnectMicrosoft = () => {
-  return (
-    <button
-      type="button"
-      disabled
-      title="La connexion Microsoft arrive bientôt"
-      className="inline-flex h-10 w-full cursor-not-allowed items-center justify-center gap-2 rounded-md border border-line text-sm font-medium text-ink-muted"
-    >
-      <LogoMicrosoft />
-      Continuer avec Microsoft
-      <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-subtle">
-        Bientôt
-      </span>
-    </button>
-  );
-};
+import { marquerConnexionExterne } from "../../utils/destinationApresConnexion"
 
-/** Les quatre carrés du logo Microsoft, aux couleurs de la marque. */
-function LogoMicrosoft() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      className="h-[15px] w-[15px]"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <rect x="0" y="0" width="7" height="7" fill="#F25022" />
-      <rect x="9" y="0" width="7" height="7" fill="#7FBA00" />
-      <rect x="0" y="9" width="7" height="7" fill="#00A4EF" />
-      <rect x="9" y="9" width="7" height="7" fill="#FFB900" />
+
+/** Logo Microsoft (les 4 carrés) en SVG, pour garder les couleurs officielles. */
+const MicrosoftLogo = () => (
+    <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true">
+        <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+        <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+        <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+        <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
     </svg>
-  );
+)
+
+
+export const ConnectMicrosoft = () => {
+    const PROXY_URL: string = import.meta.env.VITE_URL_PROXY || "http://localhost:3000";
+
+    const handleSubmitMicrosoft = () => {
+        // On quitte l'application : au retour, ce repère permet de reprendre la
+        // page que l'utilisateur voulait ouvrir avant de se connecter.
+        marquerConnexionExterne();
+        window.location.href = `${PROXY_URL}/api/user/auth/microsoft`;
+    };
+
+    return (
+        <button
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-lumenjuris text-sm font-medium text-lumenjuris transition-colors hover:bg-lumenjuris-background"
+            type="button"
+            onClick={handleSubmitMicrosoft}
+        >
+            <MicrosoftLogo />
+            Continuer avec Microsoft
+        </button>
+    )
 }
