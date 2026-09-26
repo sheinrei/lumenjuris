@@ -22,7 +22,11 @@ function optionsCookie(maxAge: number) {
   return {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    //sameSite: "strict",
+    // "lax" : le cookie n'est pas envoyé sur les requêtes cross-site (défense
+    // CSRF), mais l'est sur les navigations de premier niveau (retour OAuth) et
+    // entre sous-domaines lumenjuris.com (même site). Le complément Word, lui,
+    // s'authentifie par un Bearer, pas par ce cookie.
+    sameSite: "lax",
     // En prod, COOKIE_DOMAIN=.lumenjuris.com pour partager le cookie entre
     // les sous-domaines (proxy, backNode, front). Vide en dev => cookie
     // rattaché au host courant (localhost), comportement inchangé.

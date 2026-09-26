@@ -310,9 +310,9 @@ routerUser.post(
         .cookie("authLumenJuris", "", {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
-          //sameSite: "strict",
-          // Doit matcher le domaine posé à la connexion, sinon le logout
+          // Mêmes attributs qu'à la pose (voir cookieAuth) : sinon le logout
           // vide un cookie qui n'existe pas et la session reste active.
+          sameSite: "lax",
           domain: process.env.COOKIE_DOMAIN || undefined,
           path: "/",
           maxAge: 0,

@@ -77,6 +77,7 @@ export function proxyAuthMiddleware( req: Request, res: Response, next: NextFunc
     res.cookie("authLumenJuris", refreshed, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       domain: process.env.COOKIE_DOMAIN || undefined,
       path: "/",
       maxAge: 1000 * 60 * 60 * 24 * 7,

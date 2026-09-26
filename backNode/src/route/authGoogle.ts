@@ -91,14 +91,22 @@ routerAuthGoogle.get( "/auth/google/callback", async (req: Request, res: Respons
     );
 
 
-    const { sub, email, name, picture } = userInfo.data;
+    const { sub, email, email_verified, name, picture } = userInfo.data;
+
+    const FRONT = process.env.HOST_FRONT;
+
+    // On ne fait confiance à l'e-mail que si Google l'a vérifié : sinon
+    // n'importe qui pourrait créer un compte Google portant l'e-mail d'un tiers
+    // et, par la liaison ci-dessous, ouvrir le compte de ce tiers.
+    const emailVerifie = email_verified === true || email_verified === "true";
+    if (!email || !emailVerifie) {
+      return res.redirect(`${FRONT}/dashboard?error=google-email-non-verifie`);
+    }
 
     // Recherche dans la BDD d'un utilisateur inscrit avec un compte Google
     const findUser = await prisma.user.findUnique({
       where: { email: email },
     });
-
-    const FRONT = process.env.HOST_FRONT;
 
     if (findUser) {
       if (findUser.isBanned) {
