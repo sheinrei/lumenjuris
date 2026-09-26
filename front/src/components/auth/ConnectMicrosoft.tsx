@@ -16,8 +16,6 @@ export const ConnectMicrosoft = () => {
     const PROXY_URL: string = import.meta.env.VITE_URL_PROXY || "http://localhost:3000";
 
     const handleSubmitMicrosoft = () => {
-        // On quitte l'application : au retour, ce repère permet de reprendre la
-        // page que l'utilisateur voulait ouvrir avant de se connecter.
         marquerConnexionExterne();
         window.location.href = `${PROXY_URL}/api/user/auth/microsoft`;
     };
