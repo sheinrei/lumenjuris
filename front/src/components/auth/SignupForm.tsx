@@ -250,10 +250,6 @@ export const SignupForm = ({
         />
       ) : (
         <div className="flex flex-col gap-4">
-          <p className="text-[12.5px] leading-relaxed text-ink-muted">
-            Quelques secondes suffisent. Vous pourrez compléter votre profil
-            plus tard.
-          </p>
 
           {/* Le chemin le plus court d'abord : la plupart des gens s'arrêtent ici. */}
           <div className="flex flex-col gap-2">
@@ -311,7 +307,7 @@ export const SignupForm = ({
 
             <Field>
               <FieldLabel htmlFor="signup-email" className="text-[13px]">
-                E-mail professionnel
+                E-mail
               </FieldLabel>
               <Input
                 id="signup-email"

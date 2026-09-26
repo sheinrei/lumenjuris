@@ -493,9 +493,10 @@ routerUser.put("/", authMiddleware, async (req: Request, res: Response) => {
 
     const nouveauMotDePasse =
       typeof password === "string" ? password.trim() : "";
+
+    // Un nouveau mot de passe doit respecter la même politique qu'à
+    // l'inscription.
     if (nouveauMotDePasse) {
-      // Un mot de passe changé depuis le profil doit respecter la même
-      // politique qu'à l'inscription.
       const forcePassword = validatePasswordStrength(nouveauMotDePasse);
       if (!forcePassword.valide) {
         return res.status(400).json({
@@ -503,11 +504,30 @@ routerUser.put("/", authMiddleware, async (req: Request, res: Response) => {
           message: forcePassword.message,
         });
       }
+    }
 
-      // Ré-authentification : changer un mot de passe existant exige le mot de
-      // passe actuel. Sans cela, un cookie volé suffisait à prendre le compte.
-      // Un compte Google qui n'a pas encore de mot de passe peut en définir un
-      // sans cette étape (rien à confirmer).
+    // On lit l'état actuel pour savoir si la mise à jour touche quelque chose
+    // de sensible : changer le mot de passe, changer l'e-mail, ou désactiver la
+    // double authentification. Chacune de ces actions exige de reconfirmer le
+    // mot de passe actuel — sans quoi un cookie volé suffisait à prendre le
+    // compte (nouveau mot de passe, e-mail détourné, 2FA coupée).
+    const compteActuel = await prisma.user.findUnique({
+      where: { idUser },
+      select: { email: true, twoFactorEnabled: true },
+    });
+
+    const changeEmail =
+      typeof email === "string" &&
+      email.trim() !== "" &&
+      email.trim() !== compteActuel?.email;
+    const desactive2FA =
+      twoFactorEnabled === false && compteActuel?.twoFactorEnabled === true;
+    const changementSensible =
+      Boolean(nouveauMotDePasse) || changeEmail || desactive2FA;
+
+    if (changementSensible) {
+      // Un compte Google sans mot de passe (`hasPassword` faux) n'a rien à
+      // confirmer : il ne peut de toute façon pas changer de mot de passe ici.
       const controle = await new User().verifyPassword(
         idUser,
         typeof currentPassword === "string" ? currentPassword : "",

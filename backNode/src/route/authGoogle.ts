@@ -2,6 +2,7 @@ import express from "express";
 import type { Request, Response, Router } from "express";
 import axios from "axios";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import { createCookieAuth } from "../securite/cookieAuth.js";
 import { User } from "../services/classUser.js";
 import { Google } from "../services/classGoogle.js";
@@ -12,13 +13,22 @@ import { Mailer } from "../infrastructure/mailer/classMailer.js";
 
 
 const routerAuthGoogle: Router = express.Router();
-const oauthStates = new Map<string, number>()
+
+/** Le paramètre `state` OAuth n'est valable que quelques minutes. */
+const DUREE_STATE_OAUTH = "5m";
 
 //Route auth vers Google
 routerAuthGoogle.get("/auth/google", (req: Request, res: Response) => {
-  const state = crypto.randomUUID();
-  
-  oauthStates.set(state, Date.now() +5 * 60 * 1000);
+  // État anti-CSRF signé et auto-expirant, plutôt que stocké en mémoire :
+  // aucune fuite (rien à purger) et le callback peut tomber sur n'importe quelle
+  // instance (la Map précédente cassait dès qu'il y avait plusieurs process).
+  // Le nonce aléatoire rend chaque état unique.
+  const state = jwt.sign(
+    { nonce: crypto.randomUUID(), purpose: "google-oauth" },
+    process.env.JWT_SECRET!,
+    { expiresIn: DUREE_STATE_OAUTH },
+  );
+
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const redirectUri = `${process.env.HOST}/auth/google/callback`;
   const scope = "openid email profile";
@@ -43,12 +53,21 @@ routerAuthGoogle.get( "/auth/google/callback", async (req: Request, res: Respons
     
     const { code, state } = req.query;
 
-    const storedAt = oauthStates.get(state as string);
-
-    if (!storedAt || Date.now() > storedAt) {
+    // L'état doit être un jeton que NOUS avons signé et qui n'a pas expiré.
+    // La signature suffit à écarter un state forgé ; l'expiration borne sa
+    // durée de vie. (Le `code` Google, lui, n'est de toute façon utilisable
+    // qu'une fois.)
+    try {
+      const payload = jwt.verify(
+        typeof state === "string" ? state : "",
+        process.env.JWT_SECRET!,
+      ) as { purpose?: string };
+      if (payload.purpose !== "google-oauth") {
+        return res.status(400).send("Invalid State");
+      }
+    } catch {
       return res.status(400).send("Invalid State");
     }
-    oauthStates.delete(state as string);
 
     //Echanger le code contre un token
     const tokenResponse = await axios.post(

@@ -38,13 +38,10 @@ export function proxyAuthMiddleware( req: Request, res: Response, next: NextFunc
   const token = cookieToken ?? bearerToken;
 
   if (!token) {
-    // Mode dev local : laisser passer sans token (POC complément Word).
-    // En production, le comportement reste inchangé (401).
-    console.log("Token absent dans le authMiddleware du proxy")
-    if (process.env.NODE_ENV !== "production") {
-      next();
-      return;
-    }
+    // Aucun jeton : accès refusé, en dev comme en prod. Le laissez-passer « dev »
+    // qui existait ici était un fail-open : la moindre valeur de NODE_ENV autre
+    // que "production" ouvrait toutes les routes protégées. Le complément Word
+    // s'authentifie par un Bearer (traité plus haut), il n'en dépendait pas.
     res.status(401).json({ success: false, message: "Unauthorized" });
     return;
   }
@@ -86,8 +83,7 @@ export function proxyAuthMiddleware( req: Request, res: Response, next: NextFunc
     });
 
     next();
-  } catch(err){
-    console.log("Une erreur est survenue lors du authMiddleware du proxy, error : ", err)
+  } catch {
     res
       .status(401)
       .json({ success: false, message: "Token invalide ou expiré" });

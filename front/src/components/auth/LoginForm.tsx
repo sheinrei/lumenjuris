@@ -30,27 +30,19 @@ import { AuthPanelShell } from "./AuthPanelShell";
 
 /** Une bannière du panneau, décrite dans le tableau `alertes` du composant. */
 interface Alerte {
-  /** Clé de rendu, propre à chaque bannière. */
   id: string;
-  /** La bannière n'est rendue que si cette condition est vraie. */
   visible: boolean;
   variant: AlertVariant;
   title: string;
   detail: string;
-  /** Durée d'affichage en millisecondes avant disparition automatique. */
   duration: number;
-  /** Remet à zéro ce que la bannière signalait. */
   onClose: () => void;
-  /** Précision affichée juste sous la bannière. */
   complement?: React.ReactNode;
 }
 
 interface LoginFormProps {
-  /** Referme le panneau : croix, clic à côté, touche Échap, connexion réussie. */
   onClose: () => void;
-  /** Bascule sur le panneau d'inscription, depuis le pied du formulaire. */
   onSwitchToSignup: () => void;
-  /** Carte sous le bouton de l'en-tête, ou fenêtre centrée sur fond flouté. */
   presentation: PresentationPanneau;
 }
 
@@ -80,15 +72,12 @@ export const LoginForm = ({
   const [submitError, setSubmitError] = useState(false);
   const [submitForgotError, setSubmitForgotError] = useState(false);
   const [serverError, setServerError] = useState(false);
-  const [serverErrorMessage, setServerErrorMessage] = useState(
-    "Une erreur est survenue, veuillez réessayer...",
-  );
+  const [serverErrorMessage, setServerErrorMessage] = useState("Une erreur est survenue, veuillez réessayer...");
   const [isBanned, setIsBanned] = useState(false);
   const [twoFactorModalOpen, setTwoFactorModalOpen] = useState(false);
   const [twoFactorEmail, setTwoFactorEmail] = useState("");
   const [verificationError, setVerificationError] = useState(false);
-  const verificationErrorMessage =
-    "Pour valider votre compte veuillez cliquer sur le lien qui vous a été envoyé par e-mail.";
+  const verificationErrorMessage = "Pour valider votre compte veuillez cliquer sur le lien qui vous a été envoyé par e-mail.";
 
   const [showRateLimitModal, setShowRateLimitModal] = useState(false);
   const [showRateLimitLogin, setShowRateLimitLogin] = useState(false);
@@ -125,7 +114,6 @@ export const LoginForm = ({
   //Handle de la connexion d'un user
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     if (!email || !password) {
       setSubmitError(true);
       return;
@@ -306,6 +294,8 @@ export const LoginForm = ({
     setEtape("motDePasse");
   };
 
+
+
   /** Retour à la saisie de l'adresse : le mot de passe déjà tapé n'a plus lieu d'être. */
   const handleChangerEmail = () => {
     setPassword("");
@@ -438,7 +428,7 @@ export const LoginForm = ({
           {alertes
             .filter((alerte) => alerte.visible)
             .map(({ id, visible: _visible, complement, ...proprietes }) => (
-              <section key={id} className="flex flex-col gap-2">
+              <section key={id} className="flex flex-col gap-4">
                 <AlertBanner {...proprietes} />
                 {complement}
               </section>
@@ -447,7 +437,7 @@ export const LoginForm = ({
           {forgotPassword ? (
             <form
               onSubmit={handleSubmitForgotPassword}
-              className="flex flex-col gap-4"
+              className="flex flex-col gap-2"
             >
               <Field>
                 <FieldDescription className="text-[12.5px] leading-relaxed text-ink-muted">
@@ -483,8 +473,14 @@ export const LoginForm = ({
               </button>
             </form>
           ) : (
-            <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
-              {etape === "email" ? (
+            <form onSubmit={handleFormSubmit} className="flex flex-col gap-2">
+
+              <ConnectGoogle />
+              <ConnectMicrosoft />
+              <div className="flex items-center gap-2">
+                <div className="h-px w-full bg-line" />                
+              </div>
+              {etape === "email" && (
                 <>
                   <Field>
                     <FieldLabel htmlFor="email" className="text-[13px]">
@@ -511,25 +507,6 @@ export const LoginForm = ({
                     Continuer avec l'email
                   </Button>
                 </>
-              ) : (
-                /* Le champ disparaît une fois l'adresse validée : il n'y a
-                   plus rien à y saisir. On garde l'adresse en toutes lettres,
-                   pour que l'utilisateur voie sous quel compte il se connecte,
-                   et le bouton qui ramène à l'étape précédente. */
-                <div className="flex items-center gap-2 rounded-xl border border-line-subtle bg-surface-subtle px-3 py-2">
-                  <MailIcon className="h-4 w-4 shrink-0 text-ink-subtle" />
-                  <span className="flex-1 truncate text-[13px] font-medium text-ink" title={email}>
-                    {email}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleChangerEmail}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold text-brand transition-colors hover:bg-white"
-                  >
-                    <PencilIcon className="h-3 w-3" />
-                    Changer d'email
-                  </button>
-                </div>
               )}
 
               {/* Le mot de passe n'apparaît qu'une fois l'adresse validée. */}
@@ -564,27 +541,35 @@ export const LoginForm = ({
 
                   <Button
                     className="w-full text-background border border-lumenjuris"
-                    disabled={submitLoading || submitError}
+                    disabled={submitLoading || submitError || !password}
                     type="submit"
                     size="lg"
                   >
                     <LogInIcon className="h-4 w-4" />
                     Se connecter
                   </Button>
+
+                                  <div className="flex items-center gap-2 rounded-xl border border-line-subtle bg-surface-subtle px-3 py-2">
+                  <MailIcon className="h-4 w-4 shrink-0 text-ink-subtle" />
+                  <span className="flex-1 truncate text-[13px] font-medium text-ink" title={email}>
+                    {email}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleChangerEmail}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold text-brand transition-colors hover:bg-white"
+                  >
+                    <PencilIcon className="h-3 w-3" />
+                    Changer d'email
+                  </button>
+                </div>
                 </>
               )}
 
-              <div className="flex items-center gap-3">
-                <div className="h-px w-full bg-line" />
-                <span className="text-[11px] font-medium tracking-wide text-ink-subtle">
-                  OU
-                </span>
-                <div className="h-px w-full bg-line" />
-              </div>
 
-              <ConnectGoogle />
-              <ConnectMicrosoft />
 
+
+              {/* CTA  forgotpassword && signup*/}
               <button
                 type="button"
                 className="w-fit self-center text-[12.5px] text-ink-muted underline-offset-2 transition-colors hover:text-brand hover:underline"
@@ -607,6 +592,7 @@ export const LoginForm = ({
           )}
         </div>
       </AuthPanelShell>
+
 
       <TwoFactorCodeModal
         open={twoFactorModalOpen}

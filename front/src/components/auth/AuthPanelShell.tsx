@@ -5,14 +5,10 @@ import { X } from "lucide-react";
 import type { PresentationPanneau } from "../../store/authPanelStore";
 
 interface Props {
-  /** Titre affiché en en-tête, il suit l'étape en cours du formulaire. */
   titre: string;
   presentation: PresentationPanneau;
-  /** Referme : croix, clic en dehors, touche Échap. */
   onClose: () => void;
-  /** Largeur de la carte en pixels — l'inscription a plus de champs. */
   largeur: number;
-  /** Identifiant du titre, pour `aria-labelledby`. */
   id: string;
   children: React.ReactNode;
 }
@@ -40,6 +36,7 @@ export function AuthPanelShell({
   id,
   children,
 }: Props) {
+  
   // Échap referme, comme la croix.
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -76,7 +73,7 @@ export function AuthPanelShell({
             : "right-3 top-14 max-h-[calc(100vh-4.5rem)]"
         }`}
       >
-        <header className="flex shrink-0 items-center justify-between border-b border-line-subtle px-5 py-3.5">
+        <header className="flex shrink-0 items-center justify-between border-b-2  px-5 py-2">
           <h2 id={id} className="text-[15px] font-semibold text-ink">
             {titre}
           </h2>
